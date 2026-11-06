@@ -1,0 +1,11 @@
+**
+!prototype/
+!prototype/**
+!scripts/
+!scripts/prototype/
+!scripts/prototype/**
+!locks/
+!locks/**
+!examples/
+!examples/java/
+!examples/java/**
