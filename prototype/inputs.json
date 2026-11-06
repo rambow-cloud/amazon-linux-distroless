@@ -14,6 +14,8 @@
       "ca-certificates",
       "tzdata",
       "libstdc++",
+      "freetype",
+      "alsa-lib",
       "java-21-amazon-corretto-headless"
     ]
   }
