@@ -1,11 +1,6 @@
 name: Native RPM database CVE comparison
 on:
   workflow_dispatch:
-  push:
-    branches: [security/rpmdb-compare]
-    paths:
-      - security/**
-      - .github/workflows/rpmdb-comparison.yml
 permissions:
   contents: read
   actions: read

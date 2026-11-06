@@ -1,11 +1,6 @@
 name: Grype Java CVE comparison
 on:
   workflow_dispatch:
-  push:
-    branches: [security/grype-compare]
-    paths:
-      - security/**
-      - .github/workflows/grype-comparison.yml
 permissions:
   contents: read
   actions: read

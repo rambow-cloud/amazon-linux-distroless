@@ -2,6 +2,8 @@
 
 This is an owner-requested experiment tracked in [#25](https://github.com/rambow-cloud/amazon-linux-distroless/issues/25), implemented in [PR #26](https://github.com/rambow-cloud/amazon-linux-distroless/pull/26). All RPM resolution, image builds, and runtime checks run in GitHub Actions. The build driver rejects execution outside Actions.
 
+For future builder/RPM refreshes, candidate lock review, proposed automation and rollback, see [Updating inputs](UPDATING.md). The completed CVE comparison workflows have been retired; normal input resolution and build/runtime validation remain the update path.
+
 ## Scope and locked inputs
 
 - Platform: `linux/amd64`, running natively on an Ubuntu 24.04 Actions runner.
