@@ -10,7 +10,7 @@ This is an owner-requested experiment tracked in [#25](https://github.com/rambow
 - Java: Amazon Corretto 21, exact RPM version `21.0.13.0.11-1.amzn2023.1`.
 - Outputs: `base`, `java`, and a runnable `demo`; every image declares `USER 65532:65532`.
 
-The lock contains 35 base transaction RPMs, 40 Java transaction RPMs, 31 matching source RPMs, and the exact installed builder-tool identities. These transaction inputs are broader than the final runtime: shell and package-manager dependencies needed by RPM scriptlets stay outside the selected filesystem.
+The lock contains 35 base transaction RPMs, 41 Java transaction RPMs, 31 matching source RPMs, and the exact installed builder-tool identities. These transaction inputs are broader than the final runtime: shell and package-manager dependencies needed by RPM scriptlets stay outside the selected filesystem. The Java roots explicitly include `libstdc++`, required by the selected JVM's ELF dependencies even though a standalone C++ image is excluded.
 
 ## Build pipeline
 

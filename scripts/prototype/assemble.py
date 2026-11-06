@@ -188,6 +188,7 @@ class Assembler:
         self.generated[path.lstrip("/")] = "prototype symlink"
 
     def elf_closure(self):
+        missing = set()
         while self.elf_queue:
             source = self.elf_queue.pop()
             if source in self.elf_seen:
@@ -202,8 +203,12 @@ class Assembler:
                 candidates += sorted(self.source.glob("usr/lib/jvm/**/" + library))
                 candidate = next((p for p in candidates if p.is_file() or p.is_symlink()), None)
                 if candidate is None:
-                    raise RuntimeError("{} needs missing {}".format(source.name, library))
+                    missing.add((source.name, library))
+                    continue
                 self.copy("/" + candidate.relative_to(self.source).as_posix())
+        if missing:
+            raise RuntimeError("Missing ELF dependencies: " + "; ".join(
+                "{} needs {}".format(binary, library) for binary, library in sorted(missing)))
 
 
 def inspect_tree(root):

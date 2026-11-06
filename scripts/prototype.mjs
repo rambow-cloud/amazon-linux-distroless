@@ -29,6 +29,11 @@ if (process.argv[2] === 'lock') {
     '--epoch', epoch, '--output', '/workspace/out/linux-amd64.json');
 } else if (process.argv[2] === 'build') {
   const lock = JSON.parse(fs.readFileSync('locks/linux-amd64.json', 'utf8'));
+  if (lock.platform !== inputs.platform || lock.releasever !== inputs.releasever ||
+      !Object.entries(inputs.roots).every(([variant, roots]) =>
+        JSON.stringify(lock.variants[variant]?.roots) === JSON.stringify(roots))) {
+    throw new Error('Input specification differs from lock; resolve and review a new lock first');
+  }
   if (!/@sha256:[a-f0-9]{64}$/.test(lock.builder)) throw new Error('Builder digest required');
   tools(lock.builder, lock.releasever);
   docker('run', '--rm', '--mount', 'type=bind,src=' + root + ',dst=/workspace',
