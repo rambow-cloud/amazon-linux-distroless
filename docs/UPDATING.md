@@ -53,7 +53,7 @@ There is no in-place package-update command inside the shell-free runtime. Refre
 
 ## Proposed automation and maintenance policy
 
-The following is the intended design for [#12](https://github.com/rambow-cloud/amazon-linux-distroless/issues/12), not an enabled schedule or promised response SLA. No cron or publishing automation is activated by this document.
+The [builder discovery workflow](UPSTREAM-DISCOVERY.md), tracked in #35, implements daily official-image detection and deduplicated maintenance-issue proposals. Its schedule activates after integration into the default branch; feature-branch previews are read-only. The following full RPM updater/release design remains work in [#12](https://github.com/rambow-cloud/amazon-linux-distroless/issues/12), with no RPM-lock refresh, update-PR writer or publishing schedule enabled and no promised response SLA.
 
 - Use a weekly upstream check as a starting cadence, with an explicit manual security-refresh entry point. Monitor AL2023 release notes/ALAS and the supported Corretto/Python/Node.js release lines. Assess security notifications promptly and prioritize a qualified emergency candidate when a supported shipped component is affected; publishing remains subject to the same evidence gates.
 - Have the detector create/link a scoped update issue before implementation, deduplicate by the proposed snapshot/builder/runtime-line identities, regenerate locks in Actions and open a PR with package/source/license/advisory/size diffs. An unchanged candidate should not create another PR. Updating a language major requires a separate compatibility decision.
