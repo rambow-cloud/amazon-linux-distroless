@@ -13,6 +13,7 @@
       "glibc",
       "ca-certificates",
       "tzdata",
+      "libstdc++",
       "java-21-amazon-corretto-headless"
     ]
   }

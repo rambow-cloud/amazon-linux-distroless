@@ -1,6 +1,9 @@
 name: Prototype lock update
 on:
   workflow_dispatch:
+  push:
+    branches: [prototype/lock-java-native]
+    paths: [prototype/inputs.json]
 permissions:
   contents: read
 jobs:
