@@ -82,6 +82,13 @@ def locked_packages(lock):
     return list(result.values())
 
 
+def download_url(url):
+    parts = urllib.parse.urlsplit(url)
+    # S3-backed CDN paths distinguish a literal '+' from an encoded space.
+    encoded = urllib.parse.quote(urllib.parse.unquote(parts.path), safe="/")
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, encoded, parts.query, ""))
+
+
 def fetch(lock, cache, sources=False):
     cache = Path(cache)
     cache.mkdir(parents=True, exist_ok=True)
@@ -97,7 +104,8 @@ def fetch(lock, cache, sources=False):
         path = cache / package["filename"]
         if not path.exists():
             temporary = path.with_suffix(".part")
-            with urllib.request.urlopen(package["url"], timeout=120) as response, temporary.open("wb") as out:
+            print("Downloading locked input: " + package["filename"], flush=True)
+            with urllib.request.urlopen(download_url(package["url"]), timeout=120) as response, temporary.open("wb") as out:
                 if urllib.parse.urlsplit(response.url).hostname != "cdn.amazonlinux.com":
                     raise ValueError("Download redirected outside the official CDN")
                 shutil.copyfileobj(response, out)

@@ -5,10 +5,15 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from assemble import Assembler, fetch, inspect_tree, license_paths, read_lock, rooted_path
+from assemble import Assembler, download_url, fetch, inspect_tree, license_paths, read_lock, rooted_path
 
 
 class AssemblyTests(unittest.TestCase):
+    def test_literal_plus_in_rpm_url_is_encoded_without_double_encoding(self):
+        expected = "https://cdn.amazonlinux.com/al2023/blobstore/hash/libstdc%2B%2B.rpm"
+        self.assertEqual(download_url("https://cdn.amazonlinux.com/al2023/blobstore/hash/libstdc++.rpm"), expected)
+        self.assertEqual(download_url(expected), expected)
+
     def test_rpm_license_rows_allow_empty_flags_and_stripped_final_field(self):
         self.assertEqual(list(license_paths("/COPYING\tl\n/file\t\n/last-unflagged")), ["/COPYING"])
 
