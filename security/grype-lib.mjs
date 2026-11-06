@@ -20,7 +20,7 @@ export function grypeFindings(report) {
 export function grypeMetrics(report, sbom) {
   const list = grypeFindings(report);
   const os = list.filter(f => ['rpm', 'deb', 'apk'].includes(f.type));
-  return { distro: sbom.linuxDistribution, packages: sbom.artifacts.length,
+  return { distro: sbom.distro, packages: sbom.artifacts.length,
     osPackages: sbom.artifacts.filter(a => ['rpm', 'deb', 'apk'].includes(a.type)).length,
     packageTypes: Object.fromEntries([...new Set(sbom.artifacts.map(a => a.type))].map(type =>
       [type, sbom.artifacts.filter(a => a.type === type).length])),
@@ -35,8 +35,8 @@ export function grypeMetrics(report, sbom) {
     namespaces: [...new Set(list.map(f => f.namespace))] };
 }
 export function assertSyftRpms(sbom, expected) {
-  assert.equal(sbom.linuxDistribution?.id, 'amzn');
-  assert.match(sbom.linuxDistribution?.versionID || '', /^2023(?:\.|$)/);
+  assert.equal(sbom.distro?.id, 'amzn');
+  assert.match(sbom.distro?.versionID || '', /^2023(?:\.|$)/);
   const actual = sbom.artifacts.filter(a => a.type === 'rpm').map(a => {
     const m = a.metadata;
     const epoch = Number(m.epoch || 0);
