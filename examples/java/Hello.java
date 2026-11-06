@@ -25,7 +25,8 @@ public final class Hello {
         Path probe = Files.createTempFile("al2023-distroless-", ".txt");
         Files.writeString(probe, "writable tmpfs");
         Files.delete(probe);
-        boolean readOnly = false;
+        boolean readOnly = Files.getFileStore(Path.of("/")).isReadOnly();
+        if (!readOnly) throw new IllegalStateException("Root mount is writable");
         try {
             Files.writeString(Path.of("/app/should-not-exist"), "forbidden");
         } catch (java.nio.file.FileSystemException expected) {

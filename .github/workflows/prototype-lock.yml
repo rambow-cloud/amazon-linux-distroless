@@ -1,14 +1,6 @@
 name: Prototype lock update
 on:
   workflow_dispatch:
-  push:
-    branches: [prototype/java-buildkit]
-    paths:
-      - prototype/inputs.json
-      - prototype/Dockerfile
-      - scripts/prototype/resolve.py
-      - scripts/prototype.mjs
-      - .github/workflows/prototype-lock.yml
 permissions:
   contents: read
 jobs:

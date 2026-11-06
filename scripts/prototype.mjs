@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Run prototype builds in GitHub Actions');
 process.chdir(root);
 const output = (...args) => execFileSync('docker', args, { encoding: 'utf8' }).trim();
 const docker = (...args) => execFileSync('docker', args, { stdio: 'inherit' });
@@ -29,6 +30,7 @@ if (process.argv[2] === 'lock') {
 } else if (process.argv[2] === 'build') {
   const lock = JSON.parse(fs.readFileSync('locks/linux-amd64.json', 'utf8'));
   if (!/@sha256:[a-f0-9]{64}$/.test(lock.builder)) throw new Error('Builder digest required');
+  tools(lock.builder, lock.releasever);
   const args = ['build', '--platform', 'linux/amd64', '-f', 'prototype/Dockerfile',
     '--build-arg', 'AL2023_BASE=' + lock.builder,
     '--build-arg', 'AL2023_RELEASE=' + lock.releasever,
