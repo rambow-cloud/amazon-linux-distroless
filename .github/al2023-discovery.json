@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "source": "public.ecr.aws/amazonlinux/amazonlinux:2023",
+  "platform": "linux/amd64",
+  "proposal_milestone": 4
+}

@@ -1,0 +1,65 @@
+name: AL2023 builder discovery
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [automation/al2023-discovery]
+    paths:
+      - .github/workflows/al2023-discovery.yml
+      - .github/al2023-discovery.json
+      - scripts/upstream/**
+      - tests/upstream-discovery.test.mjs
+permissions:
+  contents: read
+concurrency:
+  group: al2023-discovery-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  discover:
+    name: Discover official AL2023 builder
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      changed: ${{ steps.observe.outputs.changed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate discovery decisions and proposal deduplication
+        run: node --test tests/upstream-discovery.test.mjs
+      - name: Resolve upstream tag and read pinned image release marker
+        id: observe
+        run: node scripts/upstream/discover.mjs
+      - name: Retain upstream evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: al2023-builder-discovery
+          path: out/upstream/
+          retention-days: 30
+  propose:
+    name: Propose reviewed builder refresh
+    needs: discover
+    if: >-
+      needs.discover.outputs.changed == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: al2023-builder-discovery
+          path: out/upstream
+      - name: Create at most one maintenance issue per platform and digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node scripts/upstream/propose.mjs
