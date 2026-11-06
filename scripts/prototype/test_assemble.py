@@ -30,10 +30,13 @@ class AssemblyTests(unittest.TestCase):
         self.assertEqual((image.root / "usr/lib64/libtest.so").read_bytes(), b"runtime")
         self.assertFalse((image.root / "bin").exists())
 
-    def test_symlink_escape_is_rejected(self):
+    def test_excess_parent_segments_cannot_leave_virtual_root(self):
+        (self.source / "etc").mkdir()
+        (self.source / "etc/shadow").write_text("inside the disposable root")
         (self.source / "escape").symlink_to("/../../etc/shadow")
-        with self.assertRaisesRegex(ValueError, "escapes"):
-            rooted_path(self.source, "/escape")
+        resolved = rooted_path(self.source, "/escape")
+        self.assertEqual(resolved, self.source / "etc/shadow")
+        self.assertEqual(resolved.read_text(), "inside the disposable root")
 
     def test_symlink_cycle_is_rejected(self):
         (self.source / "a").symlink_to("b")

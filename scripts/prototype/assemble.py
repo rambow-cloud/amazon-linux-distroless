@@ -118,9 +118,10 @@ def rooted_path(root, path):
         if part in ("", "."):
             continue
         if part == "..":
-            if not parts:
-                raise ValueError("Path escapes the install root")
-            parts.pop()
+            # Match Linux/chroot semantics: .. at / remains at the virtual /.
+            # Never delegate absolute RPM symlinks to the builder filesystem.
+            if parts:
+                parts.pop()
             continue
         candidate = root.joinpath(*parts, part)
         if candidate.is_symlink():

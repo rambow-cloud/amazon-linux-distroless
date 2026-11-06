@@ -31,6 +31,8 @@ if (process.argv[2] === 'lock') {
   const lock = JSON.parse(fs.readFileSync('locks/linux-amd64.json', 'utf8'));
   if (!/@sha256:[a-f0-9]{64}$/.test(lock.builder)) throw new Error('Builder digest required');
   tools(lock.builder, lock.releasever);
+  docker('run', '--rm', '--mount', 'type=bind,src=' + root + ',dst=/workspace',
+    '--entrypoint', '/usr/bin/python3', 'al2023-prototype-tools:local', '/tools/test_assemble.py');
   const args = ['build', '--platform', 'linux/amd64', '-f', 'prototype/Dockerfile',
     '--build-arg', 'AL2023_BASE=' + lock.builder,
     '--build-arg', 'AL2023_RELEASE=' + lock.releasever,

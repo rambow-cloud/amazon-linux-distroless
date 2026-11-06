@@ -10,7 +10,6 @@ const command = (...args) => execFileSync('docker', args, { encoding: 'utf8' }).
 const docker = (...args) => execFileSync('docker', args, { stdio: 'inherit' });
 const mountedTools = ['run', '--rm', '--mount', 'type=bind,src=' + root + ',dst=/workspace',
   '--entrypoint', '/usr/bin/python3', 'al2023-prototype-tools:local'];
-docker(...mountedTools, '/tools/test_assemble.py');
 const images = {};
 for (const variant of ['base', 'java', 'demo']) {
   const name = 'al2023-distroless-' + variant + ':prototype';
