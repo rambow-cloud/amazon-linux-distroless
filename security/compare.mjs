@@ -4,11 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertCoverage, comparisonMarkdown, findings, inventorySbom, metrics, scanPackages } from './compare-lib.mjs';
+import { rpmdbOverlays } from './rpmdb.mjs';
+import { assertNativePackages, compareRepresentations } from './rpmdb-lib.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Run the comparison in GitHub Actions');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(root);
-const config = JSON.parse(fs.readFileSync('security/comparison.json', 'utf8'));
+const withRpmdb = process.argv.includes('--with-rpmdb');
+const config = JSON.parse(fs.readFileSync(withRpmdb ? 'security/rpmdb-comparison.json' : 'security/comparison.json', 'utf8'));
 const input = 'out/prototype-input';
 const out = 'out/cve';
 fs.mkdirSync(out, { recursive: true });
@@ -84,6 +87,7 @@ for (const required of ['glibc', 'java-21-amazon-corretto-headless', 'libstdc++'
 }
 write(out + '/prototype-inventory.cdx.json', adapted.bom);
 write(out + '/prototype-coverage.json', adapted.coverage);
+const rpmdbEvidence = withRpmdb ? rpmdbOverlays(root, lock, proto, config.prototype_tag) : null;
 trivy('sbom', ...common, '--output', '/work/' + out + '/prototype-inventory.json',
   '/work/' + out + '/prototype-inventory.cdx.json');
 const reports = {
@@ -91,6 +95,20 @@ const reports = {
   prototypeInventory: read(out + '/prototype-inventory.json'),
   officialNative: read(out + '/official-native.json'),
 };
+let representationComparison = null;
+if (rpmdbEvidence) {
+  for (const variant of ['full', 'payload']) {
+    const name = 'prototype-rpmdb-' + variant + '.json';
+    trivy('image', ...common, '--offline-scan', '--image-src', 'docker', '--platform', config.platform,
+      '--output', '/work/' + out + '/' + name, rpmdbEvidence.overlays[variant].id);
+    const report = read(out + '/' + name);
+    assertNativePackages(report, rpmdbEvidence.variants[variant].packages);
+    reports[variant === 'full' ? 'prototypeRpmFull' : 'prototypeRpmPayload'] = report;
+  }
+  representationComparison = compareRepresentations(reports.prototypeRpmPayload, reports.prototypeInventory,
+    reports.prototypeRpmFull, new Set(adapted.coverage.selected.map(p => p.name)));
+  write(out + '/representation-comparison.json', representationComparison);
+}
 assertCoverage(reports.prototypeInventory, adapted.coverage.selected);
 if (!scanPackages(reports.officialNative, true).length) throw new Error('Official OS package discovery is empty');
 const after = databaseFiles();
@@ -113,6 +131,7 @@ const result = {
   },
   scanner: { ref: scanner.ref, requestedTag: config.scanner_tag, version },
   databases, databaseUnchangedAcrossScans: true, coverage: adapted.coverage,
+  ...(withRpmdb ? { rpmdbEvidence, representationComparison } : {}),
   scans: Object.fromEntries(Object.entries(reports).map(([key, report]) => [key, metrics(report)])),
   findings: Object.fromEntries(Object.entries(reports).map(([key, report]) => [key, findings(report)])),
 };

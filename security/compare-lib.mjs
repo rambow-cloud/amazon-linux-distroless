@@ -116,6 +116,11 @@ export function comparisonMarkdown(result) {
     ['AL2023 inventory-backed', result.scans.prototypeInventory, 'All selected payload packages enumerated'],
     ['Official Distroless direct image', result.scans.officialNative, 'Native Debian/package metadata'],
   ];
+  if (result.scans.prototypeRpmFull) {
+    rows.splice(2, 0,
+      ['AL2023 native RPM full transaction', result.scans.prototypeRpmFull, 'Includes unshipped dependencies; not a runtime payload count'],
+      ['AL2023 native RPM payload only', result.scans.prototypeRpmPayload, 'Actual RPM headers; partial packages; native release marker added']);
+  }
   let text = '# Java 21 CVE comparison\n\n' +
     'One Trivy version/digest and unchanged vulnerability/Java database snapshot; linux/amd64; all severities and unfixed findings included. No application JAR was added to either runtime.\n\n' +
     '| Scan | OS packages | Critical | High | Medium | Low | Unknown | Package/advisory pairs | Unique CVEs | Fix listed | Coverage |\n' +
@@ -140,8 +145,23 @@ export function comparisonMarkdown(result) {
     '- Trivy Java language analysis primarily covers application dependencies/JAR metadata. JVM engine CVE matching here depends on OS/vendor package coverage; a recognized Temurin package does not prove complete Adoptium advisory coverage. No zero-JVM-risk conclusion is made.\n' +
     '- Packages are represented by their full RPM version even when only some files ship. Findings need affected-file/function and runtime applicability review; absence of a fix string is not proof that upstream has no mitigation.\n' +
     '- No ignore file, severity suppression, ignore-unfixed option, application exploitability analysis, VEX override or release gate was applied. This is a point-in-time diagnostic.\n';
+  if (result.rpmdbEvidence) {
+    const e = result.rpmdbEvidence;
+    const c = result.representationComparison;
+    text += '\n## Native RPM database experiment\n\n' +
+      'The original artifact did not preserve its disposable installed root. Its native RPM database was reconstructed in Actions by reinstalling the exact signed/checksummed locked RPM transaction offline, not copied from an unrelated AL2023 image. This is new metadata with verified package identities, not the original historical database bytes.\n\n' +
+      'Both scan-only overlays add the native database at ' + e.database_path + ' and the locked system-release package file usr/lib/system-release. Trivy 0.76.2 requires this release marker for Amazon Linux recognition; the original minimal etc/os-release alone was insufficient. Original runtime layers and configuration were verified unchanged, and the original image tag still identifies the tested image.\n\n' +
+      '- Full installed transaction packages: ' + e.variants.full.packages.length + '.\n' +
+      '- Payload-only packages after metadata-only erasures: ' + e.variants.payload.packages.length + '.\n' +
+      '- Both SQLite integrity checks: ' + e.variants.full.sqlite_integrity + ' / ' + e.variants.payload.sqlite_integrity + '.\n' +
+      '- Exact native RPM package name/epoch/version/release/architecture enumeration verified for both scans.\n' +
+      '- Payload native RPM findings equal inventory SBOM findings: ' + c.payloadFindingsIdentical + '.\n' +
+      '- Findings attributed to non-payload packages in the full database: ' + c.fullDatabaseAdditionalNonPayloadFindings.length + '.\n\n' +
+      'A pruned database still describes complete RPM packages even though the runtime ships selected files. It is scanner metadata and does not establish that every RPM-owned file is installed. The full transaction database may overstate runtime exposure by representing build-only/license-only dependencies. Removing package-manager executables does not require removing their passive metadata; choosing a supported scanner metadata contract remains release-design work.\n';
+  }
   text += '\n## Findings requiring review\n\n| Image | Severity | Package | Advisory | Installed | Fix listed |\n| --- | --- | --- | --- | --- | --- |\n';
-  for (const [label, list] of [['AL2023', result.findings.prototypeInventory], ['Official', result.findings.officialNative]]) {
+  for (const [label, list] of [['AL2023', result.findings.prototypeRpmPayload || result.findings.prototypeInventory],
+    ['AL2023 full transaction (includes non-payload)', result.findings.prototypeRpmFull || []], ['Official', result.findings.officialNative]]) {
     for (const f of list.filter(p => ['CRITICAL', 'HIGH'].includes(p.severity)).slice(0, 30)) {
       const id = f.url ? '[' + f.id + '](' + f.url + ')' : f.id;
       text += '| ' + [label, f.severity, f.package, id, f.installed, f.fixed || 'Not listed'].join(' | ') + ' |\n';
