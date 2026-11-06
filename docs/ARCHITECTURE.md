@@ -1,6 +1,6 @@
 # Architecture and implementation strategy
 
-Status: proposed implementation route. The runtime-contract RFC must settle the remaining choices before image implementation.
+Status: proposed implementation route. Java, Python, and Node.js are committed v1.0 runtimes. The shared runtime-contract RFC and language-runtime RFC must settle their remaining implementation choices before image assembly.
 
 ## Goals
 
@@ -24,7 +24,7 @@ BuildKit multi-stage Dockerfiles plus small, reviewable assembly scripts are the
 | Workload | Fully static binary; no glibc dependency | AL2023-compatible dynamically linked binary |
 | Common data | CA roots, minimal passwd/group, writable-path contract | Same |
 | glibc/loader | Excluded | Verified loader and runtime library closure |
-| C++ / language runtimes | Excluded | Excluded until separately accepted |
+| Language runtimes | Excluded from the foundation | Added only in separate `java`, `python`, and `nodejs` variants |
 | OpenSSL shared libraries | Excluded | Explicit RFC decision based on a supported workload; not assumed from the word `base` |
 | Time zones/locales | UTC baseline; additional data is an explicit contract decision | Same; glibc locale behavior must be tested |
 | Shell/package manager | Excluded | Excluded |
@@ -32,6 +32,22 @@ BuildKit multi-stage Dockerfiles plus small, reviewable assembly scripts are the
 `static` describes workload linkage, not a guarantee that arbitrary static glibc binaries work without external NSS/runtime data. Start with pure static Go probes. Rebuild dynamically linked applications against a compatible AL2023 toolchain; this is not a promise of compatibility with arbitrary Debian, Alpine/musl, or newer-glibc binaries.
 
 The contract must decide `/etc/os-release`, `/etc/nsswitch.conf`, CA bundle paths/symlinks, passwd/group entries, working directory, `/tmp` permissions, UTC behavior, and whether any runtime configuration needs generation. Container runtimes supply files such as `/etc/hosts` and `/etc/resolv.conf`; application behavior still needs final-container tests.
+
+## Committed language variants
+
+Java, Python, and Node.js are required deliverables for v1.0, with an intermediate v0.3 implementation milestone. All three use the shared AL2023 runtime contract and must pass on `linux/amd64` and `linux/arm64`. Select one maintained version line per language in the language-runtime RFC, lock its package identity and paths, and add additional versions only through separately scoped issues.
+
+| Variant | Assembly and application contract | Runtime-specific verification |
+| --- | --- | --- |
+| `java` | Official AL2023 Amazon Corretto headless runtime; executable JARs built in a separate builder; explicit `java` path and `JAVA_HOME` | JVM native libraries, Java truststore/CA behavior, DNS, direct JAR startup, signals, and non-root temporary-file behavior |
+| `python` | Versioned AL2023 interpreter and reviewed stdlib; dependencies installed into a documented path by a matching builder; no runtime pip or ensurepip installer payloads | `sys.path`, importlib/encodings, SSL and supported extension modules, native wheel ABI, bytecode/cache writes, and script/module entrypoints |
+| `nodejs` | Versioned AL2023 Node.js executable; production `node_modules` installed by a matching builder; direct `node` startup without npm/npx/corepack | ESM/CommonJS, Node/OpenSSL CA policy, DNS, Intl/data scope, native addon ABI/N-API, signals, and HTTP service operation |
+
+Keep package-version selection separate from floating alternatives symlinks. AWS documents namespaced Python and Node.js versions; the assembled image must have complete, intentional executable/symlink targets and configuration. Required development tools stay in the builder. Runtime executables such as `java`, `python`, and `node` are deliberately allowed even though they can execute application code.
+
+A standalone `cc` variant and general C++ workload support are out of scope. This does not prohibit a required `libstdc++`, `libgcc`, JNI library, Python extension, or Node native addon: include only the audited dependency closure of a supported workload. A C fixture may continue to test the shared glibc layer without constituting a C++ runtime product.
+
+Do not remove data merely because it is not an ELF dependency. Audit JVM truststores/resources, Python standard-library modules and dynamically loaded extensions, Node ICU/Intl and OpenSSL configuration, and all required license texts. Size and reproducibility budgets apply separately to each variant/version/architecture. Supply-chain and vulnerability evidence must identify the language runtime and native libraries even without an RPM database.
 
 ## Security and traceability
 
@@ -53,3 +69,6 @@ Reviewed on 2026-11-06:
 - [Official minimal image](https://docs.aws.amazon.com/linux/al2023/ug/minimal-container.html) retains `microdnf`; it is a useful baseline, not this project's final rootfs.
 - [AL2023 lifecycle](https://docs.aws.amazon.com/linux/al2023/ug/release-cadence.html) lists standard support through 2027-06-30 and maintenance through 2029-06-30. Recheck before setting a project support window.
 - [Google Distroless](https://github.com/GoogleContainerTools/distroless) provides a reference for minimal runtime and shell-free usage conventions. This project uses its own AL2023 assembly implementation.
+- [Corretto headless packages on AL2023](https://docs.aws.amazon.com/corretto/latest/corretto-21-ug/amazon-linux-install.html) illustrate the runtime/development package boundary; this is not a commitment to a specific major version.
+- [Python in AL2023](https://docs.aws.amazon.com/linux/al2023/ug/python.html) documents versioned interpreters and package support considerations.
+- [Node.js in AL2023](https://docs.aws.amazon.com/linux/al2023/ug/nodejs.html) documents namespaced packages, executable paths, and alternatives.

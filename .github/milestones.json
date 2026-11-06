@@ -5,7 +5,7 @@
   },
   {
     "title": "v0.1.0 — AL2023 runtime prototype",
-    "description": "Accept the runtime contract and licensing approach; lock official AL2023 inputs; assemble amd64 static/base rootfs; pass final-container workload and absent-tool tests. Exit: auditable local prototype, not a supported published image."
+    "description": "Accept the shared runtime and Java/Python/Node.js contracts and licensing approach; lock official AL2023 inputs; assemble amd64 static/base foundations; pass final-container workload tests. Exit: auditable local prototype and accepted contracts for all three committed languages."
   },
   {
     "title": "v0.2.0 — Multi-architecture CI",
@@ -13,10 +13,14 @@
   },
   {
     "title": "v1.0.0 — Verifiable stable release",
-    "description": "Ship complete SBOM/provenance/license evidence, vulnerability policy, signed immutable GHCR releases, update/rollback procedures, and consumer examples. Exit: both architectures satisfy the published support and release contract."
+    "description": "Release static, base, java, python, and nodejs on both architectures with SBOM/provenance/licenses, vulnerability gates, signed immutable GHCR artifacts, consumer examples, and update/rollback policy. Exit: every committed language and foundation variant meets the published support contract."
   },
   {
     "title": "v1.1.0 — Runtime extensions",
-    "description": "After v1.0, evaluate C++ runtime support, isolated debugging, and language-runtime proposals. Each extension requires an accepted contract and maintenance plan; language images are not promised by this milestone."
+    "description": "After v1.0, evaluate isolated debugging and operational improvements for the supported runtime images. A standalone C++/cc image is excluded; Java, Python, and Node.js are already required in v1.0."
+  },
+  {
+    "title": "v0.3.0 — Java, Python, and Node.js runtimes",
+    "description": "Implement separate Java (Amazon Corretto headless), Python, and Node.js images from pinned AL2023 packages on linux/amd64 and linux/arm64. Exit: all three language-specific workload and native-dependency probes pass in CI, with reviewed size budgets and evidence ready for stable-release qualification."
   }
 ]
