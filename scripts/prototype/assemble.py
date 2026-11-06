@@ -229,6 +229,14 @@ def inspect_tree(root):
     return result
 
 
+def license_paths(marked):
+    # rpm's unflagged last row may lose its trailing tab after text stripping.
+    for line in marked.splitlines():
+        file, separator, flags = line.partition("\t")
+        if separator and "l" in flags:
+            yield file
+
+
 def assemble(lock, cache, output):
     cache, output = Path(cache), Path(output)
     for package in locked_packages(lock):
@@ -271,9 +279,8 @@ def assemble(lock, cache, output):
         if (source / "usr/share/licenses").exists():
             image.copy("/usr/share/licenses")
         marked = run("rpm", "--root", str(source), "-qa", "--qf", "[%{FILENAMES}\t%{FILEFLAGS:fflags}\n]")
-        for line in marked.splitlines():
-            file, flags = line.split("\t", 1)
-            if "l" in flags and rooted_path(source, file).exists():
+        for file in license_paths(marked):
+            if rooted_path(source, file).exists():
                 image.copy(file)
         image.link("/lib64", "usr/lib64")
         (selected / "usr/lib").mkdir(parents=True, exist_ok=True)

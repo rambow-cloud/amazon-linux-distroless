@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Status: repository foundation. Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. No runtime images are published.
+Status: repository foundation plus an experimental [Actions-only Java prototype](PROTOTYPE.md), tracked in [#25](https://github.com/rambow-cloud/amazon-linux-distroless/issues/25). Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. No stable runtime release or registry tag is published.
 
 ## Delivery sequence
 
