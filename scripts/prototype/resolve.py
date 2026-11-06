@@ -2,8 +2,10 @@
 import argparse
 import hashlib
 import json
+import posixpath
 from pathlib import Path
 import subprocess
+import urllib.parse
 import dnf
 
 
@@ -15,6 +17,12 @@ def tool_packages():
     return sorted(line for line in run("rpm", "-qa", "--qf",
                   "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n").splitlines()
                   if not line.startswith("gpg-pubkey-"))
+
+
+def canonical_url(url):
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc,
+                                   posixpath.normpath(parts.path), parts.query, ""))
 
 
 def main():
@@ -62,11 +70,43 @@ def main():
                     "version": package.version, "release": package.release,
                     "arch": package.arch, "filename": path.name,
                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                    "url": package.remote_location(), "license": package.license,
+                    "url": canonical_url(package.remote_location()), "license": package.license,
                     "source_rpm": package.sourcerpm, "signature_verified": True,
                 })
             lock["variants"][variant] = {"roots": roots, "packages": entries}
             print("Resolved {}: {} verified RPMs".format(variant, len(entries)), flush=True)
+    required_sources = {p["source_rpm"] for v in lock["variants"].values() for p in v["packages"]}
+    with dnf.Base() as base:
+        base.conf.substitutions["releasever"] = inputs["releasever"]
+        base.conf.cachedir = "/tmp/prototype-dnf-source"
+        base.read_all_repos()
+        for repo in base.repos.iter_enabled():
+            repo.disable()
+        base.repos["amazonlinux-source"].enable()
+        base.fill_sack(load_system_repo=False)
+        sources = {}
+        for package in base.sack.query().available().filter(arch="src"):
+            filename = Path(urllib.parse.urlsplit(package.remote_location()).path).name
+            if filename in required_sources:
+                sources[filename] = package
+        missing = required_sources - set(sources)
+        if missing:
+            raise RuntimeError("Matching source RPMs are missing: " + ", ".join(sorted(missing)))
+        base.download_packages(list(sources.values()))
+        lock["sources"] = []
+        for filename, package in sorted(sources.items()):
+            path = Path(package.localPkg())
+            verification = run("rpmkeys", "--checksig", "--verbose", str(path))
+            if "signature" not in verification.lower():
+                raise RuntimeError("Source RPM has no signature: " + filename)
+            lock["sources"].append({
+                "name": package.name, "epoch": str(package.epoch),
+                "version": package.version, "release": package.release, "arch": "src",
+                "filename": filename, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "url": canonical_url(package.remote_location()), "license": package.license,
+                "signature_verified": True,
+            })
+        print("Locked {} corresponding source RPMs".format(len(sources)), flush=True)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
