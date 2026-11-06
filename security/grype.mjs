@@ -58,7 +58,9 @@ const shared = ['run', '--rm', '--platform', config.platform, '--mount', 'type=b
 const syft = (...args) => capture(...shared, '--network', 'none',
   '--mount', 'type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock',
   '-e', 'SYFT_CHECK_FOR_APP_UPDATE=false', '-e', 'SYFT_JAVA_USE_NETWORK=false', tools.syft.ref, ...args);
-const grypeArgs = [...shared, '--mount', 'type=bind,src=' + root + '/out/grype-cache,dst=/cache',
+const grypeArgs = [...shared, '--user', process.getuid() + ':' + process.getgid(),
+  '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777', '-e', 'HOME=/tmp',
+  '--mount', 'type=bind,src=' + root + '/out/grype-cache,dst=/cache',
   '-e', 'GRYPE_CHECK_FOR_APP_UPDATE=false', '-e', 'GRYPE_DB_CACHE_DIR=/cache',
   '-e', 'GRYPE_DB_AUTO_UPDATE=false', '-e', 'GRYPE_ONLY_FIXED=false', '-e', 'GRYPE_ONLY_NOTFIXED=false'];
 const grype = (...args) => capture(...grypeArgs, '--network', 'none', tools.grype.ref, ...args);
