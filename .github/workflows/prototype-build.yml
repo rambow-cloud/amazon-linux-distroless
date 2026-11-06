@@ -31,7 +31,7 @@ jobs:
       - name: Package the preview and build source together
         shell: bash
         run: |
-          docker save al2023-distroless-base:prototype al2023-distroless-java:prototype al2023-distroless-demo:prototype | gzip -n > out/prototype/images.tar.gz
+          gzip -n out/prototype/images.tar
           git archive --format=tar.gz --output=out/prototype/project-source.tar.gz HEAD
           cp prototype/ARTIFACT-README.txt out/prototype/README.txt
           cd out/prototype

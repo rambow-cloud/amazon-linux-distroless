@@ -19,15 +19,8 @@ for (const variant of ['base', 'java', 'demo']) {
   }
   images[variant] = { name, id: image.Id, size: image.Size, user: image.Config.User,
     platform: image.Os + '/' + image.Architecture, entrypoint: image.Config.Entrypoint, cmd: image.Config.Cmd };
-  if (variant !== 'demo') {
-    const container = command('create', '--entrypoint', '/not-executed', name);
-    try {
-      docker('export', '--output', 'out/prototype/' + variant + '-rootfs.tar', container);
-    } finally {
-      docker('rm', container);
-    }
-  }
 }
+docker('image', 'save', '--output', 'out/prototype/images.tar', ...Object.values(images).map(image => image.name));
 docker(...mountedTools, '/tools/check_export.py');
 const hardened = ['run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
   '--security-opt', 'no-new-privileges:true',
@@ -43,7 +36,6 @@ if (shell.status === 0 || !shell.stderr.includes('/bin/sh')) throw new Error('Sh
 docker(...mountedTools, '/tools/assemble.py', 'fetch-sources',
   '/workspace/locks/linux-amd64.json', '/workspace/out/prototype/sources');
 fs.copyFileSync('locks/linux-amd64.json', 'out/prototype/linux-amd64.json');
-for (const variant of ['base', 'java']) fs.unlinkSync('out/prototype/' + variant + '-rootfs.tar');
 const report = { prototype: true, sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   runner: process.platform + '/' + process.arch, images, sample,
   checks: ['assembler trust-boundary tests', 'final filesystem inventory equality', 'non-root execution',
