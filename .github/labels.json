@@ -108,5 +108,20 @@
     "name": "help wanted",
     "color": "008672",
     "description": "Additional contributor help is welcome"
+  },
+  {
+    "name": "runtime:java",
+    "color": "b07219",
+    "description": "Amazon Corretto Java runtime image"
+  },
+  {
+    "name": "runtime:python",
+    "color": "3572a5",
+    "description": "Python runtime image and dependency contract"
+  },
+  {
+    "name": "runtime:nodejs",
+    "color": "43853d",
+    "description": "Node.js runtime image and dependency contract"
   }
 ]

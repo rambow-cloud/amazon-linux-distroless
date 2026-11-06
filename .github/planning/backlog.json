@@ -10,16 +10,42 @@
       "status:ready"
     ],
     "depends": [],
-    "scope": "Settle the initial static/base contract before rootfs implementation. Start with official AL2023 packages and a BuildKit multi-stage builder, with scratch final images. Decide file boundaries, glibc/NSS behavior, CA paths, UTC/locale policy, non-root identity, supported workloads, and package-license/source handling.",
+    "scope": "Settle the initial static/base contract before rootfs implementation. Start with official AL2023 packages and a BuildKit multi-stage builder, with scratch final images. Decide file boundaries, glibc/NSS behavior, CA paths, UTC/locale policy, non-root identity, supported workloads, and package-license/source handling. Java, Python, and Node.js are committed language deliverables, specified in the separate language-runtime RFC; a standalone cc image and general C++ application support are excluded.",
     "acceptance": [
       "Record accepted static/base contents and exclusions, including whether base contains OpenSSL libraries",
       "Specify UID/GID 65532, working directory, /tmp permissions, read-only-rootfs behavior, CA bundle paths, NSS configuration, UTC, and locale behavior",
       "Document compatible AL2023-linked workloads and limitations for arbitrary glibc or musl binaries",
       "Choose verified RPM extraction or installroot assembly and document scriptlet/configuration handling",
       "Define project licensing versus redistributed RPM licenses, notices, and source-availability obligations",
-      "Review the proposed architecture and record unresolved risks as follow-up issues"
+      "Review the proposed architecture and record unresolved risks as follow-up issues",
+      "Record static/base as shared foundations, Java/Python/Node.js as required v1.0 runtime variants, and the removal of standalone C++ support"
     ],
     "validation": "Design review against official AL2023 package metadata and at least one static Go and one dynamic C workload. Record a decision, rationale, and evidence in docs/."
+  },
+  {
+    "key": "language-runtimes",
+    "title": "[RFC] Define committed Java, Python, and Node.js runtime contracts",
+    "milestone": 2,
+    "labels": [
+      "type:rfc",
+      "area:runtime",
+      "priority:p0",
+      "status:triage"
+    ],
+    "depends": [
+      "runtime-contract"
+    ],
+    "scope": "Java, Python, and Node.js are committed v1.0 deliverables. Select one maintained major/minor line per language from official packages available in the pinned AL2023 release. Specify versioned image names, exact executable paths, dependency closure, and application packaging contracts. This RFC settles implementation details; it must not reduce support to a single optional language.",
+    "acceptance": [
+      "Record an initial supported version line for each of Java, Python, and Node.js based on pinned AL2023 package availability, upstream support, and AL2023 package support",
+      "Define Java using Amazon Corretto headless runtime packages, executable JAR startup, JAVA_HOME, JVM truststore handling, and required native libraries; build tooling stays in builders",
+      "Define Python interpreter/stdlib paths, a deterministic application dependency location and sys.path, version-matched native wheel ABI, and builder-only pip/venv packaging",
+      "Define Node.js executable/version paths, ESM/CommonJS behavior, builder-installed production node_modules, native addon ABI, and builder-only npm/package tooling",
+      "Require separate java/python/nodejs images on linux/amd64 and linux/arm64, with the shared non-root and shell-free contract",
+      "Exclude a standalone cc image and general C++ workload support while permitting audited native libraries required by the selected language runtimes",
+      "Record license, source delivery, size, update ownership, and lifecycle requirements for all three runtime lines"
+    ],
+    "validation": "Review official AL2023/Corretto package metadata and support statements, then document a concrete runtime/file/ABI matrix and minimal packaging examples for each language. Do not pick versions from floating system alternatives."
   },
   {
     "key": "locked-inputs",
@@ -32,15 +58,17 @@
       "status:triage"
     ],
     "depends": [
-      "runtime-contract"
+      "runtime-contract",
+      "language-runtimes"
     ],
-    "scope": "Create a versioned input lock and resolver for official AL2023 packages. Pin a builder index digest separately from the DNF releasever. Capture architecture-specific package versions, checksums, signatures, repository metadata, and license/source references.",
+    "scope": "Create a versioned input lock and resolver for official AL2023 packages. Pin a builder index digest separately from the DNF releasever. Capture architecture-specific package versions, checksums, signatures, repository metadata, and license/source references. Cover selected Java, Python, and Node.js packages as well as static/base foundations; maintain per-variant lock sections and preserve a path to incremental runtime additions.",
     "acceptance": [
       "Pin an official builder digest and an explicit AL2023 releasever; release mode rejects floating latest inputs",
       "Record per-architecture package NEVRAs, checksums, dependency closure, signature verification, and repository references",
       "Disable weak dependencies deliberately and document necessary exceptions",
       "Produce a package-to-file/provenance inventory suitable for final-image SBOM generation",
-      "Document a repeatable lock update command and reviewable package diff"
+      "Document a repeatable lock update command and reviewable package diff",
+      "Represent the selected Java/Python/Node.js versions, exact runtime paths, and per-variant package closure; reject unresolved alternatives symlinks"
     ],
     "validation": "Resolve twice only as the reproducibility experiment, compare the locked package set, and prove that a modified checksum or invalid/untrusted signature fails closed."
   },
@@ -133,7 +161,7 @@
     ],
     "scope": "Build/test changed image definitions on pull requests and main without registry publishing credentials. Keep privileged release work in a separate future workflow.",
     "acceptance": [
-      "CI covers both variants and supported architectures and uploads useful inventories and test logs",
+      "CI covers static/base on both architectures initially and provides an extensible variant/version matrix for the language-validation issue",
       "Pull-request jobs use read-only permissions and do not expose release credentials to fork code",
       "Pin action dependencies and document cache keys that include lock inputs and architecture",
       "Add path-aware execution without leaving required checks permanently pending when paths are skipped",
@@ -156,7 +184,7 @@
       "multiarch",
       "pr-ci"
     ],
-    "scope": "Measure normalized rootfs reproducibility separately from image/index digest reproducibility. Establish evidence-based size budgets per variant/architecture against official AL2023 base and minimal baselines.",
+    "scope": "Measure normalized rootfs reproducibility separately from image/index digest reproducibility. Establish evidence-based size budgets per variant/architecture against official AL2023 base and minimal baselines. This milestone establishes static/base baselines; the language-validation issue extends measurements and budgets to Java, Python, and Node.js.",
     "acceptance": [
       "Compare clean builds from identical locked inputs and explain any rootfs differences",
       "Normalize ordering, modes, ownership, timestamps, and archive metadata where supported",
@@ -166,6 +194,118 @@
       "Publish a baseline report and make material regressions visible in CI"
     ],
     "validation": "Run the documented paired clean-build experiment once for each supported variant/architecture and store the manifest comparison and size report."
+  },
+  {
+    "key": "java",
+    "title": "[Feature] Build a distroless-like Amazon Corretto Java runtime image",
+    "milestone": 6,
+    "labels": [
+      "type:feature",
+      "area:runtime",
+      "priority:p1",
+      "status:triage",
+      "runtime:java"
+    ],
+    "depends": [
+      "language-runtimes",
+      "locked-inputs",
+      "multiarch"
+    ],
+    "scope": "Implement the java variant from the accepted Amazon Corretto headless runtime contract and official pinned AL2023 packages. Keep javac, Maven, Gradle, and other build tooling in a separate builder; ship audited runtime libraries and data only.",
+    "acceptance": [
+      "Build the selected versioned Java image for linux/amd64 and linux/arm64 from per-variant locks and a file allowlist",
+      "Run an executable JAR directly with an exec-form java entrypoint as UID/GID 65532",
+      "Validate JAVA_HOME, required JVM/native libraries, truststore/CA behavior, DNS, UTC, signals, and exit status",
+      "Run a representative headless Java service with read-only rootfs, an explicit tmpfs, dropped capabilities, and no-new-privileges",
+      "Exclude shell, package managers, javac, Maven, Gradle, JDK development artifacts, and unneeded GUI components while preserving required license/source material",
+      "Produce package/file evidence and a runnable multi-stage JAR example"
+    ],
+    "validation": "Run a headless executable-JAR and controlled TLS/DNS fixture against final images on both architectures, including required runtime-loaded libraries and hardened-container settings."
+  },
+  {
+    "key": "python",
+    "title": "[Feature] Build a distroless-like Python runtime image",
+    "milestone": 6,
+    "labels": [
+      "type:feature",
+      "area:runtime",
+      "priority:p1",
+      "status:triage",
+      "runtime:python"
+    ],
+    "depends": [
+      "language-runtimes",
+      "locked-inputs",
+      "multiarch"
+    ],
+    "scope": "Implement the python variant using the selected versioned AL2023 interpreter and standard library. Define a stable application dependency directory/sys.path contract; install application dependencies in a matching builder, without pip or a shell in the final image.",
+    "acceptance": [
+      "Build the selected versioned Python image for both supported architectures with correct interpreter/stdlib and runtime-loaded shared-library closure",
+      "Run scripts and module entrypoints with explicit interpreter paths and deterministic sys.path/application package locations",
+      "Validate ssl, ctypes/dynamic loading where supported, encodings, importlib, DNS, UTC, and interpreter-required extension modules",
+      "Build and run one representative native extension in an AL2023-compatible builder with matching Python version and target architecture; document supported wheel/ABI boundaries",
+      "Run non-root and with read-only rootfs, disable or redirect bytecode/cache writes, and support a documented writable temporary mount",
+      "Keep pip, ensurepip installer payloads, compiler/header toolchains, package managers, and shells out of the final runtime; record deliberate stdlib exclusions",
+      "Provide a reproducible multi-stage dependency-installation example and complete package/file/license evidence"
+    ],
+    "validation": "Run stdlib imports, an application dependency import, a version-matched native-extension fixture, and controlled TLS/DNS probes against final images on both architectures."
+  },
+  {
+    "key": "nodejs",
+    "title": "[Feature] Build a distroless-like Node.js runtime image",
+    "milestone": 6,
+    "labels": [
+      "type:feature",
+      "area:runtime",
+      "priority:p1",
+      "status:triage",
+      "runtime:nodejs"
+    ],
+    "depends": [
+      "language-runtimes",
+      "locked-inputs",
+      "multiarch"
+    ],
+    "scope": "Implement the nodejs variant from selected official versioned AL2023 Node.js packages. Copy production node_modules from a compatible architecture/version-matched builder and start the application with node directly; npm is a builder tool.",
+    "acceptance": [
+      "Build the selected Node.js version on linux/amd64 and linux/arm64 with explicit executable paths and audited shared-library/data dependencies",
+      "Run both CommonJS and ESM entrypoints directly with node, without npm start or shell wrappers",
+      "Document and validate production node_modules layout and lockfile-based installation in a matching builder",
+      "Build and execute a representative native addon with the documented Node ABI/N-API, AL2023 toolchain, and target architecture",
+      "Validate Node/OpenSSL CA policy, DNS, UTC/Intl scope, signals, exit status, and a representative HTTP service",
+      "Run as UID/GID 65532 with read-only rootfs and dropped capabilities; exclude npm, npx, corepack, package managers, compilers, and shells from production images",
+      "Emit package/file/license evidence and a runnable multi-stage application example"
+    ],
+    "validation": "Run ESM/CommonJS, controlled HTTP/TLS/DNS, and native-addon fixtures against final images on both architectures with the documented hardened settings."
+  },
+  {
+    "key": "language-validation",
+    "title": "[Task] Qualify all three language images in CI and release gates",
+    "milestone": 6,
+    "labels": [
+      "type:task",
+      "area:ci",
+      "priority:p0",
+      "status:triage"
+    ],
+    "depends": [
+      "java",
+      "python",
+      "nodejs",
+      "pr-ci",
+      "repro-size"
+    ],
+    "scope": "Extend the established static/base contract to java/python/nodejs. All three language variants are mandatory before v1.0 publication; do not ship them as untested optional artifacts.",
+    "acceptance": [
+      "Run a variant/version/architecture CI matrix covering static, base, java, python, and nodejs with their specific workload probes",
+      "Record native execution evidence on both architectures for all language variants before stable release",
+      "Measure per-language size budgets and reproducibility using the same definitions as static/base; validate interpreter/JVM/runtime-loaded dependencies",
+      "Apply shell/package-manager/build-tool absence checks and hardened non-root execution to every variant, accounting for legitimate Java/Python/Node executables",
+      "Include complete language runtime and native library identities in SBOMs, scans, notices, source delivery, and provenance; capture any scanner detection limitations",
+      "Block stable release if any committed language variant fails its runtime, security, signature/evidence, or lifecycle contract",
+      "Document builders, version/ABI boundaries, update ownership, and consumer examples for all three languages"
+    ],
+    "validation": "Execute each language workload and native dependency fixture in the CI matrix, confirm a failing language variant blocks release, and retain per-variant runtime/size/inventory evidence."
   },
   {
     "key": "sbom",
@@ -179,9 +319,10 @@
     ],
     "depends": [
       "locked-inputs",
-      "repro-size"
+      "repro-size",
+      "language-validation"
     ],
-    "scope": "Generate per-architecture component evidence from the actual included files, preserving AL2023 identity even though the runtime has no RPM database. Cover project and component license obligations.",
+    "scope": "Generate per-architecture component evidence from the actual included files, preserving AL2023 identity even though the runtime has no RPM database. Cover project and component license obligations. Include static, base, java, python, and nodejs, including interpreter modules, JVM runtime data, and necessary native libraries.",
     "acceptance": [
       "Generate machine-readable SBOMs with exact included package versions, file ownership, checksums, and source references",
       "Distinguish complete installed RPM contents from the subset actually shipped in the runtime",
@@ -212,7 +353,8 @@
       "Fail stable releases on applicable critical/high findings unless a reviewed, scoped, owned, expiring exception exists",
       "Fail closed for scanner/database errors and document database age policy",
       "Record scan tool/database versions, results, applicability decisions, and exception expiry checks",
-      "Document false-positive handling without claiming zero CVEs from missing metadata"
+      "Document false-positive handling without claiming zero CVEs from missing metadata",
+      "Cover all committed variants and distinguish base OS, Java, Python, Node.js, and native-library detection from downstream application dependencies"
     ],
     "validation": "Use known affected and fixed AL2023 package fixtures plus expired/valid exception fixtures to demonstrate gate behavior."
   },
@@ -229,9 +371,10 @@
     "depends": [
       "sbom",
       "vulnerability-policy",
-      "pr-ci"
+      "pr-ci",
+      "language-validation"
     ],
-    "scope": "Agree on the image/tag naming scheme and implement trusted release promotion to GHCR for static/base. Proposed paths are ghcr.io/rambow-cloud/amazon-linux-distroless/static and /base; validate package permissions and naming before adopting them.",
+    "scope": "Agree on versioned image/tag naming and implement trusted GHCR promotion for static, base, java, python, and nodejs. Proposed suffixes use those variant names under ghcr.io/rambow-cloud/amazon-linux-distroless; validate package permissions and naming before adoption. No stable release is complete with a committed language missing.",
     "acceptance": [
       "Document image names, versioned tags, optional moving aliases, digest consumption, prereleases, and immutability policy",
       "Publish only after all required per-architecture checks, size gates, evidence generation, and scans pass",
@@ -239,7 +382,8 @@
       "Sign image/index subjects using a documented identity and publish retrievable SBOM/provenance evidence",
       "Use least-privilege publishing/OIDC permissions and prevent untrusted PR code from obtaining them",
       "Test consumer signature/provenance verification and rejection of an unexpected identity",
-      "Document failed-publication recovery and rollback to a previous verified digest"
+      "Document failed-publication recovery and rollback to a previous verified digest",
+      "Publish and verify static/base/java/python/nodejs with explicit runtime-version and architecture references; do not label the aggregate multi-license image solely Apache-2.0"
     ],
     "validation": "Perform a tagged prerelease/candidate end-to-end before any stable release. Verify both platform pulls, index signatures, evidence subjects, access permissions, and documented rollback."
   },
@@ -256,14 +400,15 @@
     "depends": [
       "release"
     ],
-    "scope": "Implement a reviewed update-detection process for upstream repository/builder changes, security fixes, and pinned tooling. Define achievable maintenance commitments before stable release.",
+    "scope": "Implement a reviewed update-detection process for upstream repository/builder changes, security fixes, and pinned tooling. Define achievable maintenance commitments before stable release. Track selected Corretto, Python, and Node.js runtime versions and native-library updates as part of the supported image matrix.",
     "acceptance": [
       "Detect upstream AL2023 release and digest changes and create a scoped update issue or PR without silently publishing",
       "Include package/version/license/size diffs and relevant ALAS security impact in update proposals",
       "Run the full release evidence and runtime gates on refreshes",
       "Document supported tags, maintenance window, update cadence, vulnerability triage expectations, and end-of-life handling",
       "Distinguish upstream AL2023/package support from this project's own support commitments",
-      "Document rollback and emergency fix procedures; avoid promising an unstaffed response SLA"
+      "Document rollback and emergency fix procedures; avoid promising an unstaffed response SLA",
+      "Document support and replacement policy for every selected language version and trigger reviewed refreshes for runtime as well as AL2023 updates"
     ],
     "validation": "Exercise the detector with a controlled old/new lock fixture, confirm duplicate detection, and walk through one candidate refresh and rollback. No schedule is enabled until the implementation is reviewed."
   },
@@ -281,9 +426,9 @@
       "release",
       "updates"
     ],
-    "scope": "Document how consumers build applications against the runtime contract, pin digests, verify evidence, and operate without a shell. Collect a stable-release acceptance checklist.",
+    "scope": "Document how consumers build applications against the runtime contract, pin digests, verify evidence, and operate without a shell. Collect a stable-release acceptance checklist. Java, Python, and Node.js examples and their runtime-version contracts are required stable-release deliverables.",
     "acceptance": [
-      "Provide tested static Go and dynamic C multi-stage examples for both architectures",
+      "Provide tested Java executable-JAR, Python dependency/native-extension, and Node.js ESM/CommonJS/native-addon multi-stage examples on both architectures; retain static/base probes as foundation examples",
       "Show exec-form entrypoints, non-root operation, read-only rootfs, writable mounts, and digest pinning",
       "Document CA/NSS/timezone/locale behavior, compatibility boundaries, debugging approach, and troubleshooting",
       "Provide copyable signature/SBOM/provenance verification instructions tied to the actual release identity",
@@ -291,29 +436,6 @@
       "Remove planning-only placeholders and clearly identify any deferred optional functionality"
     ],
     "validation": "Build and run every published example against candidate release digests and follow the verification instructions from a clean consumer environment."
-  },
-  {
-    "key": "cc",
-    "title": "[Feature] Add an explicitly scoped AL2023 C++ runtime variant",
-    "milestone": 5,
-    "labels": [
-      "type:feature",
-      "area:runtime",
-      "priority:p2",
-      "status:triage"
-    ],
-    "depends": [
-      "release-docs"
-    ],
-    "scope": "Add a separately documented cc variant only after the stable base contract. Include verified libstdc++/libgcc dependencies without introducing compiler toolchains.",
-    "acceptance": [
-      "Accept the cc contract and exact runtime library closure through a linked design decision",
-      "Build/test a representative AL2023-linked C++ workload on both architectures",
-      "Keep production images shell-free, package-manager-free, and non-root",
-      "Extend size, SBOM, licensing, vulnerability, signing, and update gates to cc",
-      "Document ABI boundaries and the incremental maintenance/size cost"
-    ],
-    "validation": "Run C++ ABI/runtime fixtures and the common final-image contract suite, then inspect the library and license diff from base."
   },
   {
     "key": "debug",
@@ -328,7 +450,7 @@
     "depends": [
       "release-docs"
     ],
-    "scope": "Compare ephemeral debug containers with an explicitly separate debug image. Do not add a shell to production static/base images.",
+    "scope": "Compare ephemeral debug containers with an explicitly separate debug image for static, base, java, python, and nodejs. Do not add a shell to any production runtime image.",
     "acceptance": [
       "Compare approaches for local Docker and Kubernetes with concrete debugging scenarios",
       "Define access, tool provenance, component licenses, architecture coverage, image size, and update ownership",
@@ -337,28 +459,5 @@
       "Record an accepted choice or explicitly defer debug-image publication"
     ],
     "validation": "Demonstrate a failed-startup or DNS/TLS troubleshooting scenario using the proposed isolated approach."
-  },
-  {
-    "key": "language-runtimes",
-    "title": "[RFC] Evaluate language runtime demand and maintenance feasibility",
-    "milestone": 5,
-    "labels": [
-      "type:rfc",
-      "area:runtime",
-      "priority:p3",
-      "status:triage"
-    ],
-    "depends": [
-      "release-docs"
-    ],
-    "scope": "Evaluate requests for Java, Python, or Node.js images as separate proposals. Assess official AL2023 package availability, supported versions, ABI behavior, extension modules, and maintenance cost. This issue does not commit to shipping a language image.",
-    "acceptance": [
-      "Collect concrete workloads and select at most one initial runtime proposal, or record a decision to defer",
-      "Check per-runtime upstream and AL2023 package support lifecycles against a proposed project support window",
-      "Inventory runtime-loaded files/modules and native-extension compatibility requirements",
-      "Estimate size, security, licensing, CI, and ongoing update obligations",
-      "Create a scoped implementation issue only after an accepted runtime contract and a maintainer commitment"
-    ],
-    "validation": "Produce a feasibility report grounded in official package metadata and a minimal workload experiment if a runtime is selected."
   }
 ]

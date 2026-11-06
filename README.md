@@ -1,6 +1,6 @@
 # Amazon Linux Distroless
 
-Distroless-like OCI runtime images assembled from Amazon Linux 2023 packages.
+Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
 
 **Status: planning and repository bootstrap. No runtime images have been built or published yet.**
 
@@ -12,9 +12,15 @@ The project targets small, auditable application runtimes with no shell or packa
 | --- | --- | --- |
 | `static` | Fully static binaries, initially Go with `CGO_ENABLED=0` | CA trust, minimal user/group and filesystem metadata; no glibc |
 | `base` | Dynamically linked applications built against compatible AL2023 libraries | `static` contents plus the AL2023 glibc loader and verified runtime dependency closure |
-| `cc` (later) | C++ applications | `base` plus explicitly selected C++ runtime libraries |
+| `java` | Headless Java applications | `base` plus the selected Amazon Corretto headless runtime, JVM trust configuration, and audited native dependencies |
+| `python` | Applications written in Python with builder-installed dependencies | `base` plus the selected Python interpreter, standard library, and required extension libraries |
+| `nodejs` | Node.js applications with builder-installed production dependencies | `base` plus the selected Node.js runtime and audited native/data dependencies |
 
-Targets: `linux/amd64` and `linux/arm64`. The first prototype starts with amd64; both architectures are required for v1.0. Default identity: UID/GID `65532:65532`. Production images must not contain shells, package managers, compilers, or build caches. Debugging and language runtimes have separate follow-up issues.
+Targets: `linux/amd64` and `linux/arm64`. The first foundation prototype starts with amd64; v1.0 requires all five variants on both architectures. Java, Python, and Node.js are committed deliverables, introduced in v0.3 before the stable release. Default identity: UID/GID `65532:65532`. Production images must not contain shells, package managers, compilers, or build caches.
+
+There is no standalone `cc` image or general C++ application support. Audited native libraries such as `libstdc++` remain permitted when required by a supported Java, Python, or Node.js runtime. `static` and `base` remain shared foundations rather than a C++ product line.
+
+Each language initially targets one explicitly selected maintained version line. [The language-runtime contract RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) selects versions from the pinned AL2023 release and defines versioned image names, executable paths, ABI boundaries, and maintenance windows. No floating system default is a version contract.
 
 Image names and tags remain proposals until the release-policy issue is accepted. Do not use example registry paths as available artifacts.
 
@@ -24,7 +30,8 @@ Image names and tags remain proposals until the release-policy issue is accepted
 2. Resolve and verify official RPMs in the builder; retain package checksums, versions, licenses, and source references.
 3. Assemble a reviewed file allowlist into a clean root filesystem, including transitive ELF dependencies and runtime configuration.
 4. Copy that filesystem into a `FROM scratch` image and validate the actual final image.
-5. Build both architectures, generate SBOM and provenance, scan, sign, and publish immutable release references.
+5. Assemble separate Java, Python, and Node.js variants with application dependencies installed in compatible builders. Validate runtime-loaded files and native extension/addon compatibility.
+6. Build all variants for both architectures, generate SBOM and provenance, scan, sign, and publish immutable release references.
 
 The official AL2023 minimal image still includes a package manager. It can be a comparison baseline, but it does not satisfy this project's final-image contract. See [architecture](docs/ARCHITECTURE.md) for decisions and unresolved questions.
 

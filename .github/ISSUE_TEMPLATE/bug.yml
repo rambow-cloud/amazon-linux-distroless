@@ -14,6 +14,13 @@ body:
     validations:
       required: true
   - type: dropdown
+    id: variant
+    attributes:
+      label: Affected variant
+      options: [Static/base foundation, Java, Python, Node.js, Multiple variants, Repository/workflow]
+    validations:
+      required: true
+  - type: dropdown
     id: architecture
     attributes:
       label: Architecture

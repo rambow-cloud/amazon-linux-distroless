@@ -12,7 +12,12 @@
   "release": 11,
   "updates": 12,
   "release-docs": 13,
-  "cc": 14,
   "debug": 15,
-  "language-runtimes": 16
+  "language-runtimes": 16,
+  "scope-change": 19,
+  "retired-cc": 14,
+  "java": 20,
+  "python": 21,
+  "nodejs": 22,
+  "language-validation": 23
 }

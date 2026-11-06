@@ -22,5 +22,6 @@ Ordinary non-sensitive build failures and scanner usability issues can use the b
 - Default non-root execution; read-only-rootfs and dropped-capabilities smoke tests.
 - Separate unprivileged build/test workflows from trusted release credentials and signing permissions.
 - Issue-tracked dependency updates and published rollback instructions.
+- Apply these requirements to static/base and every committed Java, Python, and Node.js variant on both architectures. Track selected language-version support windows, runtime-loaded components, and required native libraries; no variant bypasses the stable-release gates.
 
 These are roadmap requirements, not claims about an existing artifact.

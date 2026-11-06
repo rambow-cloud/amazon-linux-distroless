@@ -22,6 +22,7 @@ There is no `status:done` label: GitHub's closed state is the completion signal.
 | `priority:p2` | Planned enhancement |
 | `priority:p3` | Exploration or optional follow-up |
 | `status:triage`, `status:ready`, `status:in-progress`, `status:blocked` | Current work state |
+| `runtime:java`, `runtime:python`, `runtime:nodejs` | Optional runtime-specific filters, independent of the required label families |
 | `good first issue`, `help wanted` | Optional contributor-discovery labels |
 
 Issue Forms apply a type and `status:triage`. Area, priority, and milestone are maintainer decisions; form dropdown responses do not automatically set GitHub labels or milestones. Do not add several status labels to represent transitions.
