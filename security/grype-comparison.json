@@ -1,0 +1,10 @@
+{
+  "platform": "linux/amd64",
+  "prototype_run_id": 42253997086,
+  "native_run_id": 42290077926,
+  "official": "gcr.io/distroless/java21-debian13@sha256:b22857e939bd95abd69d9d747f0421a274f9f70855ecfc335f7d97f6eeef578d",
+  "syft": "anchore/syft:v1.57.0",
+  "syft_version": "1.57.0",
+  "grype": "anchore/grype:v0.121.2",
+  "grype_version": "0.121.2"
+}
