@@ -122,7 +122,7 @@ export function comparisonMarkdown(result) {
       ['AL2023 native RPM payload only', result.scans.prototypeRpmPayload, 'Actual RPM headers; partial packages; native release marker added']);
   }
   let text = '# Java 21 CVE comparison\n\n' +
-    'One Trivy version/digest and unchanged vulnerability/Java database snapshot; linux/amd64; all severities and unfixed findings included. No application JAR was added to either runtime.\n\n' +
+    'One Trivy version/digest and unchanged vulnerability/Java database snapshot; linux/amd64; all severities and available unfixed findings requested without filtering. This does not overcome the Amazon Linux feed limitation on unfixed vulnerabilities. No application JAR was added to either runtime.\n\n' +
     '| Scan | OS packages | Critical | High | Medium | Low | Unknown | Package/advisory pairs | Unique CVEs | Fix listed | Coverage |\n' +
     '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n';
   for (const [label, m, coverage] of rows) {
@@ -142,6 +142,11 @@ export function comparisonMarkdown(result) {
     '- Missing from the payload package set (license-only/unshipped): ' + result.coverage.excludedInputs.join(', ') + '.\n' +
     '- The sidecar covers ' + result.coverage.selected.length + ' packages; the scanner enumerated that exact package-name set and selected Amazon Linux 2023.\n' +
     '- AL2023 and Debian use different vendor advisory feeds, backport policies, status labels and severity assignments. Counts are not a distribution-independent safety ranking.\n' +
+    '- Trivy documents unfixed-vulnerability coverage as unsupported for Amazon Linux; its Debian feed includes unfixed findings. The same ignore-unfixed=false flag cannot equalize unavailable feed data. See https://trivy.dev/docs/latest/coverage/os/amazon/ and https://trivy.dev/docs/latest/coverage/os/debian/.\n' +
+    '- Narrower subset with a scanner-listed fix: AL2023 ' + (result.scans.prototypeRpmPayload || result.scans.prototypeInventory).fixAvailablePairs +
+      ' package/advisory pairs; official Distroless ' + result.scans.officialNative.fixAvailablePairs +
+      '. Findings without a listed fix: official ' + result.scans.officialNative.noFixListedPairs +
+      '; AL2023 unfixed exposure remains unknown rather than zero.\n' +
     '- Trivy Java language analysis primarily covers application dependencies/JAR metadata. JVM engine CVE matching here depends on OS/vendor package coverage; a recognized Temurin package does not prove complete Adoptium advisory coverage. No zero-JVM-risk conclusion is made.\n' +
     '- Packages are represented by their full RPM version even when only some files ship. Findings need affected-file/function and runtime applicability review; absence of a fix string is not proof that upstream has no mitigation.\n' +
     '- No ignore file, severity suppression, ignore-unfixed option, application exploitability analysis, VEX override or release gate was applied. This is a point-in-time diagnostic.\n';

@@ -26,6 +26,8 @@ export function rpmdbOverlays(root, lock, prototype, tag) {
       originalLayerPrefixVerified: true, runtimeConfigVerified: true, layers: image.RootFS.Layers };
   }
   if (inspect(tag).Id !== prototype.Id) throw new Error('Original prototype tag changed');
-  fs.writeFileSync('out/cve/rpmdb-evidence.json', JSON.stringify(result, null, 2) + '\n');
+  // Keep the container-owned reconstruction evidence intact. Write runner-owned
+  // image evidence separately instead of overwriting the root-owned JSON file.
+  fs.writeFileSync('out/cve/rpmdb-overlays.json', JSON.stringify(result.overlays, null, 2) + '\n');
   return result;
 }
