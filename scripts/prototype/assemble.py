@@ -150,6 +150,7 @@ class Assembler:
         self.source, self.root = Path(source), Path(destination)
         self.root.mkdir(parents=True)
         self.copied, self.generated, self.elf_queue, self.elf_seen = set(), {}, [], set()
+        self.normalized_links = {}
 
     def copy(self, path):
         path = PurePosixPath(path)
@@ -166,8 +167,13 @@ class Assembler:
         self.copied.add(relative)
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.is_symlink():
-            destination.symlink_to(os.readlink(source))
-            self.copy("/" + rooted_path(self.source, "/" + relative).relative_to(self.source).as_posix())
+            original = os.readlink(source)
+            terminal = "/" + rooted_path(self.source, "/" + relative).relative_to(self.source).as_posix()
+            # The intermediate alternatives/CA links need not be in the selected
+            # rootfs. Point directly to the selected terminal file or directory.
+            destination.symlink_to(terminal)
+            self.normalized_links[relative] = original
+            self.copy(terminal)
         elif source.is_dir():
             destination.mkdir(exist_ok=True)
             destination.chmod(stat.S_IMODE(source.stat().st_mode) & ~0o6000)
@@ -318,6 +324,9 @@ def assemble(lock, cache, output):
         entries = inspect_tree(selected)
         for entry in entries:
             entry["packages"] = sorted(set(owners.get(entry["path"], [])))
+            if entry["path"] in image.normalized_links:
+                entry["original_symlink_target"] = image.normalized_links[entry["path"]]
+                entry["transformation"] = "normalized to an absolute target within the runtime root"
             if entry["path"] in image.generated:
                 entry["generated_by"] = image.generated[entry["path"]]
             elif not entry["packages"]:

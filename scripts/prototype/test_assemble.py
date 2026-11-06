@@ -49,6 +49,19 @@ class AssemblyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cycle"):
             rooted_path(self.source, "/a")
 
+    def test_selected_symlink_chain_is_normalized_without_dangling_intermediates(self):
+        (self.source / "jvm/security").mkdir(parents=True)
+        (self.source / "etc/pki/java").mkdir(parents=True)
+        (self.source / "etc/pki/trust").write_text("trust anchors")
+        (self.source / "etc/pki/java/cacerts").symlink_to("../trust")
+        (self.source / "jvm/security/cacerts").symlink_to("/etc/pki/java/cacerts")
+        image = Assembler(self.source, self.root / "selected")
+        image.copy("/jvm/security/cacerts")
+        self.assertEqual((image.root / "jvm/security/cacerts").readlink(), Path("/etc/pki/trust"))
+        self.assertEqual(rooted_path(image.root, "/jvm/security/cacerts").read_text(), "trust anchors")
+        self.assertEqual(image.normalized_links["jvm/security/cacerts"], "/etc/pki/java/cacerts")
+        inspect_tree(image.root)
+
     def test_dangling_link_fails_final_audit(self):
         (self.source / "missing").symlink_to("/not-there")
         with self.assertRaisesRegex(ValueError, "Dangling"):
