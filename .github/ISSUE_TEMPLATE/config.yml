@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/rambow-cloud/amazon-linux-distroless/security/advisories/new
+    about: Use private vulnerability reporting for sensitive security findings.

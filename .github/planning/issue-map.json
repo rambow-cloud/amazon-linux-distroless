@@ -1,0 +1,18 @@
+{
+  "bootstrap": 1,
+  "runtime-contract": 2,
+  "locked-inputs": 3,
+  "rootfs": 4,
+  "runtime-tests": 5,
+  "multiarch": 6,
+  "pr-ci": 7,
+  "repro-size": 8,
+  "sbom": 9,
+  "vulnerability-policy": 10,
+  "release": 11,
+  "updates": 12,
+  "release-docs": 13,
+  "cc": 14,
+  "debug": 15,
+  "language-runtimes": 16
+}

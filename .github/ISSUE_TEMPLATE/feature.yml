@@ -1,0 +1,41 @@
+name: Feature proposal
+description: Propose a runtime, build, or developer-experience improvement.
+title: "[Feature] "
+labels: ["type:feature", "status:triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and intended workload
+      description: Explain who needs this and provide a concrete use case.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Describe behavior, affected variants/architectures, and explicit exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Alternatives and tradeoffs
+      description: Include image size, compatibility, package, security, and licensing impact.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Add observable completion criteria as Markdown checkboxes.
+      placeholder: "- [ ] A documented workload passes on both supported architectures."
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link related issues or write None.
+    validations:
+      required: true

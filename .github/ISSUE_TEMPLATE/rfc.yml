@@ -1,0 +1,48 @@
+name: Architecture RFC
+description: Settle image contracts, toolchain choices, or significant design changes.
+title: "[RFC] "
+labels: ["type:rfc", "status:triage"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and decision
+      description: What must be decided and why now?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Define the contract, constraints, and boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and consequences
+      description: Cover compatibility, size, security, maintenance, reproducibility, and licensing.
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: List unresolved choices or write None.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Include the decision record and evidence needed to accept this RFC as Markdown checkboxes.
+      placeholder: "- [ ] Record the accepted decision and resolve the listed open questions."
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues or write None.
+    validations:
+      required: true

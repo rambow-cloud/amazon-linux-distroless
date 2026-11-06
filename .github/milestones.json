@@ -1,0 +1,22 @@
+[
+  {
+    "title": "M0 — Repository foundation",
+    "description": "Issue-driven development is operational: repository documentation, forms, labels, milestones, implementation backlog, PR metadata gate, and main branch protection. No runtime image delivery in this milestone."
+  },
+  {
+    "title": "v0.1.0 — AL2023 runtime prototype",
+    "description": "Accept the runtime contract and licensing approach; lock official AL2023 inputs; assemble amd64 static/base rootfs; pass final-container workload and absent-tool tests. Exit: auditable local prototype, not a supported published image."
+  },
+  {
+    "title": "v0.2.0 — Multi-architecture CI",
+    "description": "Build and validate linux/amd64 and linux/arm64, automate unprivileged PR builds, and document reproducibility and size measurements. Exit: both architectures pass the same runtime contract and stable file-manifest checks."
+  },
+  {
+    "title": "v1.0.0 — Verifiable stable release",
+    "description": "Ship complete SBOM/provenance/license evidence, vulnerability policy, signed immutable GHCR releases, update/rollback procedures, and consumer examples. Exit: both architectures satisfy the published support and release contract."
+  },
+  {
+    "title": "v1.1.0 — Runtime extensions",
+    "description": "After v1.0, evaluate C++ runtime support, isolated debugging, and language-runtime proposals. Each extension requires an accepted contract and maintenance plan; language images are not promised by this milestone."
+  }
+]

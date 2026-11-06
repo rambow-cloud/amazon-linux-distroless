@@ -1,0 +1,41 @@
+name: Implementation task
+description: Define a scoped change with verifiable completion criteria.
+title: "[Task] "
+labels: ["type:task", "status:triage"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the problem and link the accepted design or parent issue.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: State deliverables and what is outside this task.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Add observable completion criteria as Markdown checkboxes.
+      placeholder: "- [ ] The documented verification command succeeds."
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: Identify the checks or runtime evidence that demonstrate completion.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link prerequisite issues or write None.
+    validations:
+      required: true

@@ -1,0 +1,15 @@
+# Local credentials and generated image/build output
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+build/
+dist/
+out/
+*.oci.tar
+node_modules/
+__pycache__/
+.venv/
+.DS_Store
+Thumbs.db

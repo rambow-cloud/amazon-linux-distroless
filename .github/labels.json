@@ -1,0 +1,112 @@
+[
+  {
+    "name": "type:bug",
+    "color": "d73a4a",
+    "description": "A reproducible defect"
+  },
+  {
+    "name": "type:feature",
+    "color": "a2eeef",
+    "description": "A new capability or behavior"
+  },
+  {
+    "name": "type:task",
+    "color": "1d76db",
+    "description": "A scoped implementation task"
+  },
+  {
+    "name": "type:rfc",
+    "color": "5319e7",
+    "description": "A design decision requiring discussion"
+  },
+  {
+    "name": "type:maintenance",
+    "color": "c5def5",
+    "description": "Dependency or repository upkeep"
+  },
+  {
+    "name": "area:build",
+    "color": "0052cc",
+    "description": "RPM resolution and rootfs assembly"
+  },
+  {
+    "name": "area:runtime",
+    "color": "006b75",
+    "description": "Runtime contents and compatibility"
+  },
+  {
+    "name": "area:security",
+    "color": "b60205",
+    "description": "Vulnerabilities and supply-chain evidence"
+  },
+  {
+    "name": "area:ci",
+    "color": "1d76db",
+    "description": "Build and verification automation"
+  },
+  {
+    "name": "area:release",
+    "color": "0e8a16",
+    "description": "Publishing, versions, and support"
+  },
+  {
+    "name": "area:docs",
+    "color": "0075ca",
+    "description": "Documentation and examples"
+  },
+  {
+    "name": "area:governance",
+    "color": "7057ff",
+    "description": "Issue-driven workflow and repository policy"
+  },
+  {
+    "name": "priority:p0",
+    "color": "b60205",
+    "description": "Release or foundational blocker"
+  },
+  {
+    "name": "priority:p1",
+    "color": "d93f0b",
+    "description": "Required for the assigned milestone"
+  },
+  {
+    "name": "priority:p2",
+    "color": "fbca04",
+    "description": "Planned enhancement"
+  },
+  {
+    "name": "priority:p3",
+    "color": "c2e0c6",
+    "description": "Exploration or optional follow-up"
+  },
+  {
+    "name": "status:triage",
+    "color": "ededed",
+    "description": "Needs scope, metadata, or dependency review"
+  },
+  {
+    "name": "status:ready",
+    "color": "0e8a16",
+    "description": "Accepted and available to implement"
+  },
+  {
+    "name": "status:in-progress",
+    "color": "1d76db",
+    "description": "Implementation is underway"
+  },
+  {
+    "name": "status:blocked",
+    "color": "b60205",
+    "description": "Cannot progress until a stated blocker is resolved"
+  },
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Suitable for a new contributor"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Additional contributor help is welcome"
+  }
+]
