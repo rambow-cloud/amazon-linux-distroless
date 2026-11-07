@@ -22,6 +22,7 @@ for (const arch of ['amd64', 'arm64']) {
   assert.equal(verified.execution, 'native');
   const files = fs.readdirSync(path).sort();
   const hashes = Object.fromEntries(files.map(file => [file, hash(path + '/' + file)]));
+  fs.copyFileSync(path + '/metrics.json', out + '/' + arch + '-metrics.json');
   leaves[arch] = { platform, builder: lock.builder, releasever: lock.releasever,
     toolPackages: lock.tool_packages, artifacts: hashes, variants: {} };
   for (const variant of ['static', 'base']) {

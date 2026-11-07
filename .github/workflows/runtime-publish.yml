@@ -1,4 +1,5 @@
 name: Publish language runtime preview
+run-name: Preview ${{ inputs.runtime }}
 on:
   workflow_dispatch:
     inputs:

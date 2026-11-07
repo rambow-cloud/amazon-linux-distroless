@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/language-update-automation.yml
       - scripts/upstream/automation-policy.mjs
+      - scripts/upstream/protected-update.mjs
       - scripts/upstream/automate-language-update.mjs
       - scripts/release/stable-registry.mjs
       - tests/language-update-automation.test.mjs
@@ -39,7 +40,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     concurrency:
-      group: unattended-language-updates
+      group: unattended-runtime-updates
       queue: max
     permissions:
       contents: read

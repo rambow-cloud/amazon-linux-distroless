@@ -28,7 +28,7 @@ export function publish(profile) {
   const capture = (command, args) => execFileSync(command, args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] }).trim();
   const records = Object.fromEntries(['amd64','arm64'].map(a => [a, read(input + '/' + line + '-' + a + '-evidence/verification.json')]));
   profile.validateReports(records, commit);
-  const tag = previewReleaseTag(line, commit, profile.upstream && process.env.UNIQUE_PREVIEW === 'true' ? run : '');
+  const tag = previewReleaseTag(line, commit, process.env.UNIQUE_PREVIEW === 'true' ? run : '');
   const base = 'ghcr.io/' + repo + '/' + line, immutable = base + ':' + tag;
   // An immutable release is never overwritten by an automatic rerun.
   const existing = spawnSync('gh', ['release', 'view', tag, '--repo', repo, '--json', 'tagName'], { encoding: 'utf8' });

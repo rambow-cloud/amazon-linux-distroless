@@ -1,13 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decide, ensureProposal, markerRelease, proposalKey, snapshot, trustedProposalEvent } from '../scripts/upstream/discovery-lib.mjs';
+import { decide, ensureProposal, markerRelease, matchesProposal, proposalKey, snapshot, trustedProposalEvent } from '../scripts/upstream/discovery-lib.mjs';
 const ref = digit => 'public.ecr.aws/amazonlinux/amazonlinux@sha256:' + digit.repeat(64);
 const current = { builder: ref('1'), releasever: '2023.12.20261102' };
 const candidate = { ref: ref('2'), platform: 'linux/amd64', releasever: '2023.12.20261105' };
 const report = () => ({ source: 'public.ecr.aws/amazonlinux/amazonlinux:2023', runUrl: 'https://github.com/example/repo/actions/runs/1', ...decide(current, candidate) });
-test('unchanged digest suppresses proposals and same-release digest changes remain visible', () => {
-  assert.equal(decide(current, { ...candidate, ref: current.builder }).changed, false);
+test('builder digest and RPM repository changes can be discovered independently', () => {
+  assert.equal(decide(current, { ...candidate, ref: current.builder, releasever: current.releasever }).changed, false);
+  assert.equal(decide(current, { ...candidate, ref: current.builder }).status, 'newer-release');
   assert.equal(decide(current, { ...candidate, releasever: current.releasever }).status, 'digest-refresh');
+});
+test('legacy proposals deduplicate only the exact snapshot and digest', () => {
+  const r = report();
+  const body = proposalKey(r).replace(':' + candidate.releasever + ' -->', ' -->') +
+    '\n- Builder release marker: ' + candidate.releasever + '\n';
+  assert.ok(matchesProposal(r, { body }));
+  assert.equal(matchesProposal({ ...r, candidate: { ...candidate, releasever: '2023.12.20261106' } }, { body }), false);
 });
 test('snapshot comparison is numeric and flags older candidates for review', () => {
   assert.equal(report().status, 'newer-release');

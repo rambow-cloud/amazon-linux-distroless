@@ -23,7 +23,9 @@ Sources: [Corretto calendar](https://aws.amazon.com/corretto/faqs/), [Python sch
 
 [AL2023 support ends on 2029-06-30](https://docs.aws.amazon.com/linux/al2023/release-notes/support-information.html). Individual packages can have earlier boundaries. Maintainers must review official per-package support statements during refreshes, using the official tables or builder-only `dnf supportinfo`. The project boundary for every line is the earliest of upstream support, AL2023/package support, or an announced project retirement. Later Corretto/Python dates do not imply these AL2023 images remain maintained beyond June 2029.
 
-Python and Node.js patch versions follow reviewed upstream release locks. Review upstream advisories for the runtime and ALAS for system RPMs. Raise an issue if a required fix lacks an acceptable upstream or AL2023 release. Record migration/retirement decisions before the applicable boundary. Adding or replacing a version line requires an accepted RFC.
+Corretto 17, 21 and 25 follow the signed RPMs in the reviewed AL2023 repository snapshot. Python 3.11, 3.12, 3.13 and 3.14 follow same-minor final CPython releases. Node.js 22, 24 and 26 follow same-major final Node.js releases. Review upstream advisories for the language and ALAS for system RPMs. Raise an issue if a required fix lacks an acceptable release.
+
+Before any line reaches its applicable boundary, open a retirement issue and document the migration to a later supported line in the same language. Qualify JNI modules, Python wheels or Node addons against the replacement ABI before promoting application digests. New or replacement lines require an accepted RFC and complete native qualification on both architectures. Retain the retired line's signed immutable releases for rollback and stop advancing its version alias.
 
 ## Ownership and updates
 
@@ -31,7 +33,7 @@ The [qualification policy](../releases/runtime-support.json) records the earlier
 
 rambow-cloud maintainers own reviewed builder/repository/RPM refreshes, file and ABI contracts, native qualification, source/license delivery, vulnerability decisions and signed publication. Consumers own application dependencies, application-specific native libraries, digest updates and deployment rollback.
 
-Daily builder discovery proposes maintenance issues. It does not edit locks, advance aliases or deploy consumers. Follow [UPDATING.md](UPDATING.md): issue, native Actions resolution, lock review, protected checks, merge, trusted-main publication, evidence verification, application rebuild and digest promotion. Project-wide stable automation and exception policies remain #10/#11/#12. Preview maintenance carries no response-time guarantee.
+Daily AL2023 discovery and daily Python/Node.js discovery feed the protected refresh workflows. [UPDATING.md](UPDATING.md) describes native resolution, issue-linked lock PRs, protected checks, signed publication, evidence verification and consumer digest promotion. Preview maintenance carries no response-time guarantee.
 
 ## ABI, size and licensing
 

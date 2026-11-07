@@ -1,12 +1,12 @@
 # Official AL2023 builder discovery
 
-Tracked in [#35](https://github.com/rambow-cloud/amazon-linux-distroless/issues/35), implemented in [PR #36](https://github.com/rambow-cloud/amazon-linux-distroless/pull/36). This implements discovery and maintenance-issue proposals for the current linux/amd64 builder. Full RPM refresh/PR/release automation remains in #12 and its dependencies.
+Discovery observes the official linux/amd64 builder and the official AL2023 RPM snapshot. The [protected refresh](UPDATING.md#protected-al2023-refresh) qualifies both native architectures before publication.
 
 ## Source and evidence
 
 The workflow pulls public.ecr.aws/amazonlinux/amazonlinux:2023. AWS documents this AL2023-specific moving tag as its latest AL2023 base image. It resolves and records the immutable registry digest, image config ID, platform, creation time and size. It then starts that exact local image ID with networking disabled, a read-only root, no capabilities, no-new-privileges and UID/GID 65532, using cat to read usr/lib/system-release. The detector rejects a non-AL2023 marker, invalid snapshot date, unexpected registry reference or platform.
 
-The moving tag is a discovery source. Runtime builds continue to consume the reviewed immutable builder and exact binary/source RPM lock. Discovery does not rebuild a runtime, resolve RPMs, rewrite inputs/locks or publish an image.
+The detector also queries the newest official `system-release` RPM in the builder's Amazon Linux repository. The RPM version provides the explicit repository snapshot even when AWS publishes it before rebuilding the container. Runtime builds consume the reviewed immutable builder and exact binary/source RPM locks.
 
 Config: [.github/al2023-discovery.json](../.github/al2023-discovery.json). Workflow: [al2023-discovery.yml](../.github/workflows/al2023-discovery.yml). Candidate evidence is uploaded as al2023-builder-discovery for 30 days, with discovery.json and summary.md; the Actions summary also shows the observed/current identities.
 
@@ -16,12 +16,12 @@ The registry digest is the identity returned by Docker's official repository res
 
 | Condition | Classification | Result |
 | --- | --- | --- |
-| Observed digest equals lock.builder | unchanged | Record evidence; no maintenance issue |
+| Observed digest and repository snapshot equal the lock | unchanged | Record evidence |
 | Different digest and equal repository release marker | digest-refresh | Propose review of an image/build revision |
-| Different digest and newer marker | newer-release | Propose review of the newer builder |
-| Different digest and older marker | older-release-review | Propose explicit review; never automatically downgrade inputs |
+| Newer RPM repository snapshot | newer-release | Propose a refresh, including when the builder digest is unchanged |
+| Older RPM repository snapshot | older-release-review | Record the candidate for explicit review |
 
-Release ordering compares the observed builder marker with the currently locked RPM repository snapshot. It does not claim to have recovered the historical builder's own marker. Builder-image updates and package-repository updates remain separate inputs; no decision here proves that a package security fix has been included or qualified. A new repository snapshot can also become available before a new container image is published, so future package-update detection cannot rely only on this image tag.
+Release ordering compares the observed RPM snapshot with the locked snapshot. The builder marker and repository snapshot are recorded separately. The candidate build and ALAS comparison determine package and security impact.
 
 ## Schedule, activation and permissions
 
@@ -29,7 +29,7 @@ Release ordering compares the observed builder marker with the currently locked 
 - GitHub runs scheduled workflows from the default branch; integrate the reviewed workflow into main to activate daily checks. Manual dispatch is also a supported entry point after the workflow is present on the default branch. Scheduled runs may be delayed by GitHub and are not a security-response SLA.
 - The implementation branch automation/al2023-discovery has a push preview restricted to detector/config/test paths. The preview has contents:read permission, executes controlled fixture tests and live discovery, and cannot run the proposal job.
 - Proposal writes are allowed only for schedule/workflow_dispatch on the exact default-branch ref. A separate job has issues:write and read access to code/artifacts, while discovery has no repository write access. The proposal script repeats the event/ref check before accessing the API. No pull_request_target code execution is added.
-- Concurrency serializes runs on the same ref. The proposal queries all issue states and paginates before creating an issue; it excludes PRs and keys proposals by platform plus full digest. An existing open or closed issue is reused without comments, reopening or duplicate writes. Rejected or already-completed candidates remain maintainer decisions.
+- Concurrency serializes runs on the same ref. Proposal lookup includes open and closed issues and keys by platform, full digest and repository snapshot. A closed issue for an unmerged candidate records a maintainer decision.
 - New proposals have type:maintenance, area:build, priority:p1, status:triage, an explicit open milestone and actionable acceptance checkboxes. proposal_milestone must be changed when the configured milestone closes; discovery remains read-only and a failed proposal does not silently create an unclassified issue.
 
 After integration, run a deliberate default-branch check with:
@@ -40,11 +40,9 @@ gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless
 
 To pause future discovery, disable AL2023 builder discovery in Actions. This is separate from the three retired CVE comparison workflows, which remain disabled.
 
-## Handoff after a candidate is accepted
+## Handoff to the refresh workflow
 
-Review the maintenance issue, choose an official versioned builder reference or the observed immutable digest and a supported explicit RPM snapshot, and follow [UPDATING.md](UPDATING.md) to regenerate/review the complete lock in Actions. Keep language-major and runtime-contract changes scoped separately. Only validated candidate images may advance to the later release/signing gates.
-
-This change does not grant write access to committed build inputs, auto-merge PRs or update consumers. The default-branch proposal job is intentionally skipped during the implementation-branch preview; its deduplication/metadata behavior is covered by controlled tests, while the image discovery is exercised live in Actions.
+An eligible discovery hands its immutable builder and explicit RPM snapshot to the native lock generator. The repository-scoped GitHub App opens a protected update PR after all 12 native locks resolve. See [UPDATING.md](UPDATING.md#protected-al2023-refresh) for evidence, publication and rollback. Direct dispatches on implementation branches are read-only.
 
 References: [AWS AL2023 base container tag](https://docs.aws.amazon.com/linux/al2023/ug/base-container.html), [versioned repositories](https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades.html), [GitHub manual workflow requirements](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow), and [GitHub schedule semantics](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
