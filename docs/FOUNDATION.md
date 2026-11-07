@@ -36,3 +36,17 @@ sha256sum -c SHA256SUMS
 ```
 
 Compare architecture artifact files with the checksums in `evidence/provenance.json`. This establishes candidate provenance; registry-level attestations are part of the foundation publication issue.
+
+## Stable foundation promotion
+
+After the language stable plan and foundation locks have merged, dispatch from protected main:
+
+```sh
+gh workflow run foundation-release.yml --ref main -f revision=1
+```
+
+Promotion runs the full native foundation/language qualification and fresh scans. It signs both OCI indexes, attaches the platform SBOMs, preserves matching source and scan evidence in the GitHub Release, and then moves `static:2023` and `base:2023` under `ghcr.io/rambow-cloud/amazon-linux-distroless/`. Each image has a fixed tag such as `base:2023.12.20261102-r1`. Use revision 1 for a newer AL2023 repository snapshot, or increment the revision for a new digest of the same snapshot.
+
+Read the exact digest from `foundation-release.json` in the GitHub Release. Verify the index and its promotion attestation with Cosign using certificate identity `https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/foundation-release.yml@refs/heads/main`, issuer `https://token.actions.githubusercontent.com`, and attestation type `https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1`. Verify each platform CycloneDX attestation on its own manifest digest with the same identity and issuer. Release asset SHA-256 values are in the signed record.
+
+If promotion stops partway through, rerun the failed job from the same release workflow and source commit. A draft belongs to the exact approved digests; an already published release is only replayed after checking its immutable image and signed evidence. Roll back a consumer by redeploying its prior verified application and base digests.
