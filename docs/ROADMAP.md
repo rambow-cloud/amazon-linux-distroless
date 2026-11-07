@@ -1,10 +1,10 @@
 # Implementation roadmap
 
-Status: [Java 21 has a public signed dual-architecture preview](JAVA21-RELEASE.md), with native runtime qualification, persistent source/evidence, verified signature/provenance and anonymous GHCR access. Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. Project-wide stable v1 acceptance remains open.
+Status: [Java 17, 21 and 25 have public signed dual-architecture previews](JAVA-RELEASES.md), with native runtime qualification, persistent source/evidence, verified signature/provenance and anonymous GHCR access. Python and Node.js are the next committed runtimes; static/base provide the shared foundation. Project-wide stable v1 acceptance remains open.
 
 Execution priority follows the owner's Java-first instruction: Java 21 contract and dual-architecture qualification #20/#37 and preview delivery #39 are complete. Python #21 follows Java delivery, then Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
 
-The owner subsequently expanded the Java phase to Java 17, 21 and 25. [RFC #41](https://github.com/rambow-cloud/amazon-linux-distroless/issues/41) and [native implementation #42](https://github.com/rambow-cloud/amazon-linux-distroless/issues/42) track the versioned contract, exact native locks, six-way qualification and separate signed previews. [Versioned Java operations](JAVA.md) document configuration. Finish this Java expansion before Python and Node.js; the full requested language objective remains active.
+The owner expanded the Java phase to Java 17, 21 and 25. [RFC #41](https://github.com/rambow-cloud/amazon-linux-distroless/issues/41) and [native implementation #42](https://github.com/rambow-cloud/amazon-linux-distroless/issues/42) have delivered the versioned contract, exact native locks, six-way qualification and separate public signed previews. [Versioned Java operations](JAVA.md) document configuration. Python #21 follows, then Node.js #22; the full requested language objective remains active.
 
 ## Delivery sequence
 

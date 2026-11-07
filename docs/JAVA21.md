@@ -1,6 +1,6 @@
 # Java 21 runtime contract
 
-Java is delivered first, under [#20](https://github.com/rambow-cloud/amazon-linux-distroless/issues/20) and [RFC #37](https://github.com/rambow-cloud/amazon-linux-distroless/issues/37). Python and Node.js follow Java and remain required v1 deliverables. Java preview publication is tracked in #39; a Java preview does not declare the full project v1 support/release milestone complete.
+Java is delivered first, under [#20](https://github.com/rambow-cloud/amazon-linux-distroless/issues/20) and [RFC #37](https://github.com/rambow-cloud/amazon-linux-distroless/issues/37). [Java 17/21/25 delivery](JAVA-RELEASES.md) now extends that contract through RFC #41. Python and Node.js follow Java and remain required v1 deliverables. Initial Java 21 publication was tracked in #39; a Java preview does not declare the full project v1 support/release milestone complete.
 
 ## Runtime
 
