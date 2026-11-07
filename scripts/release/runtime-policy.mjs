@@ -17,7 +17,8 @@ export function validateRuntimeReports(records, commit, id) {
     if(config.variant==='python') {
       assert.ok(r.sample.python.startsWith(config.version+'.'),'Wrong Python version');
       assert.equal(r.sample.bytecodeDisabled,true);
-      assert.equal(r.sample.SOABI,'cpython-314-'+(arch==='amd64'?'x86_64':'aarch64')+'-linux-gnu','Wrong native ABI');
+      const minor=config.version.replace('.', '');
+      assert.equal(r.sample.SOABI,'cpython-'+minor+'-'+(arch==='amd64'?'x86_64':'aarch64')+'-linux-gnu','Wrong native ABI');
       assert.equal(r.nativeFixture.SOABI,r.sample.SOABI,'Builder/runtime ABI mismatch');
     } else {
       assert.equal(r.sample.arch,arch==='amd64'?'x64':'arm64','Wrong Node architecture');

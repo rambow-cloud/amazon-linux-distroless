@@ -1,6 +1,7 @@
 """Exercise the Python contract as a direct PID 1 process in the final runtime."""
 import bz2
 import ctypes
+import decimal
 import encodings
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -71,7 +72,8 @@ if mode in ("tls", "hostname", "untrusted"):
     request("wrong-name" if mode == "hostname" else "tls-fixture", mode != "untrusted", mode != "tls")
     raise SystemExit(0)
 
-assert sys.version_info[:2] == (3, 14)
+assert sys.implementation.name == "cpython"
+assert not sysconfig.get_config_var("Py_GIL_DISABLED")
 assert os.getpid() == 1 and os.getuid() == 65532 and os.getgid() == 65532
 assert os.getcwd() == "/app" and sys.dont_write_bytecode
 assert sys.getfilesystemencoding().lower() == "utf-8" and locale.getencoding().upper().replace("-", "") == "UTF8"
@@ -98,5 +100,5 @@ roots = len(ssl.create_default_context().get_ca_certs())
 assert roots >= 100
 assert not list(Path("/opt/python/site-packages").rglob("__pycache__"))
 print(json.dumps({"python": sys.version.split()[0], "arch": os.uname().machine, "pid": os.getpid(), "uid": os.getuid(),
-    "SOABI": sysconfig.get_config_var("SOABI"), "trustAnchors": roots, "nativeAnswer": 42,
+    "SOABI": sysconfig.get_config_var("SOABI"), "versions": {"mpdecimal": decimal.__libmpdec_version__}, "trustAnchors": roots, "nativeAnswer": 42,
     "readOnlyRootfs": True, "bytecodeDisabled": sys.dont_write_bytecode, "installersAbsent": True, "timezone": time.tzname[0]}))

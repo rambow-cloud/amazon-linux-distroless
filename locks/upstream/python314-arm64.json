@@ -1,0 +1,12 @@
+{
+  "version": "3.14.10",
+  "url": "https://www.python.org/ftp/python/3.14.10/Python-3.14.10.tar.xz",
+  "sha256": "de414a57119abef52784d8993e341d53aed635fc2b05c2607d9f98a2c5b72032",
+  "sourceUrl": "https://www.python.org/ftp/python/3.14.10/Python-3.14.10.tar.xz",
+  "sourceSha256": "de414a57119abef52784d8993e341d53aed635fc2b05c2607d9f98a2c5b72032",
+  "signature": {
+    "type": "sigstore",
+    "identity": "hugo@python.org",
+    "issuer": "https://github.com/login/oauth"
+  }
+}

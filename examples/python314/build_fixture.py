@@ -10,14 +10,16 @@ import sys
 import sysconfig
 import zipfile
 
-assert sys.version_info[:2] == (3, 14)
+assert sys.implementation.name == "cpython"
+assert not sysconfig.get_config_var("Py_GIL_DISABLED")
 out = Path("/fixture")
 out.mkdir()
 suffix = sysconfig.get_config_var("EXT_SUFFIX")
 native = out / ("_nativefixture" + suffix)
 subprocess.run(["gcc", "-shared", "-fPIC", "-O2", "-I" + sysconfig.get_path("include"), "/src/native.c", "-o", str(native)], check=True)
 platform = sysconfig.get_platform().replace("-", "_").replace(".", "_")
-tag = "cp314-cp314-" + platform
+abi = "cp{}{}".format(*sys.version_info[:2])
+tag = abi + "-" + abi + "-" + platform
 wheel = out / ("contract_fixture-1.0.0-" + tag + ".whl")
 dist = "contract_fixture-1.0.0.dist-info/"
 entries = {

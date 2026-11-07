@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateIndex, validateScan } from './java21-policy.mjs';
+import { upstreamScanner } from './upstream-scan.mjs';
 
 // Profile identity/validator comes from a reviewed language-specific entry point.
 export function publish(profile) {
@@ -45,12 +46,19 @@ export function publish(profile) {
   execute('docker', [...common,scanner,'--cache-dir','/cache','image','--download-db-only']);
   const database = { sha256: hash('out/' + line + '-trivy-cache/db/trivy.db'), metadata: read('out/' + line + '-trivy-cache/db/metadata.json') };
   const scans = {};
+  const upstreamScans = {};
+  const upstream = profile.upstream ? upstreamScanner(out, execute, capture, hash) : null;
   for (const arch of ['amd64','arm64']) {
     const evidence = input + '/' + line + '-' + arch + '-evidence';
     execute('docker', [...common,'--network','none',scanner,'--cache-dir','/cache','sbom','--skip-db-update','--skip-java-db-update',
       '--offline-scan','--scanners','vuln','--severity','UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL','--ignore-unfixed=false','--ignorefile','/dev/null',
       '--format','json','--list-all-pkgs','--exit-code','0','--output','/work/'+out+'/scan-'+arch+'.json','/work/'+evidence+'/sbom.cdx.json']);
     scans[arch] = validateScan(read(out+'/scan-'+arch+'.json'), read(evidence+'/payload-packages.json').selected);
+    if (upstream) {
+      const file = evidence + '/runtime-sbom.cdx.json';
+      upstreamScans[arch] = upstream.scan(file, arch, records[arch].upstream);
+      fs.copyFileSync(file, out + '/' + arch + '-runtime-sbom.cdx.json');
+    }
     for (const file of ['inventory.json','sbom.cdx.json','payload-packages.json','lock.json','verification.json','project-source.tar.gz']) {
       fs.copyFileSync(evidence+'/'+file,out+'/'+arch+'-'+file);
     }
@@ -58,11 +66,15 @@ export function publish(profile) {
     fs.renameSync(input+'/' + line + '-'+arch+'-sources/sources.tar.gz',out+'/' + line + '-'+arch+'-sources.tar.gz');
   }
   assert.equal(hash('out/' + line + '-trivy-cache/db/trivy.db'),database.sha256,'Scanner database changed');
-  write('security.json',{scanner,database,scans,policy:'Block fixable High/Critical ALAS findings; retain all findings and document unfixed/JVM coverage limitations'});
+  write('security.json',{scanner,database,scans,
+    ...(upstream ? {upstream: {scanner: upstream.scanner, database: upstream.database, scans: upstreamScans}} : {}),
+    policy:'Block fixable High/Critical findings; retain raw reports and document advisory coverage limits'});
   const assets = fs.readdirSync(out).filter(n=>!n.endsWith('.md')).sort();
   fs.writeFileSync(out+'/SHA256SUMS',assets.map(n=>hash(out+'/'+n)+'  '+n).join('\n')+'\n');
   const initialNotes = '# ' + profile.title + ' qualified preview\n\nNative amd64/arm64 qualification passed at source '+commit+'.\n\n'+
-    'This prerelease includes exact Docker image archives, payload SBOMs/file maps/locks, verification reports, matching source RPM bundles and project source. Component licenses remain individual. Registry signing/publication is being finalized by [Actions run](https://github.com/'+repo+'/actions/runs/'+run+').\n\n'+
+    'This prerelease includes exact Docker image archives, payload SBOMs/file maps/locks, verification reports, matching source RPM bundles and project source.' +
+    (upstream ? ' The source bundles include the upstream release source and signature evidence.' : '') +
+    ' Component licenses remain individual. Registry signing/publication is being finalized by [Actions run](https://github.com/'+repo+'/actions/runs/'+run+').\n\n'+
     'This is a runtime preview, not a declaration that the project-wide Java/Python/Node.js v1 milestone is complete.\n';
   fs.writeFileSync(out+'/release-notes.md',initialNotes);
   execute('gh',['release','create',tag,'--repo',repo,'--target',commit,'--title',profile.title + ' preview '+commit.slice(0,12),'--draft','--prerelease','--notes-file',out+'/release-notes.md']);
@@ -91,8 +103,8 @@ export function publish(profile) {
   execute('cosign',['sign','--yes',reference]);
   for (const arch of ['amd64','arm64']) execute('cosign',['attest','--yes','--type','cyclonedx','--predicate',out+'/'+arch+'-sbom.cdx.json',base+'@'+leaves[arch]]);
   const provenance = { schema_version:1, ...profile.metadata, sourceCommit:commit, workflow:profile.workflow, runUrl:'https://github.com/'+repo+'/actions/runs/'+run,
-    reference, leaves, verification:Object.fromEntries(Object.entries(records).map(([a,r])=>[a,{image:r.image.id,checks:r.checks,runtimeModules:r.runtimeModules,sample:r.sample,nativeFixture:r.nativeFixture}])),
-    evidenceSHA256:hash(out+'/SHA256SUMS'), security:scans };
+    reference, leaves, verification:Object.fromEntries(Object.entries(records).map(([a,r])=>[a,{image:r.image.id,checks:r.checks,runtimeModules:r.runtimeModules,sample:r.sample,nativeFixture:r.nativeFixture,upstream:r.upstream}])),
+    evidenceSHA256:hash(out+'/SHA256SUMS'), security:scans, ...(upstream ? {upstreamSecurity:upstreamScans} : {}) };
   write('provenance.json',provenance);
   const predicateType='https://rambow-cloud.github.io/amazon-linux-distroless/' + line + '-qualified-build/v1';
   execute('cosign',['attest','--yes','--type',predicateType,'--predicate',out+'/provenance.json',reference]);

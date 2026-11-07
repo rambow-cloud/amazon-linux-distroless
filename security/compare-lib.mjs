@@ -10,7 +10,7 @@ export function inventorySbom(inventory, lock, imageId) {
   const evidence = new Map();
   const unowned = [];
   for (const file of inventory.files) {
-    if (file.kind !== 'file' || isNotice(file.path)) continue;
+    if (file.kind !== 'file' || file.upstream_component || isNotice(file.path)) continue;
     if (!file.packages?.length) unowned.push({ path: file.path, generated_by: file.generated_by || null });
     for (const owner of file.packages || []) {
       if (!evidence.has(owner)) evidence.set(owner, []);

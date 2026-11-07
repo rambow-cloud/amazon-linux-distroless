@@ -1,0 +1,12 @@
+{
+  "version": "26.13.0",
+  "url": "https://nodejs.org/dist/v26.13.0/node-v26.13.0-linux-arm64.tar.xz",
+  "sha256": "406fe3fbde1c054adff8b297c16fdb5af6659db327c1ac8acd46b56ef1af9a92",
+  "sourceUrl": "https://nodejs.org/dist/v26.13.0/node-v26.13.0.tar.xz",
+  "sourceSha256": "263f639ecfa7a17b49438d76cdbf9aff73179e3c7cb789da69b900718427fa2e",
+  "signature": {
+    "type": "openpgp",
+    "signer": "C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C",
+    "keyRevision": "481637f813e912c4aa3622d7964ab426c97b8e8d"
+  }
+}

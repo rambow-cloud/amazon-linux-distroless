@@ -1,0 +1,17 @@
+{
+  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux:2023.12.20261102.0",
+  "releasever": "2023.12.20261102",
+  "roots": {
+    "base": ["glibc", "glibc-minimal-langpack", "ca-certificates", "tzdata"],
+    "python": [
+      "glibc", "glibc-minimal-langpack", "ca-certificates", "tzdata",
+      "openssl-libs", "crypto-policies", "bzip2-libs", "libffi", "sqlite-libs",
+      "xz-libs", "zlib", "libxcrypt", "ncurses-libs", "readline", "expat",
+      "libuuid", "libgcc", "gdbm-libs"
+    ],
+    "nodejs": [
+      "glibc", "glibc-minimal-langpack", "ca-certificates", "tzdata",
+      "libstdc++", "libgcc", "libatomic"
+    ]
+  }
+}
