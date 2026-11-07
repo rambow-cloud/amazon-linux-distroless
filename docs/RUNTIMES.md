@@ -29,7 +29,7 @@ Prepare application dependencies in a compatible builder and copy only the appli
 - Install application wheels for the matching CPython minor ABI and architecture into `/opt/python/site-packages`.
 - Install production Node.js dependencies for the matching release and architecture into `/app/node_modules`. The native Actions fixture uses the matching official headers and npm.
 
-The [upstream runtime guide](UPSTREAM-RUNTIMES.md) describes the builder and runtime boundary. The [original Python example](../examples/python-app/Dockerfile) and [original Node.js example](../examples/node-app/Dockerfile) reference their historical RPM-based previews.
+The [Python example](../examples/python-app/Dockerfile) and [Node.js example](../examples/node-app/Dockerfile) compile native dependencies in matching AL2023 builders and use exact stable digest pins for their final stages. The Node.js example supports both ESM and CommonJS entrypoints. The [upstream runtime guide](UPSTREAM-RUNTIMES.md) describes the builder boundary. The example builder packages do not enter the final image.
 
 Use JSON CMD arguments. Hardened application execution:
 
@@ -37,10 +37,32 @@ Use JSON CMD arguments. Hardened application execution:
 docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --tmpfs /tmp:rw,nosuid,nodev,noexec,size=32m APPLICATION_IMAGE
 ```
 
+Run the example builds and native verification in GitHub Actions:
+
+```sh
+gh workflow run consumer-examples.yml --ref main
+```
+
+Use the [stable release index](STABLE.md) to select an exact digest. For example, verify Node.js 24 with:
+
+```sh
+image='ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b'
+issuer='https://token.actions.githubusercontent.com'
+build='https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/runtime-publish.yml@refs/heads/main'
+stable='https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/runtime-stable.yml@refs/heads/main'
+cosign verify --certificate-identity "$build" --certificate-oidc-issuer "$issuer" "$image"
+cosign verify-attestation --type 'https://rambow-cloud.github.io/amazon-linux-distroless/runtime-stable/v1' \
+  --certificate-identity "$stable" --certificate-oidc-issuer "$issuer" "$image"
+leaf=$(docker buildx imagetools inspect --raw "$image" | jq -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest')
+cosign verify-attestation --type cyclonedx --certificate-identity "$build" --certificate-oidc-issuer "$issuer" "${image%@*}@$leaf"
+```
+
+For Java, use the build identity ending in `java21-publish.yml@refs/heads/main`. For arm64, select the arm64 leaf. Match the signed predicate and corresponding source links to the release record.
+
 ## Evidence and maintenance
 
 Delivery reports record index/leaf digests, source commits, native runtime/ABI checks, image sizes, payload RPM coverage, public visibility and verified signatures/provenance. Permanent GitHub prereleases preserve image archives, matching source RPMs, project source, locks, inventories, SBOMs, native verification, raw scans and checksums. CycloneDX attestations attach to platform manifests; the index carries a keyless signature and qualified-build provenance. Verify the exact workflow identity and issuer in the selected report.
 
-Publication blocks known fixable High/Critical ALAS matches and applies the upstream Grype gate for Python and Node.js. Unfixed and language-runtime advisory coverage remain limited; zero matches do not prove zero risk. Consumers must scan their application dependencies. Retired Trivy/native-RPM/Grype comparison experiments remain disabled; normal publication security gates stay active.
+Stable promotion applies the [High/Critical vulnerability policy](../SECURITY.md#stable-vulnerability-gate) to ALAS and applicable Grype findings. Unfixed and language-runtime advisory coverage remain limited; consumers must scan their application dependencies. Retired Trivy/native-RPM/Grype comparison experiments remain disabled.
 
-All container resolution, builds, scans and runtime tests run in GitHub Actions. See [update operations](UPDATING.md) and [support boundaries](SUPPORT.md). Static/base parity, size budgets, measured OCI reproducibility and stable policy remain separate [roadmap](ROADMAP.md) work.
+All container resolution, builds, scans and runtime tests run in GitHub Actions. See [update operations](UPDATING.md), [support boundaries](SUPPORT.md), and the [foundation image guide](FOUNDATION.md).
