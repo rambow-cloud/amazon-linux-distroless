@@ -2,7 +2,7 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from verified AL2023 system packages and locked language releases.
 
-**Status: Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed stable and preview channels on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with [delivered runtimes](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is Public; its GitHub Release preserves runtime archives and matching source.
+**Status: Static, base, Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed stable images on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with the [foundation images](docs/FOUNDATION.md) and [delivered languages](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is public; its GitHub Release preserves runtime archives and matching source.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
@@ -24,7 +24,7 @@ There is no standalone `cc` image or general C++ application support. Audited na
 
 The versioned language matrix includes Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26. Java uses AL2023 Corretto RPMs. Python builds from signed CPython source and Node.js uses signed upstream binaries. The [upstream runtime guide](docs/UPSTREAM-RUNTIMES.md) describes the inputs and runtime assembly. No floating system default is a version contract.
 
-All language preview references are recorded in [runtime delivery](docs/RUNTIMES.md). Static/base foundation parity and project-wide stable release policies remain roadmap work. [Support boundaries](docs/SUPPORT.md) define lifecycle, ABI and maintenance ownership; [update operations](docs/UPDATING.md) cover reviewed refreshes and rollback.
+All language preview references are recorded in [runtime delivery](docs/RUNTIMES.md). [Support boundaries](docs/SUPPORT.md) define lifecycle, ABI and maintenance ownership; [update operations](docs/UPDATING.md) cover refreshes and rollback.
 
 ## Implementation approach
 
