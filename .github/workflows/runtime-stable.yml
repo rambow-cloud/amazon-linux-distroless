@@ -1,0 +1,86 @@
+name: Runtime stable promotion
+on:
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: Version line from the reviewed stable candidate plan
+        type: choice
+        options: [all, java17, java21, java25, python311, python312, python313, python314, nodejs22, nodejs24, nodejs26]
+        default: all
+        required: true
+      mode:
+        description: Check the candidate or publish the stable release
+        type: choice
+        options: [check, publish]
+        default: check
+        required: true
+permissions:
+  contents: read
+jobs:
+  plan:
+    name: Select reviewed stable candidates
+    runs-on: ubuntu-24.04
+    outputs:
+      runtimes: ${{ steps.plan.outputs.runtimes }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          STABLE_SELECTION: ${{ inputs.runtime }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import { stablePlan } from './scripts/release/stable-policy.mjs';
+          assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
+          const plan = JSON.parse(fs.readFileSync('releases/stable-candidates.json'));
+          const selection = process.env.STABLE_SELECTION;
+          const runtimes = selection === 'all' ? Object.keys(plan) : [selection];
+          assert.ok(runtimes.length);
+          for (const id of runtimes) {
+            assert.ok(Object.hasOwn(plan, id), 'Unknown stable runtime');
+            stablePlan(id, plan[id]);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'runtimes=' + JSON.stringify(runtimes) + '\n');
+          NODE
+  stable:
+    name: Stable ${{ inputs.mode }} (${{ matrix.runtime }})
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: ${{ fromJSON(needs.plan.outputs.runtimes) }}
+    concurrency:
+      group: stable-runtime-${{ matrix.runtime }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - name: Validate and promote the signed image index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_RUNTIME: ${{ matrix.runtime }}
+          STABLE_MODE: ${{ inputs.mode }}
+          DOCKER_CONFIG: ${{ runner.temp }}/stable-docker-auth
+        run: node scripts/release/runtime-stable.mjs
+      - name: Preserve stable evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.runtime }}-stable-evidence
+          path: out/stable-evidence/*.json
+          if-no-files-found: ignore
+          retention-days: 30

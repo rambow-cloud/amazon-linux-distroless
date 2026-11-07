@@ -33,3 +33,7 @@ jobs:
           node --check scripts/release/runtime-publish.mjs
       - name: Validate inventory SBOM coverage behavior
         run: node --test security/compare.test.mjs
+      - name: Validate stable promotion policy
+        run: |
+          node --test tests/stable-release.test.mjs
+          node --check scripts/release/runtime-stable.mjs
