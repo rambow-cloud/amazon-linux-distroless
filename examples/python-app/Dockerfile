@@ -6,4 +6,5 @@ RUN /usr/bin/python3.14 /src/build_fixture.py
 FROM ${PYTHON_RUNTIME}
 COPY --from=builder --chown=65532:65532 /fixture/site/ /opt/python/site-packages/
 COPY --chown=65532:65532 examples/python-app/app.py /app/app.py
+COPY examples/python-app/LICENSE /app/LICENSE.project
 CMD ["/app/app.py"]

@@ -2,13 +2,13 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
 
-**Status: Java 17, 21, 25 and Python 3.14 have public signed previews qualified on native amd64/arm64. Node.js follows next; project-wide stable v1 is not yet released.** See [Java delivery](docs/JAVA-RELEASES.md), [Python delivery](docs/PYTHON-RELEASE.md), [versioned Java configuration](docs/JAVA.md), and [Python contract](docs/PYTHON.md). Each delivered GHCR package is Public and supports anonymous pulls; its GitHub Release includes downloadable image archives and matching source.
+**Status: Java 17/21/25, Python 3.14 and Node.js 24 have public signed previews qualified on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with [delivered runtimes](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is Public; its GitHub Release preserves runtime archives and matching source.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
-## Planned image contract
+## Image contract and scope
 
-| Variant | Intended workload | Planned contents |
+| Variant | Intended workload | Contents |
 | --- | --- | --- |
 | `static` | Fully static binaries, initially Go with `CGO_ENABLED=0` | CA trust, minimal user/group and filesystem metadata; no glibc |
 | `base` | Dynamically linked applications built against compatible AL2023 libraries | `static` contents plus the AL2023 glibc loader and verified runtime dependency closure |
@@ -20,9 +20,9 @@ Targets: `linux/amd64` and `linux/arm64`. The first foundation prototype starts 
 
 There is no standalone `cc` image or general C++ application support. Audited native libraries such as `libstdc++` remain permitted when required by a supported Java, Python, or Node.js runtime. `static` and `base` remain shared foundations rather than a C++ product line.
 
-Each language initially targets one explicitly selected maintained version line. [The language-runtime contract RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) selects versions from the pinned AL2023 release and defines versioned image names, executable paths, ABI boundaries, and maintenance windows. No floating system default is a version contract.
+The accepted language matrix is Java 17/21/25, Python 3.14 (default GIL build), and Node.js 24. [The language-runtime contract RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) selects versions from the pinned AL2023 release and defines versioned image names, executable paths, ABI boundaries, and maintenance windows. No floating system default is a version contract.
 
-Java 17/21/25 and Python 3.14 preview references are recorded in their delivery reports. Names/tags for Node.js and shared foundation variants remain proposals until their release policies are accepted.
+All language preview references are recorded in [runtime delivery](docs/RUNTIMES.md). Static/base foundation parity and project-wide stable release policies remain roadmap work. [Support boundaries](docs/SUPPORT.md) define lifecycle, ABI and maintenance ownership; [update operations](docs/UPDATING.md) cover reviewed refreshes and rollback.
 
 ## Implementation approach
 
@@ -38,6 +38,7 @@ The official AL2023 minimal image still includes a package manager. It can be a 
 ## Start here
 
 - [Implementation roadmap](docs/ROADMAP.md) — milestones, dependencies, and exit criteria.
+- [Delivered runtimes](docs/RUNTIMES.md) — all five language lines, examples and immutable delivery evidence.
 - [Java prototype](docs/PROTOTYPE.md) — inspect a real Actions-built preview and its evidence.
 - [Java 21 runtime](docs/JAVA21.md) — JRE module/file contract, native qualification, updates and preview publishing.
 - [Open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues) — executable development backlog.

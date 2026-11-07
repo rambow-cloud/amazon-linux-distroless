@@ -1,6 +1,6 @@
 # Python 3.14 delivery
 
-Python **3.14.8** has a public signed linux/amd64 + linux/arm64 preview, following Java 17/21/25. Node.js #22 is the remaining requested runtime; project-wide stable v1 acceptance remains open.
+Python **3.14.8** has a public signed linux/amd64 + linux/arm64 preview, following Java 17/21/25. Node.js 24 is also delivered; see [all runtime references](RUNTIMES.md). Project-wide stable v1 acceptance remains open.
 
 [Trusted main publication](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42336514085) · [Permanent release/source/evidence](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-bb4ed2b45f00) · [Public package](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fpython314)
 

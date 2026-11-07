@@ -1,10 +1,10 @@
 # Implementation roadmap
 
-Status: [Java 17, 21 and 25](JAVA-RELEASES.md) and [Python 3.14](PYTHON-RELEASE.md) have public signed dual-architecture previews, with native runtime qualification, persistent source/evidence, verified signature/provenance and anonymous GHCR access. Node.js is the next committed runtime; static/base provide the shared foundation. Project-wide stable v1 acceptance remains open.
+Status: [Java 17/21/25](JAVA-RELEASES.md), [Python 3.14](PYTHON-RELEASE.md) and [Node.js 24](NODEJS-RELEASE.md) have public signed dual-architecture previews. Native final-image qualification, permanent matching source/evidence and verified signatures/provenance are delivered for every language line. See [the runtime index](RUNTIMES.md) and [support boundaries](SUPPORT.md).
 
-Execution priority follows the owner's Java-first instruction: Java 21 contract and dual-architecture qualification #20/#37 and preview delivery #39 are complete. Python #21 follows Java delivery, then Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
+The owner-directed sequence is complete: Java 21 first, expanded Java 17/21/25 in #41/#42/#43/#44, Python #21/#45/#46/#47, then Node.js #22/#48/#49. The language contract RFC #16 records the final matrix. This completes the requested language implementation and preview delivery; project-wide stable v1 acceptance remains open.
 
-The owner expanded the Java phase to Java 17, 21 and 25. [RFC #41](https://github.com/rambow-cloud/amazon-linux-distroless/issues/41) and [native implementation #42](https://github.com/rambow-cloud/amazon-linux-distroless/issues/42) have delivered the versioned contract, exact native locks, six-way qualification and separate public signed previews. [Versioned Java operations](JAVA.md) document configuration. Python #21 follows, then Node.js #22; the full requested language objective remains active.
+Static/base parity, enforced size budgets, measured OCI reproducibility and complete stable policy remain #8/#9/#10/#11/#12/#23. Language evidence does not close those broader criteria or automatically complete their milestones.
 
 ## Delivery sequence
 
@@ -43,7 +43,7 @@ The sequence is scope-based, not a calendar promise. Finish each milestone's exi
 | [#13 Deliver consumer examples and v1.0 release acceptance evidence](https://github.com/rambow-cloud/amazon-linux-distroless/issues/13) | v1.0.0 | #11, #12 | p1 |
 | [#15 Define isolated debugging without expanding production images](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15) | v1.1.0 | #13 | p2 |
 
-The first ready issue remains [#2](https://github.com/rambow-cloud/amazon-linux-distroless/issues/2). The committed language contract in [#16](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) follows the shared contract, then informs locked input selection. Java, Python, and Node.js implementation can proceed independently after their shared prerequisites. The language-validation issue joins all three branches before supply-chain qualification and stable publication; there is no dependency on a prior stable release.
+The table records the original dependency plan; live issue states and the delivery reports above show completed language work. #23 remains the integration point for complete foundation/language stable acceptance, including size/reproducibility criteria that preview delivery does not satisfy.
 
 ## Language deliverables
 
@@ -53,7 +53,7 @@ The first ready issue remains [#2](https://github.com/rambow-cloud/amazon-linux-
 | Python | Versioned AL2023 interpreter/stdlib and documented builder-installed dependency path | Stdlib/import paths, SSL, version-matched native extension, cache/bytecode behavior, and hardened non-root execution |
 | Node.js | Versioned AL2023 runtime with production dependencies installed by a matching builder | ESM/CommonJS, HTTP/TLS/DNS, native addon ABI/N-API, CA/Intl behavior, signals, and hardened non-root execution |
 
-Each language initially supports one explicitly selected maintained version line. Version selection, image naming, executable paths, ABI boundaries, and support windows are decisions in #16, based on the pinned AL2023 package release and upstream/package lifecycle evidence.
+The accepted matrix supports Java 17/21/25, Python 3.14 (default GIL build) and Node.js 24. Version selection, image naming, executable paths, ABI boundaries, and support windows are decisions in #16, based on the pinned AL2023 package release and upstream/package lifecycle evidence.
 
 ## Stable-release acceptance
 
@@ -71,7 +71,7 @@ The standalone C++/`cc` image is removed. [Issue #14](https://github.com/rambow-
 
 Debug images, FIPS claims, additional language versions, additional architectures, and additional registries require their own accepted scope and maintenance capacity. Java, Python, and Node.js are required deliverables rather than optional language explorations.
 
-Exact runtime versions, OpenSSL/library boundaries, optional timezone/locale data, scriptlet handling, scanner choice, and release tag naming remain explicit implementation decisions assigned to issues.
+Current language versions, library/data boundaries, scanner behavior and preview tags are recorded in the delivered contracts. Additional runtime capabilities and stable-release policy changes require their own issue/RFC.
 
 ## Tracking and source of truth
 
