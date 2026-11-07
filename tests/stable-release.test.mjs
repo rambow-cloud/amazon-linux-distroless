@@ -25,6 +25,19 @@ test('stable aliases advance by version and revision with safe replay', () => {
   assert.doesNotThrow(() => verifyAdvance({ ...plan, reference: old.reference, revision: 2 }, plan));
 });
 
+test('stable channels use shared language packages and keep existing revision references', () => {
+  for (const [id, family, line] of [
+    ['java21', 'java', '21'], ['python314', 'python', '3.14'], ['nodejs22', 'nodejs', '22'],
+  ]) {
+    const plan = stablePlan(id, candidates[id]);
+    const base = 'ghcr.io/rambow-cloud/amazon-linux-distroless/';
+    assert.equal(plan.channel, base + family + ':' + line);
+    assert.equal(plan.channelReference, base + family + '@' + plan.digest);
+    assert.equal(plan.alias, base + id + ':' + line);
+    assert.equal(plan.immutable, base + id + ':' + plan.version + '-r' + plan.revision);
+  }
+});
+
 test('signed evidence must name the selected digest and each asset exactly once', () => {
   const statement = { subject: [{ digest: { sha256: plan.digest.slice(7) } }],
     predicateType: plan.previewPredicate, predicate: { sourceCommit: plan.sourceCommit } };
