@@ -8,6 +8,14 @@ on:
         options: ['python311', 'python312', 'python313', 'python314', 'nodejs22', 'nodejs24', 'nodejs26']
         default: 'python314'
         required: true
+      unique_preview:
+        description: Use a run-specific preview tag for unattended recovery
+        type: boolean
+        default: false
+      expected_commit:
+        description: Protected main commit selected by update automation
+        type: string
+        default: ''
 env:
   RUNTIME_ID: ${{ inputs.runtime || 'python314' }}
 permissions:
@@ -30,6 +38,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
+      - name: Verify the selected source commit
+        env:
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+        run: test -z "$EXPECTED_COMMIT" || test "$GITHUB_SHA" = "$EXPECTED_COMMIT"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
@@ -85,6 +97,7 @@ jobs:
       - name: Gate metadata, preserve source, publish and verify signatures
         env:
           GH_TOKEN: ${{ github.token }}
+          UNIQUE_PREVIEW: ${{ inputs.unique_preview }}
         run: node scripts/release/runtime-publish.mjs
       - name: Preserve publication evidence
         if: always()

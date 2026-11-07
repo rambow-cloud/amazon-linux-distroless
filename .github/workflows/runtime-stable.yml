@@ -20,6 +20,10 @@ on:
         options: [both, ghcr, quay]
         default: both
         required: true
+      expected_commit:
+        description: Protected main commit selected by update automation
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -35,12 +39,14 @@ jobs:
       - id: plan
         env:
           STABLE_SELECTION: ${{ inputs.runtime }}
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import fs from 'node:fs';
           import { stablePlan } from './scripts/release/stable-policy.mjs';
           assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
+          if (process.env.EXPECTED_COMMIT) assert.equal(process.env.GITHUB_SHA, process.env.EXPECTED_COMMIT);
           const plan = JSON.parse(fs.readFileSync('releases/stable-candidates.json'));
           const selection = process.env.STABLE_SELECTION;
           const selected = selection === 'all' ? Object.keys(plan) : [selection];

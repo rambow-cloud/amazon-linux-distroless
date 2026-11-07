@@ -1,6 +1,6 @@
 # Runtime stable channels
 
-Use `ghcr.io/rambow-cloud/python:3.14` or `quay.io/rambow-cloud/python:3.14` to follow Python 3.14. Pin `python:3.14.10-r1` or its digest on either registry for reproducibility. The original GHCR paths continue to serve existing consumers.
+Use `ghcr.io/rambow-cloud/python:3.14` or `quay.io/rambow-cloud/python:3.14` to follow Python 3.14. Pin a full revision tag or its index digest on either registry for reproducibility. The original GHCR paths continue to serve existing consumers.
 
 ## Published stable revisions
 
@@ -10,35 +10,16 @@ Browse the GHCR packages for [Java](https://github.com/orgs/rambow-cloud/package
 
 Browse the Quay tags for [Java](https://quay.io/repository/rambow-cloud/java?tab=tags), [Python](https://quay.io/repository/rambow-cloud/python?tab=tags) and [Node.js](https://quay.io/repository/rambow-cloud/nodejs?tab=tags).
 
-| Runtime | Fixed revision | Rolling stable tag | Evidence |
-| --- | --- | --- | --- |
-| java17 | `java:17.0.21-r1` | `java:17` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java17-17.0.21-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358617466) |
-| java21 | `java:21.0.13-r1` | `java:21` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java21-21.0.13-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616498) |
-| java25 | `java:25.0.5-r1` | `java:25` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java25-25.0.5-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616651) |
-| python311 | `python:3.11.18-r1` | `python:3.11` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python311-3.11.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137861) |
-| python312 | `python:3.12.16-r1` | `python:3.12` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python312-3.12.16-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137956) |
-| python313 | `python:3.13.18-r1` | `python:3.13` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python313-3.13.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138247) |
-| python314 | `python:3.14.10-r1` | `python:3.14` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-3.14.10-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138103) |
-| nodejs22 | `nodejs:22.23.4-r1` | `nodejs:22` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs22-22.23.4-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137961) |
-| nodejs24 | `nodejs:24.22.2-r1` | `nodejs:24` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs24-24.22.2-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358139806) |
-| nodejs26 | `nodejs:26.13.0-r1` | `nodejs:26` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42357940352) |
+Open a package’s **Versions** or **Tags** list to find the version line, its exact revision tag and its index digest. For the evidence, match the revision to a regular [GitHub Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases) named for the runtime line and revision. Download `stable.json` and compare its image digest with the selected tag. The signed record links the qualified preview, source and scan reports.
 
-### Exact image index digests
+For example, to resolve the current Node.js 22 digest, inspect the version line in either registry:
 
-The corresponding Quay image has the same index digest, signatures and attestations. Use the same language name and digest under `quay.io/rambow-cloud/`.
+```sh
+docker buildx imagetools inspect ghcr.io/rambow-cloud/nodejs:22
+docker buildx imagetools inspect quay.io/rambow-cloud/nodejs:22
+```
 
-- `ghcr.io/rambow-cloud/java@sha256:45365c585dd7501ec027a34dc95886b3097a8e6b6001befc1d8ac327b85000de`
-- `ghcr.io/rambow-cloud/java@sha256:de7886e8d9b8dcda6112e6732b9d4b7dc3d3bffee4ccee5314c86ab9805f6ad0`
-- `ghcr.io/rambow-cloud/java@sha256:0c354b31ec54bb950af9a97d51feaf698c7c6e4bef480d214cbccc8528724382`
-- `ghcr.io/rambow-cloud/python@sha256:37e734bc93474dcb9826c9affcf68cb95409c7cf0f65cce3da930958955b3162`
-- `ghcr.io/rambow-cloud/python@sha256:0acd8af15164b4957cce7db3667771a7612f18e5c274dcf3c4725ae9400e5640`
-- `ghcr.io/rambow-cloud/python@sha256:bb6c059a9f689607d4e09e05dbe94e8f1470d8a4fb4329621f90104a1bf1821a`
-- `ghcr.io/rambow-cloud/python@sha256:3be1cc8a55fb98b48aa0678ab71c0339e4c92e5378d0d7b473d15fbc7374f137`
-- `ghcr.io/rambow-cloud/nodejs@sha256:ffe514490046f2dd761f4b2624ecea24c397dfe56fdf3d4e746cc6fcf5719b30`
-- `ghcr.io/rambow-cloud/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b`
-- `ghcr.io/rambow-cloud/nodejs@sha256:c00948070c983b92a392ef03c2fc15799c87949cb3691f20b24dc14fae7dae6d`
-
-All ten promotions passed the fixable High/Critical gate. The stable Release assets record the scanner databases and raw findings in the fresh reports.
+Pin the reported `sha256:…` with `@sha256:…` and follow the [signature verification instructions](RUNTIMES.md#application-packaging). Use the registry tag list and signed record together if publication is still in progress.
 
 ## Release operation
 

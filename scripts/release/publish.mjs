@@ -6,6 +6,7 @@ import { validateIndex } from './java21-policy.mjs';
 import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
+import { previewReleaseTag } from './stable-policy.mjs';
 
 // Profile identity/validator comes from a reviewed language-specific entry point.
 export function publish(profile) {
@@ -27,7 +28,8 @@ export function publish(profile) {
   const capture = (command, args) => execFileSync(command, args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] }).trim();
   const records = Object.fromEntries(['amd64','arm64'].map(a => [a, read(input + '/' + line + '-' + a + '-evidence/verification.json')]));
   profile.validateReports(records, commit);
-  const base = 'ghcr.io/' + repo + '/' + line, tag = line + '-' + commit.slice(0,12), immutable = base + ':' + tag;
+  const tag = previewReleaseTag(line, commit, profile.upstream && process.env.UNIQUE_PREVIEW === 'true' ? run : '');
+  const base = 'ghcr.io/' + repo + '/' + line, immutable = base + ':' + tag;
   // An immutable release is never overwritten by an automatic rerun.
   const existing = spawnSync('gh', ['release', 'view', tag, '--repo', repo, '--json', 'tagName'], { encoding: 'utf8' });
   if (existing.status === 0) throw new Error('This immutable preview release already exists; inspect it before deliberate recovery');
