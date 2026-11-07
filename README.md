@@ -6,7 +6,7 @@ Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
-Use `ghcr.io/rambow-cloud/nodejs:22` to follow the Node.js 22 stable line. Java and Python use the same short paths. Each language's `latest` tag follows its highest published stable version. See the [stable release index](docs/STABLE.md) for supported version lines, fixed revisions and verified digests.
+Use `ghcr.io/rambow-cloud/nodejs:22` or `quay.io/rambow-cloud/nodejs:22` to follow the Node.js 22 stable line. Java and Python use the same short paths on both registries. Each language's `latest` tag follows its highest published stable version. See the [stable release index](docs/STABLE.md) for supported version lines, fixed revisions and verified digests.
 
 ## Image contract and scope
 
