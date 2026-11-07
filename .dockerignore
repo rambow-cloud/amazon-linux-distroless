@@ -34,6 +34,8 @@
 
 !images/nodejs24/
 !images/nodejs24/**
+!images/upstream/
+!images/upstream/**
 
 !examples/nodejs24/
 !examples/nodejs24/**

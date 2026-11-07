@@ -1,13 +1,18 @@
-export const runtimes = {
-  python314: {
-    variant: 'python', version: '3.14', executable: '/usr/bin/python3.14',
-    packages: ['python3.14', 'python3.14-libs', 'python3.14-devel', 'python3.14-pip'],
-  },
-  nodejs24: {
-    variant: 'nodejs', version: '24', executable: '/usr/bin/node-24',
-    packages: ['nodejs24', 'nodejs24-devel', 'nodejs24-npm', 'nodejs24-full-i18n'],
-  },
-};
+import fs from 'node:fs';
+
+const versions = JSON.parse(fs.readFileSync(new URL('../../images/upstream/versions.json', import.meta.url)));
+export const runtimes = Object.fromEntries(Object.entries(versions).map(([id, upstreamVersion]) => {
+  if (!/^\d+\.\d+\.\d+$/.test(upstreamVersion)) throw new Error('Expected an exact upstream release');
+  const parts = upstreamVersion.split('.');
+  if (id === 'python' + parts.slice(0, 2).join('')) {
+    const version = parts.slice(0, 2).join('.');
+    return [id, { variant: 'python', version, upstreamVersion, executable: '/usr/bin/python' + version }];
+  }
+  if (id === 'nodejs' + parts[0]) {
+    return [id, { variant: 'nodejs', version: parts[0], upstreamVersion, executable: '/usr/bin/node-' + parts[0] }];
+  }
+  throw new Error('Runtime identifier and release disagree: ' + id);
+}));
 export function configuration(id) {
   if (!Object.hasOwn(runtimes,id)) throw new Error('Unsupported runtime: ' + id);
   return { id, ...runtimes[id] };
@@ -15,4 +20,8 @@ export function configuration(id) {
 export function nativeArchitecture(arch) {
   if (!['amd64','arm64'].includes(arch) || process.arch !== (arch === 'amd64' ? 'x64' : 'arm64')) throw new Error('Native amd64/arm64 runner required');
   return arch;
+}
+
+export function rpmLock(variant, arch) {
+  return 'locks/upstream/' + variant + '-linux-' + arch + '.json';
 }
