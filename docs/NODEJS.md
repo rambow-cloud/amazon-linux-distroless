@@ -1,5 +1,7 @@
 # Node.js 24 runtime contract
 
+This page records the original AL2023 RPM-based preview. See [current upstream releases](UPSTREAM-RELEASES.md) for the published multi-version matrix.
+
 Node.js follows public signed Java 17/21/25 and Python 3.14 delivery, under [#22](https://github.com/rambow-cloud/amazon-linux-distroless/issues/22) and [RFC #16](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16). Native [resolution run 42336688597](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42336688597) selected **Node.js 24.22.1**, ICU **78.3**, Node module ABI **137** and runtime N-API **10** from the explicit AL2023 2023.12.20261102 snapshot on both architectures. Native final-image qualification and trusted-main publication are complete. [The delivery report](NODEJS-RELEASE.md) records the actual public immutable index, signatures and permanent evidence.
 
 ## Runtime

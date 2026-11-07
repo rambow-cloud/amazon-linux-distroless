@@ -1,8 +1,8 @@
 # Amazon Linux Distroless
 
-Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
+Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from verified AL2023 system packages and locked language releases.
 
-**Status: Java 17/21/25, Python 3.14 and Node.js 24 have public signed previews qualified on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with [delivered runtimes](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is Public; its GitHub Release preserves runtime archives and matching source.
+**Status: Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed previews qualified on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with [delivered runtimes](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is Public; its GitHub Release preserves runtime archives and matching source.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
@@ -20,14 +20,14 @@ Targets: `linux/amd64` and `linux/arm64`. The first foundation prototype starts 
 
 There is no standalone `cc` image or general C++ application support. Audited native libraries such as `libstdc++` remain permitted when required by a supported Java, Python, or Node.js runtime. `static` and `base` remain shared foundations rather than a C++ product line.
 
-The accepted language matrix is Java 17/21/25, Python 3.14 (default GIL build), and Node.js 24. [The language-runtime contract RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) selects versions from the pinned AL2023 release and defines versioned image names, executable paths, ABI boundaries, and maintenance windows. No floating system default is a version contract.
+The versioned language matrix includes Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26. Java uses AL2023 Corretto RPMs. Python builds from signed CPython source and Node.js uses signed upstream binaries. The [upstream runtime guide](docs/UPSTREAM-RUNTIMES.md) describes the inputs and runtime assembly. No floating system default is a version contract.
 
 All language preview references are recorded in [runtime delivery](docs/RUNTIMES.md). Static/base foundation parity and project-wide stable release policies remain roadmap work. [Support boundaries](docs/SUPPORT.md) define lifecycle, ABI and maintenance ownership; [update operations](docs/UPDATING.md) cover reviewed refreshes and rollback.
 
 ## Implementation approach
 
 1. Pin an official AL2023 builder image by digest and select an explicit AL2023 repository release.
-2. Resolve and verify official RPMs in the builder; retain package checksums, versions, licenses, and source references.
+2. Verify signed AL2023 RPM inputs and the upstream Python or Node.js release. Keep exact checksums, version locks, licenses and source references.
 3. Assemble a reviewed file allowlist into a clean root filesystem, including transitive ELF dependencies and runtime configuration.
 4. Copy that filesystem into a `FROM scratch` image and validate the actual final image.
 5. Assemble separate Java, Python, and Node.js variants with application dependencies installed in compatible builders. Validate runtime-loaded files and native extension/addon compatibility.
@@ -38,7 +38,7 @@ The official AL2023 minimal image still includes a package manager. It can be a 
 ## Start here
 
 - [Implementation roadmap](docs/ROADMAP.md) — milestones, dependencies, and exit criteria.
-- [Delivered runtimes](docs/RUNTIMES.md) — all five language lines, examples and immutable delivery evidence.
+- [Delivered runtimes](docs/RUNTIMES.md) — all ten version lines and immutable delivery evidence.
 - [Java prototype](docs/PROTOTYPE.md) — inspect a real Actions-built preview and its evidence.
 - [Java 21 runtime](docs/JAVA21.md) — JRE module/file contract, native qualification, updates and preview publishing.
 - [Open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues) — executable development backlog.

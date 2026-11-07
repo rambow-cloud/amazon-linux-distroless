@@ -21,6 +21,6 @@
   },
   {
     "title": "v0.3.0 — Java, Python, and Node.js runtimes",
-    "description": "Implement separate Java (Amazon Corretto headless), Python, and Node.js images from pinned AL2023 packages on linux/amd64 and linux/arm64. Exit: all three language-specific workload and native-dependency probes pass in CI, with reviewed size budgets and evidence ready for stable-release qualification."
+    "description": "Qualify Corretto Java and official upstream Python and Node.js versions with locked AL2023 system libraries on native linux/amd64 and linux/arm64. The exit criteria include native workload tests, size budgets and stable-release evidence."
   }
 ]
