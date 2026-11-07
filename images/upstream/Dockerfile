@@ -10,6 +10,7 @@ COPY scripts/runtime/ /runtime-tools/
 COPY scripts/java21/check_image.py /runtime-tools/check_image.py
 
 FROM tools AS upstream-build
+ARG SOURCE_DATE_EPOCH
 ARG RUNTIME_VARIANT
 ARG ARCHIVE_SHA256
 ARG RUNTIME_LINE

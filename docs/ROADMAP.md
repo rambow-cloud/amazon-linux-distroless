@@ -4,7 +4,7 @@ Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed dual-a
 
 The owner-directed sequence is complete: Java 21 first, expanded Java 17/21/25 in #41/#42/#43/#44, Python #21/#45/#46/#47, then Node.js #22/#48/#49. The language contract RFC #16 records the final matrix. This completes the requested language implementation and preview delivery; project-wide stable v1 acceptance remains open.
 
-Static/base parity, enforced size budgets, measured OCI reproducibility and complete stable policy remain #8/#9/#10/#11/#12/#23. Language evidence does not close those broader criteria or automatically complete their milestones.
+The v0.1 foundation contract and v0.2 native CI milestones are complete. [Foundation candidates](FOUNDATION.md) include verified native static and base images, OCI indexes and measured size and reproducibility evidence. Project-wide SBOM, scanner policy, signed publication and updates remain #9/#10/#11/#12.
 
 ## Delivery sequence
 

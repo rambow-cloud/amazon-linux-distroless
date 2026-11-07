@@ -27,6 +27,8 @@ Python and Node.js patch versions follow reviewed upstream release locks. Review
 
 ## Ownership and updates
 
+The [qualification policy](../releases/runtime-support.json) records the earlier of the published runtime and AL2023 support boundaries. Review it with the official schedules above when refreshing the support matrix. These checks do not replace per-package support review.
+
 rambow-cloud maintainers own reviewed builder/repository/RPM refreshes, file and ABI contracts, native qualification, source/license delivery, vulnerability decisions and signed publication. Consumers own application dependencies, application-specific native libraries, digest updates and deployment rollback.
 
 Daily builder discovery proposes maintenance issues. It does not edit locks, advance aliases or deploy consumers. Follow [UPDATING.md](UPDATING.md): issue, native Actions resolution, lock review, protected checks, merge, trusted-main publication, evidence verification, application rebuild and digest promotion. Project-wide stable automation and exception policies remain #10/#11/#12. Preview maintenance carries no response-time guarantee.

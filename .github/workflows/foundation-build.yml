@@ -4,11 +4,16 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      force:
+        type: boolean
+        default: false
 permissions:
   contents: read
   pull-requests: read
 concurrency:
-  group: foundation-build-${{ github.event.pull_request.number || github.ref }}
+  group: foundation-build-${{ github.event.pull_request.number || github.ref }}-${{ inputs.force && 'full' || 'scoped' }}
   cancel-in-progress: true
 jobs:
   scope:
@@ -23,17 +28,19 @@ jobs:
           persist-credentials: false
       - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         id: scope
+        env:
+          FORCE_FOUNDATION: ${{ inputs.force && 'true' || 'false' }}
         with:
           script: |
             const { pathToFileURL } = require('node:url');
             const { affectsFoundation } = await import(pathToFileURL(process.cwd() + '/scripts/foundation/ci.mjs').href);
             let required = true;
-            if (context.eventName === 'pull_request') {
+            if (process.env.FORCE_FOUNDATION !== 'true' && context.eventName === 'pull_request') {
               const files = await github.paginate(github.rest.pulls.listFiles, {
                 ...context.repo, pull_number: context.issue.number, per_page: 100,
               });
               required = files.length >= 3000 || affectsFoundation(files);
-            } else if (context.eventName === 'push' && !/^0+$/.test(context.payload.before)) {
+            } else if (process.env.FORCE_FOUNDATION !== 'true' && context.eventName === 'push' && !/^0+$/.test(context.payload.before)) {
               const { data } = await github.rest.repos.compareCommitsWithBasehead({
                 ...context.repo, basehead: context.payload.before + '...' + context.sha, per_page: 1,
               });
