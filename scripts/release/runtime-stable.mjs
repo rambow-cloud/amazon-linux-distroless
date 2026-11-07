@@ -64,6 +64,39 @@ function registryLogin() {
     { input: process.env.GH_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
 }
 
+async function quayLogin() {
+  const robot = 'rambow-cloud+runtime_publisher';
+  const audience = 'https://quay.io';
+  const request = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+  assert.ok(request.protocol === 'https:' && request.hostname.endsWith('.actions.githubusercontent.com'),
+    'Unexpected GitHub OIDC endpoint');
+  request.searchParams.set('audience', audience);
+  const issued = await fetch(request, {
+    headers: { Authorization: 'Bearer ' + process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN },
+    redirect: 'error', signal: AbortSignal.timeout(15000),
+  });
+  assert.ok(issued.ok, 'GitHub OIDC request failed: ' + issued.status);
+  const { value } = await issued.json();
+  assert.ok(typeof value === 'string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(value), 'Expected a GitHub OIDC token');
+  const claims = JSON.parse(Buffer.from(value.split('.')[1], 'base64url').toString('utf8'));
+  assert.equal(claims.iss, issuer);
+  assert.equal(claims.aud, audience);
+  assert.equal(claims.sub, 'repo:rambow-cloud@333554680/amazon-linux-distroless@1448396331:environment:quay-runtime-publish');
+  assert.equal(claims.ref, 'refs/heads/main');
+  assert.equal(claims.workflow_ref, repository + '/.github/workflows/runtime-stable.yml@refs/heads/main');
+
+  const exchange = await fetch(audience + '/oauth2/federation/robot/token', {
+    headers: { Authorization: 'Basic ' + Buffer.from(robot + ':' + value).toString('base64') },
+    redirect: 'error', signal: AbortSignal.timeout(15000),
+  });
+  assert.ok(exchange.ok, 'Quay OIDC token exchange failed: ' + exchange.status);
+  const { token } = await exchange.json();
+  assert.ok(typeof token === 'string' && token.length > 0 && !/\s/.test(token), 'Missing temporary Quay token');
+  execute('docker', ['login', 'quay.io', '--username', robot, '--password-stdin'],
+    { input: token, stdio: ['pipe', 'pipe', 'inherit'] });
+  console.log('Authenticated to Quay with a temporary OIDC credential.');
+}
+
 function packageVisibility(name) {
   const output = optional('gh', ['api', 'orgs/rambow-cloud/packages/container/' +
     encodeURIComponent(name)], /HTTP 404/);
@@ -93,12 +126,11 @@ const mirror = process.env.STABLE_MODE === 'mirror';
 assert.ok(publish || mirror || process.env.STABLE_MODE === 'check', 'Expected check, publish, or mirror');
 const destination = process.env.STABLE_MIRROR_REGISTRY || 'both';
 assert.ok(['both', 'ghcr', 'quay'].includes(destination), 'Unknown mirror registry');
-assert.ok(!publish || destination === 'both', 'Stable publication must update both registries');
+assert.ok(!publish || destination === 'both', 'Registry selection only applies to mirror mode');
 const mirrorGHCR = destination !== 'quay';
-const mirrorQuay = destination !== 'ghcr';
+const mirrorQuay = destination !== 'ghcr' && (mirror || process.env.QUAY_RUNTIME_MIRROR_ENABLED === 'true');
 if (publish || mirror) {
   assert.ok(process.env.DOCKER_CONFIG && process.env.GH_TOKEN, 'Missing publishing configuration');
-  if (mirrorQuay) assert.ok(process.env.QUAY_ROBOT_TOKEN, 'Missing Quay publishing credential');
   fs.mkdirSync(process.env.DOCKER_CONFIG, { recursive: true });
 }
 if (publish) assert.equal(packageVisibility(plan.variant), 'public', 'The short GHCR package must be public');
@@ -292,7 +324,7 @@ function publishShortChannel(base, record, exists) {
   return { reference, fixed, patch, rolling, latest, latestDigest: newestDigest };
 }
 
-function distribute(record) {
+async function distribute(record) {
   const published = {};
   registryLogin();
   if (mirrorGHCR) {
@@ -300,8 +332,7 @@ function distribute(record) {
     published.ghcr = publishShortChannel('ghcr.io/rambow-cloud/' + plan.variant, record, packageVisibility(plan.variant) !== null);
   }
   if (mirrorQuay) {
-    execute('docker', ['login', 'quay.io', '--username', 'rambow-cloud+runtime_publisher', '--password-stdin'],
-      { input: process.env.QUAY_ROBOT_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
+    await quayLogin();
     published.quay = publishShortChannel('quay.io/rambow-cloud/' + plan.variant, record, true);
   }
   write(out + '/published-mirrors.json', { runtime, leaves: record.leaves, releaseUrl: record.releaseUrl, ...published });
@@ -313,7 +344,7 @@ function distribute(record) {
 
 if (mirror) {
   assert.equal(oldDigest, plan.digest, 'Complete the approved stable release before mirroring');
-  distribute(publishedStableRecord());
+  await distribute(publishedStableRecord());
   process.exit(0);
 }
 
@@ -386,7 +417,7 @@ if (publish) {
     writeTag(plan.alias, plan);
   }
   write(out + '/published-stable.json', record);
-  distribute(record);
+  await distribute(record);
 }
 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
   '# ' + (publish ? 'Published stable ' : 'Validated stable candidate ') + runtime + '\n\n' +
