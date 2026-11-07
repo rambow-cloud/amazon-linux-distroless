@@ -47,4 +47,4 @@ The [support policy](SUPPORT.md) defines per-line maintenance windows, ABI bound
 
 ## Deferred scope
 
-The v1.1 [isolated debugging RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15) tracks the decision on a separate debug image. Use the [current troubleshooting guide](RUNTIMES.md#runtime-behavior-and-troubleshooting) for shell-free operations. Additional language lines, platforms and FIPS certification require separate qualification and scope.
+The [v1.1 isolated debugging decision](DEBUGGING.md) defers a separate project-published debug image and documents how operators can troubleshoot with a separate container. Additional language lines, platforms and FIPS certification require separate qualification and scope.
