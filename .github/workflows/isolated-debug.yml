@@ -1,0 +1,28 @@
+name: Isolated debug verification
+on:
+  pull_request:
+    paths:
+      - .github/workflows/isolated-debug.yml
+      - scripts/debug/verify-isolation.sh
+      - docs/DEBUGGING.md
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tls:
+    name: Diagnose TLS from a separate container (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash scripts/debug/verify-isolation.sh "${{ matrix.arch }}"

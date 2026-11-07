@@ -92,7 +92,7 @@ kubectl -n "$namespace" logs "$pod" -c "$container" --previous
 | DNS or TLS failure | Compare the service name, namespace, DNS configuration, network policy, certificate chain and hostname. A diagnostic container uses its own trust store, so reproduce verification in the application or its fixture as well. |
 | `EROFS` or permission denied | Check the numeric UID/GID and mount ownership. Direct temporary writes to a writable `/tmp` and use explicit writable volumes for persistent data. |
 
-For network diagnostics, use an approved tool image pinned by digest in an isolated container. Docker can share the network namespace of a running target with `--network container:$container`. In Kubernetes, use an ephemeral container if RBAC and admission allow it. Its filesystem and trust settings are separate from the workload. Reproduce a startup crash in a disposable environment with the same image digest, arguments and mounts. The decision on project-maintained debug images is tracked for v1.1 in [#15](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15). See [Docker container networking](https://docs.docker.com/engine/network/) and [Kubernetes ephemeral containers](https://kubernetes.io/docs/concepts/workloads/pods/ephemeral-containers/).
+For network diagnostics and startup reproductions, use the [isolated debugging guide](DEBUGGING.md). It covers Docker network helpers, Kubernetes ephemeral containers and the TLS verification workflow.
 
 ## Evidence and maintenance
 

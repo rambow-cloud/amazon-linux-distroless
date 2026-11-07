@@ -2,7 +2,7 @@
 
 Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed stable images on both architectures. See the [stable release index](STABLE.md) and [support boundaries](SUPPORT.md).
 
-The [v1.0 acceptance report](V1-ACCEPTANCE.md) records native qualification, signed language and foundation releases, consumer examples, size and security evidence, and protected updates. Isolated debugging is tracked for v1.1 in [#15](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15).
+The [v1.0 acceptance report](V1-ACCEPTANCE.md) records native qualification, signed language and foundation releases, consumer examples, size and security evidence, and protected updates. The [v1.1 debugging decision](DEBUGGING.md) documents the isolated operator workflow and defers a project-published debug image.
 
 ## Delivery sequence
 
@@ -75,4 +75,4 @@ Current language versions, library/data boundaries, scanner behavior and preview
 
 GitHub Issues and Milestones are the live execution record. [.github/planning/backlog.json](../.github/planning/backlog.json) and [issue-map.json](../.github/planning/issue-map.json) capture versioned planning snapshots and issue identities; they do not automatically overwrite live issue bodies or states. [retired.json](../.github/planning/retired.json) retains removed work and its decision history. Update this roadmap through an issue-linked PR when scope changes. Labels and milestone descriptions are maintained by the configuration sync script.
 
-The v1.0 milestone is the target for automated maintenance proposals for the stable lines. Change the proposal target to an open maintenance milestone before closing it. Isolated debugging is tracked under v1.1.
+The v1.0 milestone is the target for automated maintenance proposals for the stable lines. Change the proposal target to an open maintenance milestone before closing it.
