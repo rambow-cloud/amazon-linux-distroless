@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkState, requiredChecks, verifyProposedLocks } from '../scripts/upstream/automation-policy.mjs';
+import { checkState, requiredChecks, updateStage, verifyProposedLocks } from '../scripts/upstream/automation-policy.mjs';
+
+test('an interrupted update resumes at the first unfinished protected stage without a new upstream candidate', () => {
+  const base = { locked: '22.1.1', planned: '22.1.0' };
+  assert.equal(updateStage({ ...base, lockApproved: true }), 'preview');
+  assert.equal(updateStage({ ...base, candidate: true }), null);
+  const approved = { ...base, planned: base.locked, stableApproved: true };
+  assert.equal(updateStage(approved), 'publish');
+  assert.equal(updateStage({ ...approved, published: true }), 'publish');
+  assert.equal(updateStage({ ...approved, published: true, originCurrent: true }), 'mirror');
+  const complete = { ...approved, published: true, originCurrent: true, mirrorsCurrent: true };
+  assert.equal(updateStage(complete), null);
+  assert.equal(updateStage({ ...complete, candidate: true }), 'lock');
+});
 
 test('all protected checks must exist and succeed before automatic merge', () => {
   const ready = requiredChecks.map(name => ({ name, status: 'COMPLETED', conclusion: 'SUCCESS' }));

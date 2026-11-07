@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { validateIndex } from './java21-policy.mjs';
-import { attestedPredicates, issuer, latestStableRelease, repository, stableIdentity,
-  stablePlan, stablePredicate } from './stable-policy.mjs';
+import { attestedPredicates, issuer, latestStableRelease, repository, stablePlan } from './stable-policy.mjs';
+import { mirrorHosts, registryDigest, stableMirror, verifyStableRegistry } from './stable-registry.mjs';
 
 const capture = (command, args) => execFileSync(command, args, {
   encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'],
@@ -11,7 +10,6 @@ const capture = (command, args) => execFileSync(command, args, {
 const docker = (...args) => capture('docker', args);
 const cosign = (verb, identity, ref, ...args) => capture('cosign', [verb,
   '--certificate-identity', identity, '--certificate-oidc-issuer', issuer, ...args, ref]);
-const digestFor = ref => /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(docker('buildx', 'imagetools', 'inspect', ref))?.[1];
 
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
 assert.equal(process.env.GITHUB_REPOSITORY, repository);
@@ -26,22 +24,11 @@ const platform = 'linux/' + arch;
 const candidates = JSON.parse(fs.readFileSync('releases/stable-candidates.json'));
 const plans = Object.entries(candidates).map(([runtime, candidate]) => stablePlan(runtime, candidate));
 
-for (const host of [
-  ...(registry !== 'quay' ? ['ghcr.io'] : []),
-  ...(registry !== 'ghcr' ? ['quay.io'] : []),
-]) {
+for (const host of mirrorHosts.filter(host => registry === 'both' || host === registry + '.io')) {
   for (const plan of plans) {
-    const base = host + '/rambow-cloud/' + plan.variant;
-    const ref = base + '@' + plan.digest;
-    for (const tag of [plan.line, plan.version, plan.version + '-r' + plan.revision]) {
-      assert.equal(digestFor(base + ':' + tag), plan.digest, 'Unexpected digest for ' + base + ':' + tag);
-    }
-    cosign('verify', plan.previewIdentity, ref);
-    const [record] = attestedPredicates(cosign('verify-attestation', stableIdentity, ref, '--type', stablePredicate),
-      stablePredicate, plan.digest).filter(record => record.runtime === plan.runtime &&
-        record.version === plan.version && record.revision === plan.revision && record.reference === plan.reference);
-    assert.ok(record, 'The mirror does not have the reviewed stable promotion');
-    validateIndex(JSON.parse(docker('buildx', 'imagetools', 'inspect', '--raw', ref)), record.leaves);
+    const mirror = stableMirror(host, plan);
+    const { base, reference: ref } = mirror;
+    const record = verifyStableRegistry(plan, mirror);
     const leaf = record.leaves[arch];
     attestedPredicates(cosign('verify-attestation', plan.previewIdentity, base + '@' + leaf, '--type', 'cyclonedx'), null, leaf);
     docker('pull', '--platform', platform, ref);
@@ -55,7 +42,7 @@ for (const host of [
   for (const family of new Set(plans.map(plan => plan.variant))) {
     const best = latestStableRelease(plans.filter(plan => plan.variant === family));
     const latest = host + '/rambow-cloud/' + family + ':latest';
-    assert.equal(digestFor(latest), best.digest, 'Unexpected highest stable release for ' + latest);
+    assert.equal(registryDigest(latest), best.digest, 'Unexpected highest stable release for ' + latest);
     console.log(latest + ' → ' + best.version + '-r' + best.revision);
   }
 }

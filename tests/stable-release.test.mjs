@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
 import { attestedPredicates, checksumManifest, latestStableRelease, stablePlan, verifyAdvance, verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
+import { stableMirror, verifyPublicStableMirrors } from '../scripts/release/stable-registry.mjs';
 
 const candidates = JSON.parse(fs.readFileSync(new URL('../releases/stable-candidates.json', import.meta.url)));
 const candidate = candidates.nodejs26;
@@ -12,6 +13,28 @@ test('approved candidates bind the exact preview commit, registry digest and ver
   assert.throws(() => stablePlan('nodejs26', { ...candidate, version: '24.22.2' }), /crosses/);
   assert.throws(() => stablePlan('nodejs26', { ...candidate, reference: candidate.reference.replace('/nodejs26@', '/nodejs24@') }), /different registry/);
   assert.throws(() => stablePlan('nodejs26', { ...candidate, previewTag: 'nodejs26-preview' }));
+  const retry = candidate.previewTag + '-run12345';
+  assert.equal(stablePlan('nodejs26', { ...candidate, previewTag: retry }).previewTag, retry);
+  assert.throws(() => stablePlan('nodejs26', { ...candidate, previewTag: retry.replace(candidate.sourceCommit.slice(0, 12), '0'.repeat(12)) }));
+});
+
+test('project mirror evidence rejects drift at Quay after GHCR has succeeded', () => {
+  const record = { runtime: plan.runtime, reference: plan.reference, alias: plan.alias, releaseTag: plan.releaseTag,
+    version: plan.version, revision: plan.revision, sourceCommit: plan.sourceCommit,
+    leaves: { amd64: 'sha256:' + '1'.repeat(64), arm64: 'sha256:' + '2'.repeat(64) } };
+  const statement = { subject: [{ digest: { sha256: plan.digest.slice(7) } }],
+    predicateType: 'https://rambow-cloud.github.io/amazon-linux-distroless/runtime-stable/v1', predicate: record };
+  const execute = (command, args) => {
+    if (command === 'docker') return JSON.stringify({ schemaVersion: 2, mediaType: 'application/vnd.oci.image.index.v1+json',
+      manifests: Object.entries(record.leaves).map(([arch, digest]) => ({ digest, platform: { os: 'linux', architecture: arch } })) });
+    return args[0] === 'verify-attestation'
+      ? JSON.stringify({ payload: Buffer.from(JSON.stringify(statement)).toString('base64') }) : '';
+  };
+  const options = { digest: () => plan.digest, execute };
+  assert.deepEqual(verifyPublicStableMirrors(plan, options).record, record);
+  const stale = stableMirror('quay.io', plan).tags[0];
+  assert.throws(() => verifyPublicStableMirrors(plan, { ...options,
+    digest: tag => tag === stale ? 'sha256:' + '3'.repeat(64) : plan.digest }), /Unexpected digest for quay\.io/);
 });
 
 test('stable aliases advance by version and revision with safe replay', () => {

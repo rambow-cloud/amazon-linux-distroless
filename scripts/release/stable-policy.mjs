@@ -12,12 +12,18 @@ const identity = workflow => 'https://github.com/' + repository + '/.github/work
 export const stableIdentity = identity('runtime-stable.yml');
 export const stablePredicate = 'https://rambow-cloud.github.io/amazon-linux-distroless/runtime-stable/v1';
 
+export function previewReleaseTag(runtime, commit, runId = '') {
+  assert.match(commit, /^[a-f0-9]{40}$/);
+  assert.match(runId, /^(?:[1-9]\d*)?$/);
+  return runtime + '-' + commit.slice(0, 12) + (runId && '-run' + runId);
+}
+
 export function stablePlan(runtime, candidate) {
   assert.match(candidate.version, versionPattern, 'Expected an exact release version');
   assert.ok(Number.isSafeInteger(candidate.revision) && candidate.revision >= 1, 'Invalid stable revision');
   assert.ok(Number.isSafeInteger(candidate.maxImageMiB) && candidate.maxImageMiB > 0, 'Invalid image size ceiling');
-  assert.match(candidate.sourceCommit, /^[a-f0-9]{40}$/);
-  assert.equal(candidate.previewTag, runtime + '-' + candidate.sourceCommit.slice(0, 12));
+  const retry = /-run([1-9]\d*)$/.exec(candidate.previewTag)?.[1] ?? '';
+  assert.equal(candidate.previewTag, previewReleaseTag(runtime, candidate.sourceCommit, retry));
   const major = /^java(17|21|25)$/.exec(runtime)?.[1];
   const config = major ? { version: major, variant: 'java' } : configuration(runtime);
   assert.ok(candidate.version.startsWith(config.version + '.'), 'Candidate crosses the version line');

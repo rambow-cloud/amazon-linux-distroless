@@ -6,6 +6,7 @@ on:
       - scripts/release/language-metrics.py
       - scripts/release/project-qualification.mjs
       - scripts/release/project-stable-evidence.mjs
+      - scripts/release/stable-registry.mjs
       - releases/runtime-support.json
   workflow_dispatch:
   workflow_call:
@@ -96,6 +97,7 @@ jobs:
           cosign-release: v3.1.4
       - env:
           GH_TOKEN: ${{ github.token }}
+          DOCKER_CONFIG: ${{ runner.temp }}/anonymous-stable-evidence
         run: node scripts/release/project-stable-evidence.mjs stable-language-evidence.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

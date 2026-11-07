@@ -9,6 +9,7 @@ on:
       - .github/workflows/language-update-automation.yml
       - scripts/upstream/automation-policy.mjs
       - scripts/upstream/automate-language-update.mjs
+      - scripts/release/stable-registry.mjs
       - tests/language-update-automation.test.mjs
 permissions:
   contents: read
@@ -39,7 +40,7 @@ jobs:
     timeout-minutes: 55
     concurrency:
       group: unattended-language-updates
-      cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
       actions: write
@@ -47,7 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -56,17 +56,10 @@ jobs:
           path: out/automated-input
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      - id: candidate
-        run: |
-          if test -f out/automated-input/lock-diffs.json; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          fi
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
-        if: steps.candidate.outputs.ready == 'true'
         with:
           cosign-release: v3.1.4
       - id: app
-        if: steps.candidate.outputs.ready == 'true'
         uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         with:
           app-id: ${{ vars.UPSTREAM_UPDATE_APP_ID }}
@@ -77,8 +70,10 @@ jobs:
           permission-pull-requests: write
           permission-checks: read
           permission-statuses: read
-      - if: steps.candidate.outputs.ready == 'true'
-        env:
+      - env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           ACTION_TOKEN: ${{ github.token }}
+          UPDATE_APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          QUAY_RUNTIME_MIRROR_ENABLED: ${{ vars.QUAY_RUNTIME_MIRROR_ENABLED }}
+          DOCKER_CONFIG: ${{ runner.temp }}/anonymous-update-recovery
         run: node scripts/upstream/automate-language-update.mjs

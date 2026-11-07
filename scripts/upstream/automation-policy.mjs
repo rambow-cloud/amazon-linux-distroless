@@ -1,10 +1,23 @@
 import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { newerReleases } from './language-discovery-lib.mjs';
+import { compareVersions } from '../release/stable-policy.mjs';
 
 export const requiredChecks = ['Issue policy', 'Repository checks', 'Java 21 gate', 'Language runtime gate', 'Foundation gate'];
 export const versionsFile = 'images/upstream/versions.json';
 export const lockFile = (runtime, arch) => 'locks/upstream/' + runtime + '-' + arch + '.json';
+export const stableFile = 'releases/stable-candidates.json';
+
+export function updateStage({ locked, planned, lockApproved, stableApproved, published, originCurrent, mirrorsCurrent, candidate }) {
+  const order = compareVersions(locked, planned);
+  assert.ok(order >= 0, 'The stable plan is newer than the committed lock');
+  if (order > 0) return lockApproved ? 'preview' : null;
+  if (stableApproved) {
+    if (!published || !originCurrent) return 'publish';
+    if (!mirrorsCurrent) return 'mirror';
+  }
+  return candidate ? 'lock' : null;
+}
 
 export function verifyProposedLocks(runtime, config, observed, diff, readCurrent, readCandidate) {
   assert.equal(observed.locked, config.upstreamVersion);
