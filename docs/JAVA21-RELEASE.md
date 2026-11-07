@@ -12,9 +12,9 @@ The first Java delivery uses Amazon Corretto 21.0.13 and the AL2023 2023.12.2026
 - amd64 manifest: `sha256:1991fe3d62550e8a7115c66a4c6d3e3ce07de9a02fb88b5417bcf820b05eb4b8`
 - arm64 manifest: `sha256:b06455560400f997b19e54833f56ca6e7602412566e617973c54aa4f40493c25`
 
-The publication report records GHCR visibility as private. Anonymous pull is currently blocked by the organization's package policy: Public package creation is disabled. Making the package public requires an organization-level policy decision followed by the package visibility change. The public GitHub Release already provides downloadable runtime archives with matching source. Do not treat the public repository as evidence of public registry access.
+The [GHCR Java package](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fjava21) is Public and supports anonymous pulls. On November 7, 2026, the owner authorized enabling Public package creation for the organization and making this package Public; GitHub's package settings confirmed the resulting public state. The original publication report correctly records private visibility at publication time and is retained unchanged. This permission change did not rebuild or alter the qualified image digest. The public GitHub Release also provides downloadable runtime archives with matching source.
 
-After obtaining registry access, run Java directly:
+Run Java directly without a registry login:
 
 ```sh
 docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --tmpfs /tmp:rw,nosuid,nodev,noexec,size=32m ghcr.io/rambow-cloud/amazon-linux-distroless/java21@sha256:c275c49d30bb1d3cda32b8e9f058b3d4e35b38f9c35df559380a4fa790013e99 -version

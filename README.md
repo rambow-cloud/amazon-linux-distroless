@@ -2,7 +2,7 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
 
-**Status: Java 21 has a signed preview qualified on native amd64/arm64. Python and Node.js follow Java; project-wide stable v1 is not yet released.** See [the Java delivery report, immutable digest and source downloads](docs/JAVA21-RELEASE.md), [runtime contract](docs/JAVA21.md), and historical [prototype](docs/PROTOTYPE.md). GHCR currently remains private because the organization's policy disables Public packages; the public GitHub Release includes downloadable image archives and matching source.
+**Status: Java 21 has a public signed preview qualified on native amd64/arm64. Python and Node.js follow Java; project-wide stable v1 is not yet released.** See [the Java delivery report, immutable digest and source downloads](docs/JAVA21-RELEASE.md), [runtime contract](docs/JAVA21.md), and historical [prototype](docs/PROTOTYPE.md). The GHCR Java package is Public and supports anonymous pulls; the public GitHub Release includes downloadable image archives and matching source.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 

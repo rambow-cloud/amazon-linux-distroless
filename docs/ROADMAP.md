@@ -1,8 +1,8 @@
 # Implementation roadmap
 
-Status: [Java 21 has a signed dual-architecture preview](JAVA21-RELEASE.md), with native runtime qualification, persistent source/evidence and verified signature/provenance. Anonymous GHCR access awaits an organization package-policy decision. Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. Project-wide stable v1 acceptance remains open.
+Status: [Java 21 has a public signed dual-architecture preview](JAVA21-RELEASE.md), with native runtime qualification, persistent source/evidence, verified signature/provenance and anonymous GHCR access. Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. Project-wide stable v1 acceptance remains open.
 
-Execution priority follows the owner's Java-first instruction: Java 21 contract and dual-architecture qualification #20/#37 are complete; #39 tracks preview delivery and visibility. Python #21 follows Java delivery, then Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
+Execution priority follows the owner's Java-first instruction: Java 21 contract and dual-architecture qualification #20/#37 and preview delivery #39 are complete. Python #21 follows Java delivery, then Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
 
 ## Delivery sequence
 
