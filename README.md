@@ -2,7 +2,7 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
 
-**Status: experimental Java prototype. Stable runtime releases are not available.** See [the Actions-only prototype](docs/PROTOTYPE.md) for the build pipeline, downloadable preview, and current limits.
+**Status: Java 21 is the first runtime being qualified on native amd64/arm64. Python and Node.js follow Java; project-wide stable v1 is not yet released.** See [the Java contract and Actions pipeline](docs/JAVA21.md) and the historical [prototype](docs/PROTOTYPE.md). Actual image availability and release digests are recorded only after successful publication.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
@@ -39,6 +39,7 @@ The official AL2023 minimal image still includes a package manager. It can be a 
 
 - [Implementation roadmap](docs/ROADMAP.md) — milestones, dependencies, and exit criteria.
 - [Java prototype](docs/PROTOTYPE.md) — inspect a real Actions-built preview and its evidence.
+- [Java 21 runtime](docs/JAVA21.md) — JRE module/file contract, native qualification, updates and preview publishing.
 - [Open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues) — executable development backlog.
 - [Milestones](https://github.com/rambow-cloud/amazon-linux-distroless/milestones) — release scope and progress.
 - [Contributing](CONTRIBUTING.md) — issue-first workflow and pull request requirements.

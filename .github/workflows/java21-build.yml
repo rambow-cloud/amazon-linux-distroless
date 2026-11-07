@@ -2,21 +2,33 @@ name: Java 21 qualification
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - images/java21/**
-      - locks/java21/**
-      - scripts/java21/**
-      - scripts/prototype/**
-      - examples/java21/**
-      - .dockerignore
-      - .github/workflows/java21-build.yml
 permissions:
   contents: read
+  pull-requests: read
 concurrency:
   group: java21-qualification-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  changes:
+    name: Select Java validation scope
+    runs-on: ubuntu-24.04
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        id: scope
+        with:
+          script: |
+            if (context.eventName !== 'pull_request') {
+              core.setOutput('required', 'true');
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: context.issue.number, per_page: 100 });
+            const relevant = /^(images\/java21\/|locks\/java21\/|scripts\/java21\/|scripts\/prototype\/|examples\/java21\/)|^\.dockerignore$|^\.github\/workflows\/java21-build\.yml$/;
+            core.setOutput('required', files.some(file => relevant.test(file.filename) || relevant.test(file.previous_filename || '')) ? 'true' : 'false');
   build:
+    needs: changes
+    if: needs.changes.outputs.required == 'true'
     name: Java 21 (${{ matrix.arch }})
     strategy:
       fail-fast: false
@@ -65,3 +77,19 @@ jobs:
           name: java21-${{ matrix.arch }}-diagnostics
           path: out/java21/${{ matrix.arch }}/*.json
           if-no-files-found: ignore
+  gate:
+    name: Java 21 gate
+    if: always()
+    needs: [changes, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          SCOPE_RESULT: ${{ needs.changes.result }}
+          JAVA_REQUIRED: ${{ needs.changes.outputs.required }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        with:
+          script: |
+            if (process.env.SCOPE_RESULT !== 'success') core.setFailed('Could not determine Java validation scope.');
+            else if (process.env.JAVA_REQUIRED === 'true' && process.env.BUILD_RESULT !== 'success') core.setFailed('Both native Java qualification jobs must pass.');
+            else core.info('Required Java validation is satisfied.');

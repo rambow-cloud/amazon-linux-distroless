@@ -22,6 +22,8 @@ AL2023 uses versioned repository snapshots. Moving time forward or running DNF a
 
 ## Current manual update process
 
+The maintained Java 21 path now uses images/java21/packages.json, locks/java21/linux-amd64.json and locks/java21/linux-arm64.json. Run Java 21 lock update on the candidate branch, review both native lock artifacts, then use Java 21 qualification. Publish Java 21 preview is an explicit main-only promotion step after its trusted native checks; it does not advance the project-wide stable v1 contract. The builder detector follows the maintained Java input/amd64 lock. See [JAVA21.md](JAVA21.md). The prototype-specific commands below remain a historical/manual path for the original amd64 experiment.
+
 GitHub requires a workflow_dispatch workflow to exist on the default branch before it is a supported manual entry point. The prototype workflows are currently in unmerged preview PRs; integrate the reviewed implementation into main first. The commands below describe the steady manual process after that integration. They do not claim that an automatic updater or release pipeline already exists. See [GitHub manual workflow requirements](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
 
 1. Open an update issue with the required labels, milestone and acceptance criteria. Record the old/new AL2023 snapshot, official builder tag/digest, affected supported runtime lines, relevant ALAS/runtime advisories and expected changes. Keep Java 21 on its selected major line for routine patch updates; language-major or runtime-contract changes need their own accepted scope.

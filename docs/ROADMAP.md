@@ -2,6 +2,8 @@
 
 Status: repository foundation plus an experimental [Actions-only Java prototype](PROTOTYPE.md), tracked in [#25](https://github.com/rambow-cloud/amazon-linux-distroless/issues/25). Java, Python, and Node.js are committed v1.0 runtimes; static/base provide the shared foundation. No stable runtime release or registry tag is published.
 
+Execution priority now follows the owner's Java-first instruction: finish the [Java 21 contract and dual-architecture qualification](JAVA21.md) in #20/#37, deliver its qualified preview in #39, then implement Python #21 and Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
+
 ## Delivery sequence
 
 The sequence is scope-based, not a calendar promise. Finish each milestone's exit criteria before promotion. Estimate delivery dates after the prototype establishes real build and maintenance costs.

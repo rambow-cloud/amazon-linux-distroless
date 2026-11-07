@@ -94,6 +94,19 @@ class AssemblyTests(unittest.TestCase):
             image.elf_closure()
         self.assertEqual((image.root / "usr/lib/ld-native.so").read_bytes(), b"loader fixture")
 
+    def test_elf_closure_preserves_the_requested_shared_library_alias(self):
+        (self.source / "usr/bin").mkdir(parents=True)
+        (self.source / "usr/lib64").mkdir(parents=True)
+        (self.source / "usr/bin/app").write_bytes(b"\x7fELFfixture")
+        (self.source / "usr/lib64/libtest.so.1.2").write_bytes(b"library fixture")
+        (self.source / "usr/lib64/libtest.so.1").symlink_to("libtest.so.1.2")
+        image = Assembler(self.source, self.root / "selected")
+        image.copy("/usr/bin/app")
+        with patch("assemble.run", side_effect=lambda *args: "(NEEDED) Shared library: [libtest.so.1]" if args[1] == "-d" else ""):
+            image.elf_closure()
+        self.assertTrue((image.root / "usr/lib64/libtest.so.1").is_symlink())
+        self.assertEqual(rooted_path(image.root, "/usr/lib64/libtest.so.1").read_bytes(), b"library fixture")
+
     def test_tampered_cached_rpm_is_rejected_without_network(self):
         cached = self.root / "cache"
         cached.mkdir()

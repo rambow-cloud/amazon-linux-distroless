@@ -1,13 +1,6 @@
 name: Java 21 lock update
 on:
   workflow_dispatch:
-  push:
-    branches: [java21/complete]
-    paths:
-      - images/java21/packages.json
-      - images/java21/Dockerfile
-      - scripts/java21/lock.mjs
-      - .github/workflows/java21-lock.yml
 permissions:
   contents: read
 jobs:
