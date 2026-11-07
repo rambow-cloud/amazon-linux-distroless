@@ -54,6 +54,7 @@ jobs:
   stable:
     name: Stable ${{ inputs.mode }} (${{ matrix.runtime }})
     needs: plan
+    environment: quay-runtime-publish
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
@@ -86,7 +87,6 @@ jobs:
           STABLE_MODE: ${{ inputs.mode }}
           STABLE_MIRROR_REGISTRY: ${{ inputs.registry }}
           QUAY_RUNTIME_MIRROR_ENABLED: ${{ vars.QUAY_RUNTIME_MIRROR_ENABLED }}
-          QUAY_ROBOT_TOKEN: ${{ inputs.registry != 'ghcr' && (inputs.mode == 'mirror' || (inputs.mode == 'publish' && vars.QUAY_RUNTIME_MIRROR_ENABLED == 'true')) && secrets.QUAY_ROBOT_TOKEN || '' }}
           DOCKER_CONFIG: ${{ runner.temp }}/stable-docker-auth
         run: node scripts/release/runtime-stable.mjs
       - name: Preserve stable evidence
