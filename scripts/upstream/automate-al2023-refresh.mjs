@@ -123,6 +123,7 @@ if (refresh && !foundationPublished(foundationTag(refresh))) {
         return info;
       }, 'refresh qualification evidence', Math.min(3, minutesLeft()));
       summary('Signed-baseline comparison and native gate: ' + run.html_url);
+      assert.equal(actionAPI('issues/' + issue.number).state, 'open', 'The refresh proposal was closed before merge');
     },
   });
   adopt(lockCommit);
@@ -136,10 +137,14 @@ const isAncestor = (first, second) => {
   if (result.error || ![0, 1].includes(result.status)) throw result.error ?? new Error('Cannot verify commit ancestry');
   return result.status === 0;
 };
-function pendingRun(workflow, title) {
+function recentRuns(workflow, title) {
   const rows = JSON.parse(gh('run', 'list', '--repo', repository, '--workflow', workflow, '--branch', 'main',
-    '--commit', base, '--event', 'workflow_dispatch', '--limit', '30', '--json', 'databaseId,status,displayTitle'));
-  return rows.find(row => row.status !== 'completed' && row.displayTitle === title)?.databaseId;
+    '--commit', base, '--event', 'workflow_dispatch', '--limit', '30',
+    '--json', 'databaseId,status,displayTitle,conclusion,updatedAt'));
+  return rows.filter(row => row.displayTitle === title);
+}
+function pendingRun(workflow, title) {
+  return recentRuns(workflow, title).find(row => row.status !== 'completed')?.databaseId;
 }
 function waitRuns(runs, name) {
   return waitFor(() => {
@@ -226,7 +231,14 @@ function languagesPublished() {
 }
 if (!languagesPublished()) {
   const workflow = 'runtime-stable.yml';
-  const id = pendingRun(workflow, 'Stable publish all') ?? start(workflow, { runtime: 'all', mode: 'publish' }, base);
+  let id = pendingRun(workflow, 'Stable publish all');
+  if (!id) {
+    const checked = recentRuns(workflow, 'Stable check all').find(row => row.status !== 'completed' ||
+      row.conclusion === 'success' && Date.now() - Date.parse(row.updatedAt) < 4 * 60 * 60_000);
+    const preflight = checked?.databaseId ?? start(workflow, { runtime: 'all', mode: 'check' }, base);
+    await waitRuns({ preflight }, 'fresh stable preflight for every runtime');
+    id = start(workflow, { runtime: 'all', mode: 'publish' }, base);
+  }
   await waitRuns({ stable: id }, 'signed stable promotion');
 }
 

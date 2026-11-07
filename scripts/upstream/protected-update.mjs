@@ -153,5 +153,5 @@ export function protectedUpdateClient() {
     return waitFor(() => workflowResult(id, expected), workflow, minutes);
   }
 
-  return { run, git, gh, appAPI, actionAPI, summary, commitJSON, pulls, owned, approvedCommit, verifyMain, waitFor, submit, start, workflowResult, dispatch };
+  return { run, git, gh, actionAPI, summary, commitJSON, approvedCommit, verifyMain, waitFor, submit, start, workflowResult, dispatch };
 }
