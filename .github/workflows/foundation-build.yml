@@ -4,6 +4,7 @@ on:
     paths:
       - .github/workflows/foundation-build.yml
       - images/foundation/**
+      - examples/foundation/**
       - locks/foundation/**
       - scripts/foundation/**
   workflow_dispatch:
@@ -30,6 +31,14 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: node scripts/foundation/build.mjs "$ARCH"
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version: '1.25.11'
+          cache: false
+      - name: Run native foundation workload probes
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: node scripts/foundation/verify.mjs "$ARCH"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: foundation-candidate-${{ matrix.arch }}
