@@ -19,6 +19,9 @@ def profile(config):
         expected = "{epoch}:{version}-{release}.{arch}".format(**runtime)
         if tool != expected or not runtime["version"].startswith("21."):
             raise RuntimeError("jlink tool and runtime package versions differ")
+        jmods_tool = run("rpm", "-q", "java-21-amazon-corretto-jmods", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}")
+        if jmods_tool != expected:
+            raise RuntimeError("JMods and runtime package versions differ")
         module_path = Path(home) / "jmods"
         linked = output / "java-linked"
         subprocess.run([home + "/bin/jlink", "--module-path", str(module_path), "--add-modules", ",".join(config["modules"]),
@@ -42,6 +45,7 @@ def profile(config):
                 "seeds": ["/usr/lib/system-release", "/usr/lib64/libfontconfig.so.1", "/etc/fonts",
                           "/usr/share/fontconfig", "/usr/share/fonts"],
                 "transform": {"kind": "jlink", "tool_package": "java-21-amazon-corretto-devel-" + tool,
+                              "jmods_package": "java-21-amazon-corretto-jmods-" + jmods_tool,
                               "runtime_package": runtime["name"], "runtime_nevra": expected,
                               "root_modules": config["modules"], "modules": sorted(modules), "jmod_inputs": inputs,
                               "options": ["--no-header-files", "--no-man-pages", "--compress=2"],
