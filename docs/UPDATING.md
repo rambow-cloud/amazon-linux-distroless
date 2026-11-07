@@ -31,6 +31,8 @@ gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless
 
 ## Reviewed update process
 
+The `Upstream language update discovery` workflow observes the official CPython and Node.js indexes daily and can be dispatched manually. It considers only newer final releases within existing supported version lines. On protected main it verifies the candidate source and binaries using the pinned release signer policy and outputs both architecture locks and their exact diffs. Unchanged versions produce only the observation report. This stage prepares inputs for the update gates; it does not merge a PR or publish a tag. Corretto updates follow the AL2023 snapshot and RPM locks.
+
 The [upstream runtime guide](UPSTREAM-RUNTIMES.md) covers independent Python and Node.js patch updates.
 
 1. Create a maintenance issue with milestone, type/area/priority/status labels and acceptance criteria. Edit the relevant package specification on an update branch, selecting an official builder tag and explicit repository release. Review all ten version lines when refreshing a shared AL2023 baseline. Update the upstream version manifest for a Python or Node.js patch refresh. Review upstream advisories and per-package support boundaries alongside ALAS; an available snapshot is not automatically an acceptable security update.
