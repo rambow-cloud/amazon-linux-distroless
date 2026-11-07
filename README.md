@@ -6,7 +6,7 @@ Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
-The [stable release index](docs/STABLE.md) lists fixed revision tags, rolling stable tags and the verified digest for each version line.
+For a rolling stable image, use a language package and version line, for example `FROM ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs:22`. The [stable release index](docs/STABLE.md) lists all rolling tags, fixed revision tags and verified digests.
 
 ## Image contract and scope
 
