@@ -17,7 +17,7 @@ const candidatePath = 'out/foundation-lock/' + lockPath;
 const spec = JSON.parse(fs.readFileSync('images/upstream/packages.json'));
 const inputs = { ...spec, platform, roots: { base: spec.roots.base } };
 assert.match(inputs.releasever, /^2023\.\d+\.\d{8}$/);
-assert.match(inputs.builder_tag, /^public\.ecr\.aws\/amazonlinux\/amazonlinux:2023\.\d+\.\d{8}\.\d+$/);
+assert.match(inputs.builder_tag, /^public\.ecr\.aws\/amazonlinux\/amazonlinux(?::2023\.\d+\.\d{8}\.\d+|@sha256:[a-f0-9]{64})$/);
 fs.mkdirSync(path.dirname(candidatePath), { recursive: true });
 fs.writeFileSync('out/foundation-lock/inputs.json', JSON.stringify(inputs));
 
@@ -29,6 +29,7 @@ if (mode === 'resolve') {
   const [image] = JSON.parse(capture('image', 'inspect', inputs.builder_tag));
   assert.equal(image.Architecture, arch);
   builder = image.RepoDigests.find(ref => /^public\.ecr\.aws\/amazonlinux\/amazonlinux@sha256:[a-f0-9]{64}$/.test(ref));
+  if (inputs.builder_tag.includes('@')) assert.equal(builder, inputs.builder_tag);
 } else {
   assert.equal(current.releasever, inputs.releasever);
   assert.deepEqual(current.variants.base.roots, inputs.roots.base);
@@ -49,5 +50,5 @@ const candidate = JSON.parse(fs.readFileSync(candidatePath));
 if (mode === 'check') assert.deepEqual(candidate, current, 'Fresh RPM resolution differs from the committed lock');
 run('run', '--rm', '--network', 'none',
   '--mount', 'type=bind,src=' + process.cwd() + ',dst=/workspace,readonly',
-  '--env', 'PYTHONPATH=/tools', '--entrypoint', '/usr/bin/python3',
+  '--entrypoint', '/usr/bin/python3',
   tools, '/workspace/scripts/foundation/test_lock.py', '/workspace/' + candidatePath);
