@@ -8,8 +8,8 @@ import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
 import { vulnerabilityGate } from './vulnerability-policy.mjs';
 import {
-  architectures, attestedPredicates, checksumManifest, issuer, repository,
-  stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
+  architectures, attestedPredicates, checksumManifest, compareStableReleases, issuer, latestStableRelease,
+  repository, stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
 } from './stable-policy.mjs';
 
 const execute = (command, args, options = {}) => execFileSync(command, args, { stdio: 'inherit', ...options });
@@ -66,7 +66,7 @@ function registryLogin() {
 
 function packageVisibility(name) {
   const output = optional('gh', ['api', 'orgs/rambow-cloud/packages/container/' +
-    encodeURIComponent('amazon-linux-distroless/' + name)], /HTTP 404/);
+    encodeURIComponent(name)], /HTTP 404/);
   return output === null ? null : JSON.parse(output).visibility;
 }
 
@@ -91,15 +91,22 @@ const plan = stablePlan(runtime, candidates[runtime]);
 const publish = process.env.STABLE_MODE === 'publish';
 const mirror = process.env.STABLE_MODE === 'mirror';
 assert.ok(publish || mirror || process.env.STABLE_MODE === 'check', 'Expected check, publish, or mirror');
+const destination = process.env.STABLE_MIRROR_REGISTRY || 'both';
+assert.ok(['both', 'ghcr', 'quay'].includes(destination), 'Unknown mirror registry');
+assert.ok(!publish || destination === 'both', 'Stable publication must update both registries');
+const mirrorGHCR = destination !== 'quay';
+const mirrorQuay = destination !== 'ghcr';
 if (publish || mirror) {
   assert.ok(process.env.DOCKER_CONFIG && process.env.GH_TOKEN, 'Missing publishing configuration');
+  if (mirrorQuay) assert.ok(process.env.QUAY_ROBOT_TOKEN, 'Missing Quay publishing credential');
   fs.mkdirSync(process.env.DOCKER_CONFIG, { recursive: true });
 }
+if (publish) assert.equal(packageVisibility(plan.variant), 'public', 'The short GHCR package must be public');
 execute('git', ['merge-base', '--is-ancestor', plan.sourceCommit, head]);
 assert.equal(capture('git', ['rev-parse', 'refs/tags/' + plan.previewTag + '^{commit}']), plan.sourceCommit);
 const preview = JSON.parse(capture('gh', ['api', releaseAPI(plan.previewTag)]));
 assert.ok(preview.prerelease && !preview.draft && preview.tag_name === plan.previewTag, 'Expected published preview');
-assert.equal(packageVisibility(runtime), 'public');
+assert.equal(packageVisibility('amazon-linux-distroless/' + runtime), 'public');
 
 const input = 'out/stable-input';
 const out = 'out/stable-evidence';
@@ -179,9 +186,29 @@ function publishedStableRecord() {
   return record;
 }
 
+function verifyMirror(base, record) {
+  const ref = base + '@' + plan.digest;
+  validateIndex(JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', ref])), record.leaves);
+  execute('cosign', ['verify', '--certificate-identity', plan.previewIdentity,
+    '--certificate-oidc-issuer', issuer, ref]);
+  verifyAttestations(ref, plan.previewPredicate, plan.previewIdentity, plan.digest, provenance);
+  verifyAttestations(ref, stablePredicate, stableIdentity, plan.digest, record);
+  for (const arch of architectures) {
+    const leaf = record.leaves[arch];
+    verifyAttestations(base + '@' + leaf, 'cyclonedx', plan.previewIdentity, leaf,
+      read(input + '/' + arch + '-sbom.cdx.json'));
+  }
+}
+
+function copyMirror(base) {
+  // Copy the OCI index, platform manifests, and their referrers before exposing any version tag.
+  execute('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
+    process.env.DOCKER_CONFIG + '/config.json', plan.reference, base]);
+}
+
 function publishChannel(record) {
-  registryLogin();
-  const visibility = packageVisibility(plan.variant);
+  const legacyName = 'amazon-linux-distroless/' + plan.variant;
+  const visibility = packageVisibility(legacyName);
   const current = visibility === null ? null : tagDigest(plan.channel);
   if (current) {
     const { statements } = verifyAttestations(plan.channelBase + '@' + current, stablePredicate, stableIdentity, current);
@@ -192,23 +219,9 @@ function publishChannel(record) {
       'Conflicting stable records for the shared channel');
     verifyAdvance(plan, known[0]);
   }
-  if (current !== plan.digest) {
-    // ORAS follows OCI referrers on the index and its leaves. With no
-    // destination tag it copies by digest before the rolling tag is moved.
-    execute('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
-      process.env.DOCKER_CONFIG + '/config.json', plan.reference, plan.channelBase]);
-  }
-  assert.equal(packageVisibility(plan.variant), 'public', 'The shared channel package must be public');
-  validateIndex(JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', plan.channelReference])), record.leaves);
-  execute('cosign', ['verify', '--certificate-identity', plan.previewIdentity,
-    '--certificate-oidc-issuer', issuer, plan.channelReference]);
-  verifyAttestations(plan.channelReference, plan.previewPredicate, plan.previewIdentity, plan.digest, provenance);
-  verifyAttestations(plan.channelReference, stablePredicate, stableIdentity, plan.digest, record);
-  for (const arch of architectures) {
-    const leaf = record.leaves[arch];
-    verifyAttestations(plan.channelBase + '@' + leaf, 'cyclonedx', plan.previewIdentity, leaf,
-      read(input + '/' + arch + '-sbom.cdx.json'));
-  }
+  if (current !== plan.digest) copyMirror(plan.channelBase);
+  assert.equal(packageVisibility(legacyName), 'public', 'The shared channel package must be public');
+  verifyMirror(plan.channelBase, record);
   if (current !== plan.digest) {
     assert.equal(tagDigest(plan.channel), current, 'The shared channel changed during promotion');
     writeTag(plan.channel, plan, plan.channelReference);
@@ -221,9 +234,86 @@ function publishChannel(record) {
     plan.channelReference + '\n');
 }
 
+function publishedMirrorRecord(base, digest, plans) {
+  const { statements } = verifyAttestations(base + '@' + digest, stablePredicate, stableIdentity, digest);
+  const records = statements.filter(record => plans.some(line => record.runtime === line.runtime &&
+    record.alias === line.alias && record.reference === line.base + '@' + digest &&
+    record.version?.startsWith(line.line + '.')));
+  assert.ok(records.length, 'A mirror tag points to an unrecognized stable release');
+  assert.ok(records.every(record => compareStableReleases(record, records[0]) === 0), 'Conflicting stable mirror records');
+  return records[0];
+}
+
+function publishShortChannel(base, record, exists) {
+  const fixed = base + ':' + plan.version + '-r' + plan.revision;
+  const patch = base + ':' + plan.version;
+  const rolling = base + ':' + plan.line;
+  const latest = base + ':latest';
+  const reference = base + '@' + plan.digest;
+  const current = tag => exists ? tagDigest(tag) : null;
+  const fixedDigest = current(fixed);
+  const patchDigest = current(patch);
+  const lineDigest = current(rolling);
+  const latestDigest = current(latest);
+  assert.ok(fixedDigest === null || fixedDigest === plan.digest, 'Immutable mirror tag collision');
+  for (const [tag, digest] of [[patch, patchDigest], [rolling, lineDigest]]) {
+    if (!digest || digest === plan.digest) continue;
+    const previous = publishedMirrorRecord(base, digest, [plan]);
+    if (tag === patch) assert.equal(previous.version, plan.version, 'Mirror patch tag has the wrong version');
+    assert.ok(compareStableReleases(record, previous) > 0, 'Stable mirror rollback is blocked');
+  }
+
+  const familyPlans = Object.entries(candidates).map(([runtime, candidate]) => stablePlan(runtime, candidate))
+    .filter(other => other.variant === plan.variant);
+  const available = [record];
+  for (const other of familyPlans) {
+    if (other.runtime === plan.runtime) continue;
+    const digest = current(base + ':' + other.line);
+    if (digest) available.push(publishedMirrorRecord(base, digest, [other]));
+  }
+  const newest = latestStableRelease(available);
+  if (latestDigest) {
+    const previous = publishedMirrorRecord(base, latestDigest, familyPlans);
+    assert.ok(compareStableReleases(newest, previous) >= 0, 'Latest mirror rollback is blocked');
+  }
+  const newestDigest = newest.reference.split('@')[1];
+
+  if (!fixedDigest) copyMirror(base);
+  verifyMirror(base, record);
+  for (const [tag, before] of [[fixed, fixedDigest], [patch, patchDigest], [rolling, lineDigest]]) {
+    if (before === plan.digest) continue;
+    assert.equal(tagDigest(tag), before, 'A mirror version tag changed during publication');
+    writeTag(tag, plan, reference);
+  }
+  if (latestDigest !== newestDigest) {
+    assert.equal(tagDigest(latest), latestDigest, 'The latest tag changed during publication');
+    writeTag(latest, { digest: newestDigest }, base + '@' + newestDigest);
+  }
+  return { reference, fixed, patch, rolling, latest, latestDigest: newestDigest };
+}
+
+function distribute(record) {
+  const published = {};
+  registryLogin();
+  if (mirrorGHCR) {
+    publishChannel(record);
+    published.ghcr = publishShortChannel('ghcr.io/rambow-cloud/' + plan.variant, record, packageVisibility(plan.variant) !== null);
+  }
+  if (mirrorQuay) {
+    execute('docker', ['login', 'quay.io', '--username', 'rambow-cloud+runtime_publisher', '--password-stdin'],
+      { input: process.env.QUAY_ROBOT_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
+    published.quay = publishShortChannel('quay.io/rambow-cloud/' + plan.variant, record, true);
+  }
+  write(out + '/published-mirrors.json', { runtime, leaves: record.leaves, releaseUrl: record.releaseUrl, ...published });
+  for (const image of Object.values(published)) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '\n' + image.rolling + '\n\n' + image.reference +
+      '\n\n' + image.latest + ' → ' + image.latestDigest + '\n');
+  }
+}
+
 if (mirror) {
   assert.equal(oldDigest, plan.digest, 'Complete the approved stable release before mirroring');
-  publishChannel(publishedStableRecord());
+  distribute(publishedStableRecord());
   process.exit(0);
 }
 
@@ -269,7 +359,8 @@ if (publish) {
       'Build source commit `' + plan.sourceCommit + '`. The release Git tag identifies the promotion commit.', '',
       'Native amd64 and arm64 evidence, corresponding source and SBOMs are attached to the [qualified preview](' +
         record.previewRelease + '). This release attaches the fresh scan results and signed promotion record.', '',
-      'Rolling stable tag `' + plan.channel + '`.', '',
+      'Rolling stable tags `ghcr.io/rambow-cloud/' + plan.variant + ':' + plan.line +
+        '` and `quay.io/rambow-cloud/' + plan.variant + ':' + plan.line + '`.', '',
     ].join('\n'));
     if (!existing) ghRelease('create', plan.releaseTag, '--draft', '--target', head,
       '--title', runtime + ' ' + plan.version + '-r' + plan.revision + ' stable', '--notes-file', notes);
@@ -295,7 +386,7 @@ if (publish) {
     writeTag(plan.alias, plan);
   }
   write(out + '/published-stable.json', record);
-  publishChannel(record);
+  distribute(record);
 }
 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
   '# ' + (publish ? 'Published stable ' : 'Validated stable candidate ') + runtime + '\n\n' +

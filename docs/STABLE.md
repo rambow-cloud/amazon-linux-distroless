@@ -51,7 +51,18 @@ The workflow verifies the signed preview index and qualified-build provenance ag
 
 Promotion binds the same index digest to the fixed revision tag. It verifies the copied index, build signature, build and promotion attestations, and each platform's CycloneDX attestation in the language package before moving the rolling tag. The signed promotion record still identifies the original per-line image reference. The workflow rejects downgrade attempts and collisions, and preserves published revision evidence.
 
-Use `mode=mirror` to finish the language tag update for an existing stable release without rebuilding or refreshing its scan reports. The workflow revalidates the published release and its evidence before moving the tag.
+Use `mode=mirror` to copy or repair an existing stable release without rebuilding or refreshing its scan reports. The workflow revalidates the published release and its evidence before moving any tag. The `registry` input selects `both`, `ghcr` or `quay` in mirror mode. Publish mode updates both registries.
+
+The short repositories use `ghcr.io/rambow-cloud/{java,python,nodejs}` and `quay.io/rambow-cloud/{java,python,nodejs}`. A version line such as `nodejs:22` follows its latest stable patch and revision. A full version such as `nodejs:22.23.4` follows revisions of that patch. `nodejs:22.23.4-r1` pins a specific revision. The `latest` tag selects the highest numeric stable version published in that language repository, then its highest revision. Updating an older line leaves `latest` on the higher line.
+
+For first-time setup, mirror to GHCR to create the three packages and make them Public in their package settings. Quay uses public repositories and the `rambow-cloud+runtime_publisher` robot with Write access to those three repositories. Set its token as the repository Actions secret `QUAY_ROBOT_TOKEN`.
+
+```sh
+gh workflow run runtime-stable.yml --ref main -f runtime=all -f mode=mirror -f registry=both
+gh workflow run runtime-mirror-pull.yml --ref main -f registry=both
+```
+
+The second workflow pulls the public mirrors without registry credentials on native amd64 and arm64. It checks tag digests, signatures, the stable record, per-platform SBOMs and the native runtime version.
 
 The GitHub Release tag identifies the protected main promotion commit. The signed record identifies both that commit and the original build source commit, and the qualified preview supplies the matching build source archives.
 

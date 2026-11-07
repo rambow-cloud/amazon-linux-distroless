@@ -14,6 +14,12 @@ on:
         options: [check, publish, mirror]
         default: check
         required: true
+      registry:
+        description: Destination for mirror mode. Publish always updates both registries.
+        type: choice
+        options: [both, ghcr, quay]
+        default: both
+        required: true
 permissions:
   contents: read
 jobs:
@@ -37,12 +43,12 @@ jobs:
           assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
           const plan = JSON.parse(fs.readFileSync('releases/stable-candidates.json'));
           const selection = process.env.STABLE_SELECTION;
-          const runtimes = selection === 'all' ? Object.keys(plan) : [selection];
-          assert.ok(runtimes.length);
-          for (const id of runtimes) {
+          const selected = selection === 'all' ? Object.keys(plan) : [selection];
+          const runtimes = selected.map(id => {
             assert.ok(Object.hasOwn(plan, id), 'Unknown stable runtime');
-            stablePlan(id, plan[id]);
-          }
+            return { runtime: id, family: stablePlan(id, plan[id]).variant };
+          });
+          assert.ok(runtimes.length);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, 'runtimes=' + JSON.stringify(runtimes) + '\n');
           NODE
   stable:
@@ -53,10 +59,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runtime: ${{ fromJSON(needs.plan.outputs.runtimes) }}
+        include: ${{ fromJSON(needs.plan.outputs.runtimes) }}
     concurrency:
-      group: stable-runtime-${{ matrix.runtime }}
-      cancel-in-progress: false
+      group: stable-runtime-${{ inputs.mode == 'check' && format('{0}-{1}', github.run_id, matrix.runtime) || matrix.family }}
+      queue: max
     permissions:
       contents: write
       packages: write
@@ -78,6 +84,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           STABLE_RUNTIME: ${{ matrix.runtime }}
           STABLE_MODE: ${{ inputs.mode }}
+          STABLE_MIRROR_REGISTRY: ${{ inputs.registry }}
+          QUAY_ROBOT_TOKEN: ${{ inputs.mode != 'check' && inputs.registry != 'ghcr' && secrets.QUAY_ROBOT_TOKEN || '' }}
           DOCKER_CONFIG: ${{ runner.temp }}/stable-docker-auth
         run: node scripts/release/runtime-stable.mjs
       - name: Preserve stable evidence
