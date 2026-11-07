@@ -21,3 +21,8 @@
 !images/java17/**
 !images/java25/
 !images/java25/**
+
+!images/python314/
+!images/python314/**
+!scripts/runtime/
+!scripts/runtime/**
