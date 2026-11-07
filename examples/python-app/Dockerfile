@@ -1,4 +1,4 @@
-ARG PYTHON_RUNTIME=ghcr.io/rambow-cloud/amazon-linux-distroless/python314:3.14-preview
+ARG PYTHON_RUNTIME=ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:fb8b7c9aacc27b4f8d7a21c8023f2b29acce60664a2ba7792388c364e6e61aed
 FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:381352c430f36d8aa6b8b670de06e7e4e5642fe0cb9dbd463bb8d1e79aefc0c7 AS builder
 RUN dnf --releasever=2023.12.20261102 -y --setopt=install_weak_deps=False install gcc python3.14-devel python3.14-pip && dnf clean all
 COPY examples/python314/ /src/
