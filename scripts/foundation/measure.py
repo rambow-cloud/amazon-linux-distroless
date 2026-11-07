@@ -14,36 +14,42 @@ def load(path):
     return json.loads(path.read_text())
 
 
+def archive_metrics(archive_path, image_id):
+    with tarfile.open(archive_path, "r:gz") as archive:
+        [manifest] = json.load(archive.extractfile("index.json"))["manifests"]
+        doc = json.load(archive.extractfile(blob_path(manifest["digest"])))
+        if doc["config"]["digest"] != image_id:
+            raise ValueError("Unexpected OCI image configuration")
+        transfer = manifest["size"] + doc["config"]["size"]
+        for layer in doc["layers"]:
+            data = archive.extractfile(blob_path(layer["digest"])).read()
+            if layer["mediaType"] == "application/vnd.oci.image.layer.v1.tar":
+                transfer += len(gzip.compress(data, compresslevel=9, mtime=0))
+            elif layer["mediaType"] == "application/vnd.oci.image.layer.v1.tar+gzip":
+                transfer += len(data)
+            else:
+                raise ValueError("Unknown image layer compression")
+    return {
+        "gzipTransferBytes": transfer,
+        "manifestDigest": manifest["digest"],
+        "manifestSize": manifest["size"],
+        "configDigest": doc["config"]["digest"],
+        "layerDigests": [layer["digest"] for layer in doc["layers"]],
+    }
+
+
 def measure(evidence):
     build = load(evidence / "build.json")
     lock = load(evidence / "lock.json")
     variants = {}
     for variant, image in build["images"].items():
         inventory = load(evidence / (variant + "-inventory.json"))
-        with tarfile.open(evidence / (variant + "-image.tar.gz"), "r:gz") as archive:
-            [manifest] = json.load(archive.extractfile("index.json"))["manifests"]
-            doc = json.load(archive.extractfile(blob_path(manifest["digest"])))
-            if doc["config"]["digest"] != image["id"]:
-                raise ValueError("Unexpected OCI image configuration")
-            transfer = manifest["size"] + doc["config"]["size"]
-            for layer in doc["layers"]:
-                data = archive.extractfile(blob_path(layer["digest"])).read()
-                if layer["mediaType"] == "application/vnd.oci.image.layer.v1.tar":
-                    transfer += len(gzip.compress(data, compresslevel=9, mtime=0))
-                elif layer["mediaType"] == "application/vnd.oci.image.layer.v1.tar+gzip":
-                    transfer += len(data)
-                else:
-                    raise ValueError("Unknown image layer compression")
         variants[variant] = {
+            **archive_metrics(evidence / (variant + "-image.tar.gz"), image["id"]),
             "fileCount": sum(entry["kind"] != "directory" for entry in inventory["files"]),
             "packageCount": len(inventory["packages"]),
             "unpackedBytes": image["unpackedImageBytes"],
-            "gzipTransferBytes": transfer,
             "inventorySHA256": hashlib.sha256(encoded(inventory["files"])).hexdigest(),
-            "manifestDigest": manifest["digest"],
-            "manifestSize": manifest["size"],
-            "configDigest": doc["config"]["digest"],
-            "layerDigests": [layer["digest"] for layer in doc["layers"]],
         }
     return {"commit": build["commit"], "platform": build["platform"], "lockSHA256":
             hashlib.sha256(encoded(lock)).hexdigest(), "variants": variants}
