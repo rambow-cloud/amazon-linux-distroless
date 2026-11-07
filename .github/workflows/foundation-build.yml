@@ -46,3 +46,31 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+  index:
+    name: Foundation OCI indexes
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: foundation-candidate-*
+          path: out/foundation-input
+      - name: Assemble and verify local OCI indexes
+        run: |
+          python3 scripts/foundation/index.py out/foundation-input out/foundation-index
+          tar -czf out/foundation-index/static.oci.tar.gz -C out/foundation-index/layouts/static .
+          tar -czf out/foundation-index/base.oci.tar.gz -C out/foundation-index/layouts/base .
+          cat out/foundation-index/indexes.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: foundation-oci-indexes
+          path: |
+            out/foundation-index/*.tar.gz
+            out/foundation-index/indexes.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
