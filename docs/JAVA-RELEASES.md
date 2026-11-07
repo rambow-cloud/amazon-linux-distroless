@@ -1,6 +1,6 @@
 # Java 17, 21 and 25 delivery
 
-All three Corretto Java lines have public signed previews for native linux/amd64 and linux/arm64. These releases use AL2023 snapshot 2023.12.20261102 and source commit [40a17983a91aac4c160110710ec26185a6616bff](https://github.com/rambow-cloud/amazon-linux-distroless/commit/40a17983a91aac4c160110710ec26185a6616bff). Python #21 and Node.js #22 are the next deliverables; the full language goal and project-wide stable v1 acceptance remain open.
+All three Corretto Java lines have public signed previews for native linux/amd64 and linux/arm64. These releases use AL2023 snapshot 2023.12.20261102 and source commit [40a17983a91aac4c160110710ec26185a6616bff](https://github.com/rambow-cloud/amazon-linux-distroless/commit/40a17983a91aac4c160110710ec26185a6616bff). Python 3.14 and Node.js 24 are also delivered; see [all runtime references](RUNTIMES.md). Project-wide stable v1 acceptance remains open.
 
 | Java | Observed JVM version | amd64 uncompressed | arm64 uncompressed | JRE modules | Payload RPMs per architecture | Source and evidence |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
