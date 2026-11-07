@@ -4,7 +4,8 @@
     "contexts": [
       "Issue policy",
       "Repository checks",
-      "Java 21 gate"
+      "Java 21 gate",
+      "Language runtime gate"
     ]
   },
   "enforce_admins": true,

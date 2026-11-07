@@ -1,0 +1,12 @@
+{
+  "id": "python314",
+  "variant": "python",
+  "version": "3.14",
+  "executable": "/usr/bin/python3.14",
+  "identity_packages": ["python3.14", "python3.14-libs"],
+  "directories": ["app", "opt/python/site-packages", "tmp"],
+  "seeds": ["/usr/bin/python3.14", "/usr/lib64/python3.14", "/usr/lib/python3.14", "/etc/pki/tls/openssl.cnf", "/etc/crypto-policies/back-ends/opensslcnf.config", "/usr/lib64/ossl-modules"],
+  "aliases": {"/usr/bin/python3": "/usr/bin/python3.14"},
+  "allowed_paths": ["usr/bin/python3"],
+  "excluded_names": ["__pycache__", "ensurepip", "idlelib", "tkinter", "turtledemo", "test", "tests", "site-packages", "config-3.14-x86_64-linux-gnu", "config-3.14-aarch64-linux-gnu"]
+}

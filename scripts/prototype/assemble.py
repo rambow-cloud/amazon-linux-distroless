@@ -39,8 +39,9 @@ def read_lock(path):
         raise ValueError("Official digest-pinned builder required")
     if not re.fullmatch(r"2023\.\d+\.\d{8}", lock["releasever"]):
         raise ValueError("Explicit repository release required")
-    if set(lock["variants"]) != {"base", "java"}:
-        raise ValueError("Expected base and java variants")
+    variants = set(lock["variants"]) - {"base"}
+    if "base" not in lock["variants"] or len(variants) != 1 or not variants <= {"java", "python", "nodejs"}:
+        raise ValueError("Expected base and one supported language variant")
     if not isinstance(lock.get("source_date_epoch"), int) or lock["source_date_epoch"] < 0:
         raise ValueError("Invalid normalization timestamp")
     for variant in lock["variants"].values():
@@ -232,14 +233,16 @@ class Assembler:
                 "{} needs {}".format(binary, library) for binary, library in sorted(missing)))
 
 
-def inspect_tree(root):
+def inspect_tree(root, allowed_paths=()):
+    if not set(allowed_paths) <= {"usr/bin/python3"}:
+        raise ValueError("Unsupported runtime executable allowance")
     result = []
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
         mode = stat.S_IMODE(path.lstat().st_mode)
         if mode & 0o6000:
             raise ValueError("Setuid/setgid file: " + relative)
-        if not path.is_dir() and (path.name in FORBIDDEN or relative.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/"))):
+        if not path.is_dir() and ((path.name in FORBIDDEN and relative not in allowed_paths) or relative.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/"))):
             raise ValueError("Forbidden runtime file: " + relative)
         if path.is_symlink():
             if not rooted_path(root, "/" + relative).exists():

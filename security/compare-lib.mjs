@@ -41,13 +41,14 @@ export function inventorySbom(inventory, lock, imageId) {
       source_rpm: p.source_rpm, purl, files });
   }
   if (!selected.length) throw new Error('No payload packages selected');
-  const rootRef = 'rambow-java-prototype';
+  const runtime = inventory.runtime || inventory.variant || 'runtime';
+  const rootRef = 'rambow-' + runtime + '-runtime';
   const osRef = 'amazon-linux-2023';
   const bom = { bomFormat: 'CycloneDX', specVersion: '1.6',
     serialNumber: 'urn:uuid:' + crypto.randomUUID(), version: 1,
     metadata: { timestamp: new Date().toISOString(),
       tools: { components: [{ type: 'application', name: 'rambow-inventory-scan-adapter', version: '1' }] },
-      component: { type: 'container', 'bom-ref': rootRef, name: 'AL2023 Java prototype',
+      component: { type: 'container', 'bom-ref': rootRef, name: 'AL2023 ' + runtime + ' runtime',
         properties: [property('ImageID', imageId)] } },
     components: [{ type: 'operating-system', 'bom-ref': osRef, name: 'amazon', version: '2023',
       properties: [property('Type', 'amazon'), property('Class', 'os-pkgs')] }, ...components],

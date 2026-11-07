@@ -1,0 +1,90 @@
+name: Language runtime qualification
+on:
+  workflow_dispatch:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: runtime-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  changes:
+    name: Select language runtime scope
+    runs-on: ubuntu-24.04
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        id: scope
+        with:
+          script: |
+            if (context.eventName !== 'pull_request') { core.setOutput('required','true'); return; }
+            const files=await github.paginate(github.rest.pulls.listFiles,{...context.repo,pull_number:context.issue.number,per_page:100});
+            const prefixes=['images/python314/','locks/python314/','scripts/runtime/','scripts/prototype/','examples/python314/'];
+            const exact=['scripts/java21/check_image.py','security/compare-lib.mjs','.dockerignore','.github/workflows/runtime-build.yml'];
+            const relevant=name=>prefixes.some(prefix=>name.startsWith(prefix))||exact.includes(name);
+            core.setOutput('required',files.some(f=>relevant(f.filename)||relevant(f.previous_filename||''))?'true':'false');
+  build:
+    needs: changes
+    if: needs.changes.outputs.required == 'true'
+    name: Python 3.14 (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: node scripts/runtime/build.mjs python314 ${{ matrix.arch }}
+      - run: node scripts/runtime/verify.mjs python314 ${{ matrix.arch }}
+      - run: cat out/python314/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python314-${{ matrix.arch }}-image
+          path: out/python314/${{ matrix.arch }}/image.tar.gz
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python314-${{ matrix.arch }}-evidence
+          path: |
+            out/python314/${{ matrix.arch }}/*.json
+            out/python314/${{ matrix.arch }}/*.md
+            out/python314/${{ matrix.arch }}/project-source.tar.gz
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python314-${{ matrix.arch }}-sources
+          path: out/python314/${{ matrix.arch }}/sources.tar.gz
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: python314-${{ matrix.arch }}-diagnostics
+          path: out/python314/${{ matrix.arch }}/*.json
+          if-no-files-found: ignore
+  gate:
+    name: Language runtime gate
+    if: always()
+    needs: [changes,build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          SCOPE_RESULT: ${{ needs.changes.result }}
+          RUNTIME_REQUIRED: ${{ needs.changes.outputs.required }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        with:
+          script: |
+            if(process.env.SCOPE_RESULT!=='success') core.setFailed('Runtime scope could not be determined');
+            else if(process.env.RUNTIME_REQUIRED==='true'&&process.env.BUILD_RESULT!=='success') core.setFailed('Both native language runtime jobs must pass');
+            else core.info('Required language runtime validation is satisfied');

@@ -7,7 +7,11 @@ import tarfile
 sys.path.insert(0, "/tools")
 from assemble import FORBIDDEN
 
-archive, image_tag, inventory_path = sys.argv[1:]
+archive, image_tag, inventory_path = sys.argv[1:4]
+runtime = sys.argv[4] if len(sys.argv) > 4 else "java"
+if runtime not in ("java", "python", "nodejs"):
+    raise ValueError("Unsupported language audit")
+allowed = {"usr/bin/python3"} if runtime == "python" else set()
 expected = {f["path"]: f for f in json.loads(Path(inventory_path).read_text())["files"]}
 seen = set()
 with tarfile.open(archive) as saved:
@@ -24,7 +28,7 @@ with tarfile.open(archive) as saved:
                     if member.mode & 0o6000 or (name == "tmp" and member.mode != 0o1777):
                         raise RuntimeError("Unsafe directory mode: " + name)
                     continue
-                if Path(name).name in FORBIDDEN or name.endswith(".jmod") or name.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/")):
+                if (Path(name).name in FORBIDDEN and name not in allowed) or name.endswith(".jmod") or name.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/", "usr/include/")):
                     raise RuntimeError("Forbidden runtime artifact: " + name)
                 if name not in expected or name in seen:
                     raise RuntimeError("Unexpected/duplicate final file: " + name)

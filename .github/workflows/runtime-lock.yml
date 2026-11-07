@@ -1,12 +1,6 @@
 name: Language runtime lock update
 on:
   workflow_dispatch:
-  push:
-    branches: [runtime/python314]
-    paths:
-      - .github/workflows/runtime-lock.yml
-      - images/python314/**
-      - scripts/runtime/**
 permissions:
   contents: read
 jobs:

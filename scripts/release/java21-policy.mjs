@@ -30,7 +30,7 @@ export function validateScan(report, packages) {
   const blockers = findings(report).filter(f => ['HIGH', 'CRITICAL'].includes(f.severity) && f.fixed);
   assert.equal(blockers.length, 0, 'Fixable High/Critical ALAS findings block preview publication: ' + blockers.map(f => f.package + '/' + f.id).join(', '));
   return { total: findings(report).length, fixableHighCritical: blockers.length,
-    limitation: 'ALAS unfixed and JVM advisory coverage remain limited; zero findings is not proof of no risk' };
+    limitation: 'ALAS unfixed and language-runtime advisory coverage remain limited; zero findings is not proof of no risk' };
 }
 export function validateIndex(index, leaves) {
   assert.equal(index.manifests?.length, 2, 'Expected a two-platform index');

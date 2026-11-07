@@ -26,3 +26,8 @@
 !images/python314/**
 !scripts/runtime/
 !scripts/runtime/**
+
+!examples/python314/
+!examples/python314/**
+!examples/python-app/
+!examples/python-app/**
