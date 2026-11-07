@@ -192,9 +192,10 @@ function publishChannel(record) {
     verifyAdvance(plan, known[0]);
   }
   if (current !== plan.digest) {
-    // Copy the index, leaves and their Cosign attachments by digest before
-    // publishing the moving tag.
-    execute('cosign', ['copy', plan.reference, plan.channelReference]);
+    // ORAS follows OCI referrers on the index and its leaves. With no
+    // destination tag it copies by digest before the rolling tag is moved.
+    execute('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
+      process.env.DOCKER_CONFIG + '/config.json', plan.reference, plan.channelBase]);
   }
   assert.equal(packageVisibility(plan.variant), 'public', 'The shared channel package must be public');
   validateIndex(JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', plan.channelReference])), record.leaves);
