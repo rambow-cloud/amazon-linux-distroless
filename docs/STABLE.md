@@ -51,11 +51,11 @@ The workflow verifies the signed preview index and qualified-build provenance ag
 
 Promotion binds the same index digest to the fixed revision tag. It verifies the copied index, build signature, build and promotion attestations, and each platform's CycloneDX attestation in the language package before moving the rolling tag. The signed promotion record still identifies the original per-line image reference. The workflow rejects downgrade attempts and collisions, and preserves published revision evidence.
 
-Use `mode=mirror` to copy or repair an existing stable release without rebuilding or refreshing its scan reports. The workflow revalidates the published release and its evidence before moving any tag. The `registry` input selects `both`, `ghcr` or `quay` in mirror mode. Publish mode updates both registries.
+Use `mode=mirror` to copy or repair an existing stable release without rebuilding or refreshing its scan reports. The workflow revalidates the published release and its evidence before moving any tag. The `registry` input selects `both`, `ghcr` or `quay` in mirror mode. Publish mode updates GHCR and the enabled Quay mirror.
 
 The short repositories use `ghcr.io/rambow-cloud/{java,python,nodejs}` and `quay.io/rambow-cloud/{java,python,nodejs}`. A version line such as `nodejs:22` follows its latest stable patch and revision. A full version such as `nodejs:22.23.4` follows revisions of that patch. `nodejs:22.23.4-r1` pins a specific revision. The `latest` tag selects the highest numeric stable version published in that language repository, then its highest revision. Updating an older line leaves `latest` on the higher line.
 
-For first-time setup, mirror to GHCR to create the three packages and make them Public in their package settings. Quay uses public repositories and the `rambow-cloud+runtime_publisher` robot with Write access to those three repositories. Set its token as the repository Actions secret `QUAY_ROBOT_TOKEN`.
+For first-time setup, mirror to GHCR to create the three packages and make them Public in their package settings if needed. Quay uses public repositories and the `rambow-cloud+runtime_publisher` robot with Write access to those three repositories. Set its token as the repository Actions secret `QUAY_ROBOT_TOKEN`. After the first mirror and verification succeed, set the repository Actions variable `QUAY_RUNTIME_MIRROR_ENABLED` to `true` so all future stable promotions update Quay. An enabled mirror fails the publication job if its credential is missing.
 
 ```sh
 gh workflow run runtime-stable.yml --ref main -f runtime=all -f mode=mirror -f registry=both

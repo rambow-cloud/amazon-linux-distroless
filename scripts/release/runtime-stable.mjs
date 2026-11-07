@@ -93,9 +93,9 @@ const mirror = process.env.STABLE_MODE === 'mirror';
 assert.ok(publish || mirror || process.env.STABLE_MODE === 'check', 'Expected check, publish, or mirror');
 const destination = process.env.STABLE_MIRROR_REGISTRY || 'both';
 assert.ok(['both', 'ghcr', 'quay'].includes(destination), 'Unknown mirror registry');
-assert.ok(!publish || destination === 'both', 'Stable publication must update both registries');
+assert.ok(!publish || destination === 'both', 'Registry selection only applies to mirror mode');
 const mirrorGHCR = destination !== 'quay';
-const mirrorQuay = destination !== 'ghcr';
+const mirrorQuay = destination !== 'ghcr' && (mirror || process.env.QUAY_RUNTIME_MIRROR_ENABLED === 'true');
 if (publish || mirror) {
   assert.ok(process.env.DOCKER_CONFIG && process.env.GH_TOKEN, 'Missing publishing configuration');
   if (mirrorQuay) assert.ok(process.env.QUAY_ROBOT_TOKEN, 'Missing Quay publishing credential');

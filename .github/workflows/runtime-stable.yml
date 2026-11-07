@@ -15,7 +15,7 @@ on:
         default: check
         required: true
       registry:
-        description: Destination for mirror mode. Publish always updates both registries.
+        description: Destination for mirror mode. Publish uses the configured registries.
         type: choice
         options: [both, ghcr, quay]
         default: both
@@ -85,7 +85,8 @@ jobs:
           STABLE_RUNTIME: ${{ matrix.runtime }}
           STABLE_MODE: ${{ inputs.mode }}
           STABLE_MIRROR_REGISTRY: ${{ inputs.registry }}
-          QUAY_ROBOT_TOKEN: ${{ inputs.mode != 'check' && inputs.registry != 'ghcr' && secrets.QUAY_ROBOT_TOKEN || '' }}
+          QUAY_RUNTIME_MIRROR_ENABLED: ${{ vars.QUAY_RUNTIME_MIRROR_ENABLED }}
+          QUAY_ROBOT_TOKEN: ${{ inputs.registry != 'ghcr' && (inputs.mode == 'mirror' || (inputs.mode == 'publish' && vars.QUAY_RUNTIME_MIRROR_ENABLED == 'true')) && secrets.QUAY_ROBOT_TOKEN || '' }}
           DOCKER_CONFIG: ${{ runner.temp }}/stable-docker-auth
         run: node scripts/release/runtime-stable.mjs
       - name: Preserve stable evidence
