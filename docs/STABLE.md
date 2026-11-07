@@ -1,12 +1,14 @@
 # Runtime stable channels
 
-Use `ghcr.io/rambow-cloud/python:3.14` to follow Python 3.14. Pin `ghcr.io/rambow-cloud/python:3.14.10-r1` or its digest for reproducibility. The original GHCR paths continue to serve existing consumers.
+Use `ghcr.io/rambow-cloud/python:3.14` or `quay.io/rambow-cloud/python:3.14` to follow Python 3.14. Pin `python:3.14.10-r1` or its digest on either registry for reproducibility. The original GHCR paths continue to serve existing consumers.
 
 ## Published stable revisions
 
 All ten stable channels use the same native amd64 and arm64 indexes as their qualified previews. Each regular GitHub Release contains its signed promotion record, fresh scan reports and source links.
 
 Browse the GHCR packages for [Java](https://github.com/orgs/rambow-cloud/packages/container/package/java), [Python](https://github.com/orgs/rambow-cloud/packages/container/package/python) and [Node.js](https://github.com/orgs/rambow-cloud/packages/container/package/nodejs).
+
+Browse the Quay tags for [Java](https://quay.io/repository/rambow-cloud/java?tab=tags), [Python](https://quay.io/repository/rambow-cloud/python?tab=tags) and [Node.js](https://quay.io/repository/rambow-cloud/nodejs?tab=tags).
 
 | Runtime | Fixed revision | Rolling stable tag | Evidence |
 | --- | --- | --- | --- |
@@ -22,6 +24,8 @@ Browse the GHCR packages for [Java](https://github.com/orgs/rambow-cloud/package
 | nodejs26 | `nodejs:26.13.0-r1` | `nodejs:26` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42357940352) |
 
 ### Exact image index digests
+
+The corresponding Quay image has the same index digest, signatures and attestations. Use the same language name and digest under `quay.io/rambow-cloud/`.
 
 - `ghcr.io/rambow-cloud/java@sha256:45365c585dd7501ec027a34dc95886b3097a8e6b6001befc1d8ac327b85000de`
 - `ghcr.io/rambow-cloud/java@sha256:de7886e8d9b8dcda6112e6732b9d4b7dc3d3bffee4ccee5314c86ab9805f6ad0`
