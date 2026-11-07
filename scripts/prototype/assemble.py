@@ -32,8 +32,9 @@ def checksum(path):
 
 def read_lock(path):
     lock = json.loads(Path(path).read_text())
-    if lock.get("schema_version") != 1 or lock.get("platform") != "linux/amd64":
-        raise ValueError("Only schema 1, linux/amd64 is supported")
+    if lock.get("schema_version") != 1 or lock.get("platform") not in ("linux/amd64", "linux/arm64"):
+        raise ValueError("Only schema 1, native amd64/arm64 is supported")
+    package_arch = {"linux/amd64": "x86_64", "linux/arm64": "aarch64"}[lock["platform"]]
     if not re.fullmatch(r"public\.ecr\.aws/amazonlinux/amazonlinux@sha256:[a-f0-9]{64}", lock["builder"]):
         raise ValueError("Official digest-pinned builder required")
     if not re.fullmatch(r"2023\.\d+\.\d{8}", lock["releasever"]):
@@ -51,7 +52,7 @@ def read_lock(path):
             if not re.fullmatch(r"[A-Za-z0-9_.+~-]+\.rpm", name) or name in seen:
                 raise ValueError("Invalid/duplicate RPM filename")
             seen.add(name)
-            if package["arch"] not in ("x86_64", "noarch") or not package["signature_verified"]:
+            if package["arch"] not in (package_arch, "noarch") or not package["signature_verified"]:
                 raise ValueError("Unverified or wrong-architecture RPM")
             if not re.fullmatch(r"[a-f0-9]{64}", package["sha256"]):
                 raise ValueError("Invalid checksum")

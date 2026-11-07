@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     inputs = json.loads(Path(args.inputs).read_text())
+    package_arch = {"linux/amd64": "x86_64", "linux/arm64": "aarch64"}[inputs["platform"]]
     for key in sorted(Path("/etc/pki/rpm-gpg").glob("RPM-GPG-KEY-amazon-linux-2023")):
         subprocess.run(["rpm", "--import", str(key)], check=True)
     lock = {
@@ -63,7 +64,7 @@ def main():
                 verification = run("rpmkeys", "--checksig", "--verbose", str(path))
                 if "signature" not in verification.lower():
                     raise RuntimeError("No RPM signature: " + str(path))
-                if package.arch not in ("x86_64", "noarch"):
+                if package.arch not in (package_arch, "noarch"):
                     raise RuntimeError("Unexpected RPM architecture: " + package.arch)
                 entries.append({
                     "name": package.name, "epoch": str(package.epoch),
