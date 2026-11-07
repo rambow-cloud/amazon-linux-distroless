@@ -1,0 +1,38 @@
+name: Foundation vulnerability gate
+on:
+  pull_request:
+    paths:
+      - .github/workflows/foundation-security.yml
+      - scripts/release/foundation-scan.mjs
+      - releases/vulnerability-exceptions.json
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  qualify:
+    name: Qualify native foundations
+    uses: ./.github/workflows/foundation-build.yml
+    with:
+      force: true
+  scan:
+    name: Scan exact native static and base payloads
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: foundation-oci-indexes
+          path: out/foundation-evidence
+      - run: node scripts/release/foundation-scan.mjs out/foundation-evidence out/foundation-scans
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: foundation-scan-evidence
+          path: out/foundation-scans/*.json
+          if-no-files-found: ignore
+          retention-days: 30
