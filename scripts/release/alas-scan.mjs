@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { validateScan } from './java21-policy.mjs';
+import { verifyDatabaseAge } from './vulnerability-policy.mjs';
 
-export function alasScanner(out, execute, read, hash) {
+export function alasScanner(out, execute, read, hash, assessment) {
   const scanner = 'aquasec/trivy@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb';
   const cache = out + '-trivy-cache';
   const databaseFile = cache + '/db/trivy.db';
@@ -13,7 +14,9 @@ export function alasScanner(out, execute, read, hash) {
     '-e', 'HOME=/tmp', '-e', 'TRIVY_SKIP_VERSION_CHECK=true'];
   execute('docker', ['pull', '--platform', 'linux/amd64', scanner]);
   execute('docker', [...common, scanner, '--cache-dir', '/cache', 'image', '--download-db-only']);
-  const database = { sha256: hash(databaseFile), metadata: read(cache + '/db/metadata.json') };
+  const metadataFile = cache + '/db/metadata.json';
+  const database = { sha256: hash(databaseFile), metadataSHA256: hash(metadataFile), metadata: read(metadataFile) };
+  verifyDatabaseAge('ALAS', database.metadata.UpdatedAt);
   return {
     scanner,
     database,
@@ -23,10 +26,11 @@ export function alasScanner(out, execute, read, hash) {
         '--skip-db-update', '--skip-java-db-update', '--offline-scan', '--scanners', 'vuln',
         '--severity', 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL', '--ignore-unfixed=false', '--ignorefile', '/dev/null',
         '--format', 'json', '--list-all-pkgs', '--exit-code', '0', '--output', '/work/' + report, '/work/' + file]);
-      return validateScan(read(report), read(coverage).selected);
+      return validateScan(read(report), read(coverage).selected, assessment && (matches => assessment(arch, matches)));
     },
     verifyDatabase() {
       assert.equal(hash(databaseFile), database.sha256, 'Scanner database changed');
+      assert.equal(hash(metadataFile), database.metadataSHA256, 'Scanner database metadata changed');
     },
   };
 }

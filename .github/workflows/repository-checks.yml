@@ -36,4 +36,5 @@ jobs:
       - name: Validate stable promotion policy
         run: |
           node --test tests/stable-release.test.mjs
+          node --test tests/vulnerability-policy.test.mjs
           node --check scripts/release/runtime-stable.mjs

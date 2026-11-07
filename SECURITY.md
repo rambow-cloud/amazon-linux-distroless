@@ -2,7 +2,7 @@
 
 ## Current support status
 
-This repository is in planning/bootstrap. There are no supported or published runtime images yet. A v1.0 support policy, vulnerability gates, and update cadence must be completed before a stable release.
+Java, Python and Node.js have [published stable runtime channels](docs/STABLE.md). The [support policy](docs/SUPPORT.md) records each line's maintenance boundary. Static and base are still [verified candidates](docs/FOUNDATION.md) pending project-wide release.
 
 AL2023's upstream lifecycle does not constitute a support promise from this project. Individual package support can differ from the distribution lifecycle.
 
@@ -12,7 +12,15 @@ Use [GitHub private vulnerability reporting](https://github.com/rambow-cloud/ama
 
 Ordinary non-sensitive build failures and scanner usability issues can use the bug form.
 
-## Planned release requirements
+## Stable vulnerability gate
+
+Trivy's AL2023 matcher scans the exact RPM owners of selected files. Grype adds upstream runtime coverage for Python and Node.js. Stable promotion rejects known High and Critical findings, including findings without a fix, unless the exact runtime, architecture, scanner, advisory ID, package and installed version match an unexpired exception. Scanner reports and the exceptions applied to them remain in release evidence. A missing, stale, invalid or changed database fails the job; both databases must have been built within 48 hours.
+
+An exception needs a repository issue recording the maintainer review, the affected files or functionality, the source advisory, the rationale or mitigation, and an owner. Add the exact scope to [the exception list](releases/vulnerability-exceptions.json) through a protected PR. Set UTC creation and expiry dates at most 30 days apart. An expired exception cannot permit a finding. Record both false-positive and accepted-risk decisions in the issue; an exception never changes the raw scanner output.
+
+Compare RPM versions to the [ALAS advisory](https://docs.aws.amazon.com/linux/al2023/ug/alas.html), since Amazon can backport a fix while leaving the upstream version unchanged. The ALAS regression workflow compares synthetic before/after RPM identities for [ALAS-2023-181](https://alas.aws.amazon.com/AL2023/ALAS-2023-181.html). ALAS-derived package metadata does not enumerate every unfixed CVE. Grype's upstream and bundled-component matches depend on its data and component identities. Check official advisories for relevant files and features; a clean scan is not proof of no vulnerabilities or coverage of downstream applications.
+
+## Project release requirements
 
 - Fixed AL2023 repository release and builder digest; verified RPM signatures and checksums.
 - Complete component inventory despite omitting the RPM database from runtime images.
@@ -23,5 +31,3 @@ Ordinary non-sensitive build failures and scanner usability issues can use the b
 - Separate unprivileged build/test workflows from trusted release credentials and signing permissions.
 - Issue-tracked dependency updates and published rollback instructions.
 - Apply these requirements to static/base and every committed Java, Python, and Node.js variant on both architectures. Track selected language-version support windows, runtime-loaded components, and required native libraries; no variant bypasses the stable-release gates.
-
-These are roadmap requirements, not claims about an existing artifact.

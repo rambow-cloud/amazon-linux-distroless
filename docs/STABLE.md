@@ -47,7 +47,7 @@ gh workflow run runtime-stable.yml --ref main -f runtime=nodejs26 -f mode=check
 gh workflow run runtime-stable.yml --ref main -f runtime=nodejs26 -f mode=publish
 ```
 
-The workflow verifies the signed preview index and qualified-build provenance against the trusted main workflow identity. It verifies the native reports and the CycloneDX attestation for each leaf, and compares release asset digests with the signed evidence manifest. The original preview holds the exact image and corresponding source archives. Fresh ALAS scans and applicable upstream Grype scans use the verified SBOMs and block fixable High/Critical findings. The stable release attaches the scan reports and signed promotion record.
+The workflow verifies the signed preview index and qualified-build provenance against the trusted main workflow identity. It verifies the native reports and the CycloneDX attestation for each leaf, and compares release asset digests with the signed evidence manifest. The original preview holds the exact image and corresponding source archives. Fresh ALAS scans and applicable upstream Grype scans use the verified SBOMs and enforce the [stable vulnerability policy](../SECURITY.md#stable-vulnerability-gate). The stable release attaches the scan reports and signed promotion record.
 
 Promotion binds the same index digest to the fixed revision tag. It verifies the copied index, build signature, build and promotion attestations, and each platform's CycloneDX attestation in the language package before moving the rolling tag. The signed promotion record still identifies the original per-line image reference. The workflow rejects downgrade attempts and collisions, and preserves published revision evidence.
 

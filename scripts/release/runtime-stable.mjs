@@ -6,6 +6,7 @@ import { validateIndex } from './java21-policy.mjs';
 import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
+import { vulnerabilityGate } from './vulnerability-policy.mjs';
 import {
   architectures, attestedPredicates, checksumManifest, issuer, repository,
   stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
@@ -226,8 +227,10 @@ if (mirror) {
   process.exit(0);
 }
 
-const alas = alasScanner(out, execute, read, hash);
-const grype = upstream ? upstreamScanner(out, execute, capture, hash) : null;
+const gate = vulnerabilityGate(read('releases/vulnerability-exceptions.json'));
+const assess = scanner => (arch, matches) => gate({ scanner, runtime, arch }, matches);
+const alas = alasScanner(out, execute, read, hash, assess('alas'));
+const grype = upstream ? upstreamScanner(out, execute, capture, hash, assess('grype')) : null;
 const scans = {};
 const upstreamScans = {};
 for (const arch of architectures) {
