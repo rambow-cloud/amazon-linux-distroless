@@ -22,14 +22,16 @@ export function validateReports(records, commit, major = 21) {
     modules = record.runtimeModules;
   }
 }
-export function validateScan(report, packages) {
+export function validateScan(report, packages, assess) {
   assert.equal(report.Metadata?.OS?.Family, 'amazon', 'Scanner did not select AL2023');
   assert.equal(report.Metadata?.OS?.Name, '2023');
   const key = p => [p.name ?? p.Name, Number(p.epoch ?? p.Epoch ?? 0), p.version ?? p.Version, p.release ?? p.Release].join('|');
   assert.deepEqual(scanPackages(report, true).map(key).sort(), packages.map(key).sort(), 'Scanner payload package coverage differs');
-  const blockers = findings(report).filter(f => ['HIGH', 'CRITICAL'].includes(f.severity) && f.fixed);
-  assert.equal(blockers.length, 0, 'Fixable High/Critical ALAS findings block preview publication: ' + blockers.map(f => f.package + '/' + f.id).join(', '));
-  return { total: findings(report).length, fixableHighCritical: blockers.length,
+  const matches = findings(report);
+  const blockers = matches.filter(f => ['HIGH', 'CRITICAL'].includes(f.severity) && f.fixed);
+  if (!assess) assert.equal(blockers.length, 0, 'Fixable High/Critical ALAS findings block preview publication: ' + blockers.map(f => f.package + '/' + f.id).join(', '));
+  return { total: matches.length, fixableHighCritical: blockers.length,
+    ...(assess && { stableGate: assess(matches) }),
     limitation: 'ALAS unfixed and language-runtime advisory coverage remain limited; zero findings is not proof of no risk' };
 }
 export function validateIndex(index, leaves) {

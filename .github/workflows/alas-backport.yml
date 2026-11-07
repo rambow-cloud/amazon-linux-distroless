@@ -1,0 +1,26 @@
+name: ALAS backport regression
+on:
+  pull_request:
+    paths:
+      - .github/workflows/alas-backport.yml
+      - scripts/release/alas-scan.mjs
+      - scripts/release/check-alas-backport.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  advisory:
+    name: Verify the AL2023 RPM backport matcher
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: node scripts/release/check-alas-backport.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: alas-backport-comparison
+          path: out/alas-backport/
+          if-no-files-found: ignore
