@@ -282,12 +282,14 @@ def assemble(lock, cache, output, java_profile=None):
         source.mkdir(parents=True)
         # Signature verification used the pinned builder key before this offline
         # transaction. No additional repository/package candidates are available.
+        # p11-kit uses SOURCE_DATE_EPOCH for the generated JVM truststore's
+        # entry dates. Normalizing filesystem mtimes alone does not set them.
         subprocess.run([
             "dnf", "-y", "--disablerepo=*", "--releasever=" + lock["releasever"],
             "--installroot=" + str(source), "--setopt=install_weak_deps=False",
             "--setopt=localpkg_gpgcheck=False", "install",
             *[str(cache / p["filename"]) for p in definition["packages"]],
-        ], check=True)
+        ], check=True, env={**os.environ, "SOURCE_DATE_EPOCH": str(lock["source_date_epoch"])})
         installed = set(run("rpm", "--root", str(source), "-qa", "--qf",
                             "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n").splitlines())
         expected = {"{name}-{epoch}:{version}-{release}.{arch}".format(**p) for p in definition["packages"]}
