@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
-import { attestedPredicates, checksumManifest, stablePlan, verifyAdvance } from '../scripts/release/stable-policy.mjs';
+import { attestedPredicates, checksumManifest, stablePlan, verifyAdvance, verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
 
 const candidates = JSON.parse(fs.readFileSync(new URL('../releases/stable-candidates.json', import.meta.url)));
 const candidate = candidates.nodejs26;
@@ -35,4 +35,27 @@ test('signed evidence must name the selected digest and each asset exactly once'
   assert.equal(checksumManifest(line + '\n').size, 1);
   assert.throws(() => checksumManifest(line + '\n' + line), /duplicate/);
   assert.throws(() => checksumManifest(line.replace('file.json', '../file.json')), /Invalid/);
+});
+
+test('legacy Java evidence still requires the native version and checks', () => {
+  const plan = stablePlan('java21', candidates.java21);
+  const records = Object.fromEntries(['amd64', 'arm64'].map(arch => [arch, {
+    sourceCommit: plan.sourceCommit,
+    javaMajor: 21,
+    platform: 'linux/' + arch,
+    image: { id: 'sha256:' + '1'.repeat(64), size: 1, config: { User: '65532:65532', Entrypoint: ['/usr/bin/java'] } },
+    sample: { java: plan.version, compilerAbsent: true },
+    networkProbes: { tls: { tlsRejected: false }, hostname: { tlsRejected: true }, untrusted: { tlsRejected: true } },
+    runtimeModules: ['java.base'],
+    checks: ['SIGTERM shutdown hook/143'],
+  }]));
+  const provenance = {
+    leaves: { amd64: 'sha256:' + '2'.repeat(64), arm64: 'sha256:' + '3'.repeat(64) },
+    verification: Object.fromEntries(Object.entries(records).map(([arch, r]) => [arch, {
+      image: r.image.id, checks: r.checks, runtimeModules: r.runtimeModules,
+    }])),
+  };
+  assert.doesNotThrow(() => verifyNativeEvidence(plan, records, provenance));
+  records.amd64.sample.java = '21.0.1';
+  assert.throws(() => verifyNativeEvidence(plan, records, provenance), /Native version differs/);
 });
