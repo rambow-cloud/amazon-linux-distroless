@@ -84,14 +84,25 @@ export function publish(profile) {
     const digest = /digest:\s*(sha256:[a-f0-9]{64})/.exec(pushed)?.[1]; assert.ok(digest,'Missing pushed manifest digest'); leaves[arch]=digest;
   }
   const descriptionKey = 'org.opencontainers.image.description';
-  execute('docker', ['buildx', 'imagetools', 'create', '--tag', immutable,
-    '--annotation', 'index:' + descriptionKey + '=' + profile.description,
-    ...Object.values(leaves).map(d => base + '@' + d)]);
-  const index = JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', immutable]));
+  const registryConfig = ['--registry-config', path.join(auth, 'config.json')];
+  const mediaType = 'application/vnd.oci.image.index.v1+json';
+  // Docker schema 2 leaves can be kept verbatim inside an OCI index.
+  const manifests = Object.entries(leaves).map(([architecture, digest]) => {
+    const descriptor = JSON.parse(capture('oras', ['manifest', 'fetch', '--descriptor', ...registryConfig, base + '@' + digest]));
+    assert.equal(descriptor.digest, digest);
+    assert.ok(Number.isSafeInteger(descriptor.size) && descriptor.size > 0);
+    return { mediaType: descriptor.mediaType, digest, size: descriptor.size, platform: { os: 'linux', architecture } };
+  });
+  const indexFile = out + '/oci-index.json';
+  write('oci-index.json', {
+    schemaVersion: 2, mediaType, manifests, annotations: { [descriptionKey]: profile.description },
+  });
+  const digest = 'sha256:' + hash(indexFile);
+  execute('oras', ['manifest', 'push', '--media-type', mediaType, ...registryConfig, immutable, indexFile]);
+  assert.equal(capture('oras', ['resolve', ...registryConfig, immutable]), digest, 'Published index digest differs');
+  const index = JSON.parse(capture('oras', ['manifest', 'fetch', ...registryConfig, base + '@' + digest]));
   validateIndex(index, leaves);
   assert.equal(index.annotations?.[descriptionKey], profile.description, 'Published index description differs');
-  const inspection = capture('docker',['buildx','imagetools','inspect',immutable]);
-  const digest = /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(inspection)?.[1]; assert.ok(digest,'Missing index digest');
   const reference = base+'@'+digest;
   const identity = 'https://github.com/'+repo+'/.github/workflows/' + profile.workflow + '@refs/heads/main';
   execute('cosign',['sign','--yes',reference]);
