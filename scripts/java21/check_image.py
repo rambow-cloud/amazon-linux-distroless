@@ -28,7 +28,7 @@ with tarfile.open(archive) as saved:
                     if member.mode & 0o6000 or (name == "tmp" and member.mode != 0o1777):
                         raise RuntimeError("Unsafe directory mode: " + name)
                     continue
-                if (Path(name).name in FORBIDDEN and name not in allowed) or name.endswith(".jmod") or name.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/", "usr/include/")):
+                if (Path(name).name in FORBIDDEN and name not in allowed) or name.endswith((".jmod", ".whl")) or name.startswith(("var/lib/rpm/", "usr/lib/sysimage/rpm/", "usr/include/")):
                     raise RuntimeError("Forbidden runtime artifact: " + name)
                 if name not in expected or name in seen:
                     raise RuntimeError("Unexpected/duplicate final file: " + name)
