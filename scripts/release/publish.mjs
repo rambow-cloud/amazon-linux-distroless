@@ -1,11 +1,11 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateIndex } from './java21-policy.mjs';
 import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
+import { sha256File as hash } from './file-digest.mjs';
 
 // Profile identity/validator comes from a reviewed language-specific entry point.
 export function publish(profile) {
@@ -25,11 +25,6 @@ export function publish(profile) {
   const write = (name, data) => fs.writeFileSync(out + '/' + name, JSON.stringify(data, null, 2) + '\n');
   const execute = (command, args, options = {}) => execFileSync(command, args, { stdio: 'inherit', ...options });
   const capture = (command, args) => execFileSync(command, args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'] }).trim();
-  function hash(file) {
-    const h = crypto.createHash('sha256'), fd = fs.openSync(file, 'r'), bytes = Buffer.alloc(4 * 1024 * 1024);
-    try { let n; while ((n = fs.readSync(fd, bytes, 0, bytes.length, null))) h.update(bytes.subarray(0,n)); }
-    finally { fs.closeSync(fd); } return h.digest('hex');
-  }
   const records = Object.fromEntries(['amd64','arm64'].map(a => [a, read(input + '/' + line + '-' + a + '-evidence/verification.json')]));
   profile.validateReports(records, commit);
   const base = 'ghcr.io/' + repo + '/' + line, tag = line + '-' + commit.slice(0,12), immutable = base + ':' + tag;
