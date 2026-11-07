@@ -3,7 +3,7 @@
   "platform": "linux/amd64",
   "releasever": "2023.12.20261102",
   "schema_version": 1,
-  "source_date_epoch": 1794010501,
+  "source_date_epoch": 1794011171,
   "sources": [
     {
       "arch": "src",
@@ -691,6 +691,7 @@
     "jansson-0:2.14-0.amzn2023.x86_64",
     "java-21-amazon-corretto-devel-1:21.0.13.0.11-1.amzn2023.1.x86_64",
     "java-21-amazon-corretto-headless-1:21.0.13.0.11-1.amzn2023.1.x86_64",
+    "java-21-amazon-corretto-jmods-1:21.0.13.0.11-1.amzn2023.1.x86_64",
     "javapackages-filesystem-0:6.0.0-7.amzn2023.0.6.noarch",
     "json-c-0:0.14-8.amzn2023.0.2.x86_64",
     "keyutils-libs-0:1.6.3-1.amzn2023.0.2.x86_64",
