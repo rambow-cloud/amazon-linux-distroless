@@ -60,6 +60,10 @@ The [upstream runtime guide](UPSTREAM-RUNTIMES.md) covers independent Python and
 
 All container resolution, builds, runtime tests and scans run only in GitHub Actions. There is no package-manager update command inside a delivered runtime: the update unit is a new verified image plus rebuilt applications.
 
+## Stable promotion
+
+After a preview is published, review its digest and release evidence in a stable candidate plan PR. Run the stable workflow on main to refresh the scans, sign the promotion and advance the stable alias. Follow the [stable channel guide](STABLE.md).
+
 ## Findings, recovery and rollback
 
 Retain all scan severities and raw findings. ALAS unfixed and language-runtime advisory matching remain limited; zero matches do not prove zero exposure or superiority over Debian-based Distroless. Review transformed-file advisory applicability separately when needed. Inspect the actual publication stage before recovery: immutable release tags are not silently overwritten on rerun. A partial publication requires a deliberate recovery decision or a new reviewed source commit.
