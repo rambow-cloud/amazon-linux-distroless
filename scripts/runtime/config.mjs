@@ -3,6 +3,10 @@ export const runtimes = {
     variant: 'python', version: '3.14', executable: '/usr/bin/python3.14',
     packages: ['python3.14', 'python3.14-libs', 'python3.14-devel', 'python3.14-pip'],
   },
+  nodejs24: {
+    variant: 'nodejs', version: '24', executable: '/usr/bin/node-24',
+    packages: ['nodejs24', 'nodejs24-devel', 'nodejs24-npm', 'nodejs24-full-i18n'],
+  },
 };
 export function configuration(id) {
   if (!Object.hasOwn(runtimes,id)) throw new Error('Unsupported runtime: ' + id);

@@ -31,3 +31,6 @@
 !examples/python314/**
 !examples/python-app/
 !examples/python-app/**
+
+!images/nodejs24/
+!images/nodejs24/**
