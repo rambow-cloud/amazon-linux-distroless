@@ -1,5 +1,7 @@
 # Delivered language runtimes
 
+All ten version lines have public stable revisions and moving stable tags. The [stable release index](STABLE.md) records the exact digests, release evidence and promotion workflow.
+
 All ten lines have public signed previews for native **linux/amd64 and linux/arm64**, with trusted-main publication records, native final-image verification, matching source and persistent evidence. Project-wide stable v1 acceptance remains open.
 
 Image prefix: `ghcr.io/rambow-cloud/amazon-linux-distroless/`.

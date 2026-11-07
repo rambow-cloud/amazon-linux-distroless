@@ -2,6 +2,40 @@
 
 The stable promotion workflow reuses a qualified public preview digest. Each version line has a fixed revision tag and a moving alias. For example, `python314:3.14.10-r1` names one release and `python314:3.14` follows that line. Both references use the prefix `ghcr.io/rambow-cloud/amazon-linux-distroless/`.
 
+## Published stable revisions
+
+All ten stable channels use the same native amd64 and arm64 indexes as their qualified previews. Each regular GitHub Release contains its signed promotion record, fresh scan reports and source links.
+
+| Runtime | Fixed revision | Rolling stable tag | Evidence |
+| --- | --- | --- | --- |
+| java17 | `java17:17.0.21-r1` | `java17:17` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java17-17.0.21-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358617466) |
+| java21 | `java21:21.0.13-r1` | `java21:21` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java21-21.0.13-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616498) |
+| java25 | `java25:25.0.5-r1` | `java25:25` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java25-25.0.5-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616651) |
+| python311 | `python311:3.11.18-r1` | `python311:3.11` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python311-3.11.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137861) |
+| python312 | `python312:3.12.16-r1` | `python312:3.12` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python312-3.12.16-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137956) |
+| python313 | `python313:3.13.18-r1` | `python313:3.13` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python313-3.13.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138247) |
+| python314 | `python314:3.14.10-r1` | `python314:3.14` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-3.14.10-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138103) |
+| nodejs22 | `nodejs22:22.23.4-r1` | `nodejs22:22` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs22-22.23.4-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137961) |
+| nodejs24 | `nodejs24:24.22.2-r1` | `nodejs24:24` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs24-24.22.2-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358139806) |
+| nodejs26 | `nodejs26:26.13.0-r1` | `nodejs26:26` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42357940352) |
+
+### Exact image index digests
+
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/java17@sha256:45365c585dd7501ec027a34dc95886b3097a8e6b6001befc1d8ac327b85000de`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/java21@sha256:de7886e8d9b8dcda6112e6732b9d4b7dc3d3bffee4ccee5314c86ab9805f6ad0`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/java25@sha256:0c354b31ec54bb950af9a97d51feaf698c7c6e4bef480d214cbccc8528724382`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/python311@sha256:37e734bc93474dcb9826c9affcf68cb95409c7cf0f65cce3da930958955b3162`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/python312@sha256:0acd8af15164b4957cce7db3667771a7612f18e5c274dcf3c4725ae9400e5640`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/python313@sha256:bb6c059a9f689607d4e09e05dbe94e8f1470d8a4fb4329621f90104a1bf1821a`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:3be1cc8a55fb98b48aa0678ab71c0339e4c92e5378d0d7b473d15fbc7374f137`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs22@sha256:ffe514490046f2dd761f4b2624ecea24c397dfe56fdf3d4e746cc6fcf5719b30`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs24@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs26@sha256:c00948070c983b92a392ef03c2fc15799c87949cb3691f20b24dc14fae7dae6d`
+
+All ten promotions passed the fixable High/Critical gate. The stable Release assets record the scanner databases and raw findings in the fresh reports.
+
+## Release operation
+
 The [candidate plan](../releases/stable-candidates.json) binds the source commit, preview release, image index digest, stable revision and size ceiling. The initial ceilings round the larger native image up to an 8 MiB boundary and add 8 MiB of headroom. Each future change goes through a protected PR. Start at revision 1 for an upstream version, then increment the revision for each new digest at the same version. A higher upstream version starts its own revision 1.
 
 After the plan merges, run the workflow on main. Check mode performs the validation and refreshes scanner evidence. Publish mode signs the promotion, records the GitHub Release and moves the stable alias.
