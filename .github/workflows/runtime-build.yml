@@ -21,17 +21,19 @@ jobs:
           script: |
             if (context.eventName !== 'pull_request') { core.setOutput('required','true'); return; }
             const files=await github.paginate(github.rest.pulls.listFiles,{...context.repo,pull_number:context.issue.number,per_page:100});
-            const prefixes=['images/python314/','locks/python314/','scripts/runtime/','scripts/prototype/','examples/python314/'];
+            const prefixes=['images/python314/','locks/python314/','scripts/runtime/','scripts/prototype/','examples/python314/','images/nodejs24/','locks/nodejs24/','examples/nodejs24/'];
             const exact=['scripts/java21/check_image.py','security/compare-lib.mjs','.dockerignore','.github/workflows/runtime-build.yml'];
             const relevant=name=>prefixes.some(prefix=>name.startsWith(prefix))||exact.includes(name);
             core.setOutput('required',files.some(f=>relevant(f.filename)||relevant(f.previous_filename||''))?'true':'false');
   build:
     needs: changes
     if: needs.changes.outputs.required == 'true'
-    name: Python 3.14 (${{ matrix.arch }})
+    name: ${{ matrix.runtime }} (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
+        runtime: [python314, nodejs24]
+        arch: [amd64, arm64]
         include:
           - arch: amd64
             runner: ubuntu-24.04
@@ -43,34 +45,34 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - run: node scripts/runtime/build.mjs python314 ${{ matrix.arch }}
-      - run: node scripts/runtime/verify.mjs python314 ${{ matrix.arch }}
-      - run: cat out/python314/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - run: node scripts/runtime/build.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
+      - run: node scripts/runtime/verify.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
+      - run: cat out/${{ matrix.runtime }}/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python314-${{ matrix.arch }}-image
-          path: out/python314/${{ matrix.arch }}/image.tar.gz
+          name: ${{ matrix.runtime }}-${{ matrix.arch }}-image
+          path: out/${{ matrix.runtime }}/${{ matrix.arch }}/image.tar.gz
           compression-level: 0
           retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python314-${{ matrix.arch }}-evidence
+          name: ${{ matrix.runtime }}-${{ matrix.arch }}-evidence
           path: |
-            out/python314/${{ matrix.arch }}/*.json
-            out/python314/${{ matrix.arch }}/*.md
-            out/python314/${{ matrix.arch }}/project-source.tar.gz
+            out/${{ matrix.runtime }}/${{ matrix.arch }}/*.json
+            out/${{ matrix.runtime }}/${{ matrix.arch }}/*.md
+            out/${{ matrix.runtime }}/${{ matrix.arch }}/project-source.tar.gz
           retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python314-${{ matrix.arch }}-sources
-          path: out/python314/${{ matrix.arch }}/sources.tar.gz
+          name: ${{ matrix.runtime }}-${{ matrix.arch }}-sources
+          path: out/${{ matrix.runtime }}/${{ matrix.arch }}/sources.tar.gz
           compression-level: 0
           retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
-          name: python314-${{ matrix.arch }}-diagnostics
-          path: out/python314/${{ matrix.arch }}/*.json
+          name: ${{ matrix.runtime }}-${{ matrix.arch }}-diagnostics
+          path: out/${{ matrix.runtime }}/${{ matrix.arch }}/*.json
           if-no-files-found: ignore
   gate:
     name: Language runtime gate

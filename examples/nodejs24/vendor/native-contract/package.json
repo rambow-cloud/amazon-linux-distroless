@@ -1,0 +1,8 @@
+{
+  "name": "native-contract",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "index.cjs",
+  "license": "Apache-2.0",
+  "files": ["index.cjs", "native.node"]
+}

@@ -27,3 +27,22 @@ test('a zero-finding scan cannot substitute for Python runtime and TLS qualifica
     assert.throws(()=>validateRuntimeReports(r,'abc','python314'));
   }
 });
+
+const nodeRecords=()=>Object.fromEntries(Object.entries(records()).map(([arch,r])=>[arch,{...r,runtime:'nodejs24',
+  image:{config:{User:'65532:65532',Entrypoint:['/usr/bin/node-24']}},
+  sample:{node:'24.22.1',arch:arch==='amd64'?'x64':'arm64',pid:1,uid:65532,readOnlyRootfs:true,installersAbsent:true,nativeAnswer:42,timezone:'UTC',trustAnchors:135,
+    napi:'10',moduleABI:'137',icu:'78.3',intlLocales:['de-DE','es-ES','zh-CN','ar-EG'],compileCacheDisabled:true,caPolicy:'openssl-system'},
+  nativeFixture:{node:'24.22.1',arch:arch==='amd64'?'x64':'arm64',napiTarget:8,moduleABI:'137',icu:'78.3'},
+  networkProbes:{...r.networkProbes,http:{plainHTTP:true}}}]));
+test('Node publication rejects native ABI/architecture drift, wrong CA policy and partial ICU',()=>{
+  assert.doesNotThrow(()=>validateRuntimeReports(nodeRecords(),'abc','nodejs24'));
+  for(const mutation of ['abi','arch','ca','icu','napi']) {
+    const r=nodeRecords();
+    if(mutation==='abi')r.arm64.nativeFixture.moduleABI='136';
+    if(mutation==='arch')r.arm64.nativeFixture.arch='x64';
+    if(mutation==='ca')r.amd64.sample.caPolicy='bundled-only';
+    if(mutation==='icu')r.amd64.sample.intlLocales.pop();
+    if(mutation==='napi')r.amd64.sample.napi='7';
+    assert.throws(()=>validateRuntimeReports(r,'abc','nodejs24'));
+  }
+});

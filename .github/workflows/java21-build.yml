@@ -24,7 +24,7 @@ jobs:
               return;
             }
             const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: context.issue.number, per_page: 100 });
-            const relevant = /^(images\/java(?:17|21|25)\/|locks\/java(?:17|21|25)\/|scripts\/java21\/|scripts\/prototype\/|examples\/java21\/)|^\.dockerignore$|^\.github\/workflows\/java21-build\.yml$/;
+            const relevant = /^(images\/java(?:17|21|25)\/|locks\/java(?:17|21|25)\/|scripts\/java21\/|scripts\/prototype\/|examples\/java21\/)|^security\/compare-lib\.mjs$|^\.dockerignore$|^\.github\/workflows\/java21-build\.yml$/;
             core.setOutput('required', files.some(file => relevant.test(file.filename) || relevant.test(file.previous_filename || '')) ? 'true' : 'false');
   build:
     needs: changes

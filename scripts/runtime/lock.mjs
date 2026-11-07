@@ -24,4 +24,7 @@ fs.writeFileSync(out+'/files-'+arch+'.txt',capture('run','--rm','--entrypoint','
 if(config.variant==='python') {
   const metadata="import json,sys,sysconfig,ssl; print(json.dumps({'version':sys.version,'paths':sysconfig.get_paths(),'SOABI':sysconfig.get_config_var('SOABI'),'EXT_SUFFIX':sysconfig.get_config_var('EXT_SUFFIX'),'ssl':ssl.get_default_verify_paths()._asdict()}))";
   fs.writeFileSync(out+'/runtime-'+arch+'.json',capture('run','--rm','--entrypoint',config.executable,tools,'-c',metadata)+'\n');
+} else {
+  const metadata="JSON.stringify({node:process.versions.node,versions:process.versions,configuration:process.config.variables})";
+  fs.writeFileSync(out+'/runtime-'+arch+'.json',capture('run','--rm','--entrypoint',config.executable,tools,'-p',metadata)+'\n');
 }
