@@ -1,38 +1,38 @@
 # Runtime stable channels
 
-The stable promotion workflow reuses a qualified public preview digest. Use `ghcr.io/rambow-cloud/amazon-linux-distroless/python:3.14` to follow the Python 3.14 line, or `ghcr.io/rambow-cloud/amazon-linux-distroless/python314:3.14.10-r1` to pin a fixed revision. Existing per-line tags such as `python314:3.14` remain available for compatibility.
+Use `ghcr.io/rambow-cloud/python:3.14` to follow Python 3.14. Pin `ghcr.io/rambow-cloud/python:3.14.10-r1` or its digest for reproducibility. The original GHCR paths continue to serve existing consumers.
 
 ## Published stable revisions
 
 All ten stable channels use the same native amd64 and arm64 indexes as their qualified previews. Each regular GitHub Release contains its signed promotion record, fresh scan reports and source links.
 
-Browse the public [Java](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fjava), [Python](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fpython), and [Node.js](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fnodejs) packages. The [initial language-tag promotion](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42359934107) records the copied digest for each version line.
+Browse the GHCR packages for [Java](https://github.com/orgs/rambow-cloud/packages/container/package/java), [Python](https://github.com/orgs/rambow-cloud/packages/container/package/python) and [Node.js](https://github.com/orgs/rambow-cloud/packages/container/package/nodejs).
 
 | Runtime | Fixed revision | Rolling stable tag | Evidence |
 | --- | --- | --- | --- |
-| java17 | `java17:17.0.21-r1` | `java:17` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java17-17.0.21-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358617466) |
-| java21 | `java21:21.0.13-r1` | `java:21` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java21-21.0.13-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616498) |
-| java25 | `java25:25.0.5-r1` | `java:25` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java25-25.0.5-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616651) |
-| python311 | `python311:3.11.18-r1` | `python:3.11` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python311-3.11.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137861) |
-| python312 | `python312:3.12.16-r1` | `python:3.12` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python312-3.12.16-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137956) |
-| python313 | `python313:3.13.18-r1` | `python:3.13` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python313-3.13.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138247) |
-| python314 | `python314:3.14.10-r1` | `python:3.14` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-3.14.10-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138103) |
-| nodejs22 | `nodejs22:22.23.4-r1` | `nodejs:22` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs22-22.23.4-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137961) |
-| nodejs24 | `nodejs24:24.22.2-r1` | `nodejs:24` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs24-24.22.2-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358139806) |
-| nodejs26 | `nodejs26:26.13.0-r1` | `nodejs:26` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42357940352) |
+| java17 | `java:17.0.21-r1` | `java:17` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java17-17.0.21-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358617466) |
+| java21 | `java:21.0.13-r1` | `java:21` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java21-21.0.13-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616498) |
+| java25 | `java:25.0.5-r1` | `java:25` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java25-25.0.5-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358616651) |
+| python311 | `python:3.11.18-r1` | `python:3.11` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python311-3.11.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137861) |
+| python312 | `python:3.12.16-r1` | `python:3.12` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python312-3.12.16-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137956) |
+| python313 | `python:3.13.18-r1` | `python:3.13` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python313-3.13.18-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138247) |
+| python314 | `python:3.14.10-r1` | `python:3.14` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-3.14.10-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358138103) |
+| nodejs22 | `nodejs:22.23.4-r1` | `nodejs:22` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs22-22.23.4-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358137961) |
+| nodejs24 | `nodejs:24.22.2-r1` | `nodejs:24` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs24-24.22.2-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42358139806) |
+| nodejs26 | `nodejs:26.13.0-r1` | `nodejs:26` | [Release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r1) · [Actions](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42357940352) |
 
 ### Exact image index digests
 
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/java@sha256:45365c585dd7501ec027a34dc95886b3097a8e6b6001befc1d8ac327b85000de`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/java@sha256:de7886e8d9b8dcda6112e6732b9d4b7dc3d3bffee4ccee5314c86ab9805f6ad0`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/java@sha256:0c354b31ec54bb950af9a97d51feaf698c7c6e4bef480d214cbccc8528724382`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/python@sha256:37e734bc93474dcb9826c9affcf68cb95409c7cf0f65cce3da930958955b3162`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/python@sha256:0acd8af15164b4957cce7db3667771a7612f18e5c274dcf3c4725ae9400e5640`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/python@sha256:bb6c059a9f689607d4e09e05dbe94e8f1470d8a4fb4329621f90104a1bf1821a`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/python@sha256:3be1cc8a55fb98b48aa0678ab71c0339e4c92e5378d0d7b473d15fbc7374f137`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs@sha256:ffe514490046f2dd761f4b2624ecea24c397dfe56fdf3d4e746cc6fcf5719b30`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs@sha256:c00948070c983b92a392ef03c2fc15799c87949cb3691f20b24dc14fae7dae6d`
+- `ghcr.io/rambow-cloud/java@sha256:45365c585dd7501ec027a34dc95886b3097a8e6b6001befc1d8ac327b85000de`
+- `ghcr.io/rambow-cloud/java@sha256:de7886e8d9b8dcda6112e6732b9d4b7dc3d3bffee4ccee5314c86ab9805f6ad0`
+- `ghcr.io/rambow-cloud/java@sha256:0c354b31ec54bb950af9a97d51feaf698c7c6e4bef480d214cbccc8528724382`
+- `ghcr.io/rambow-cloud/python@sha256:37e734bc93474dcb9826c9affcf68cb95409c7cf0f65cce3da930958955b3162`
+- `ghcr.io/rambow-cloud/python@sha256:0acd8af15164b4957cce7db3667771a7612f18e5c274dcf3c4725ae9400e5640`
+- `ghcr.io/rambow-cloud/python@sha256:bb6c059a9f689607d4e09e05dbe94e8f1470d8a4fb4329621f90104a1bf1821a`
+- `ghcr.io/rambow-cloud/python@sha256:3be1cc8a55fb98b48aa0678ab71c0339e4c92e5378d0d7b473d15fbc7374f137`
+- `ghcr.io/rambow-cloud/nodejs@sha256:ffe514490046f2dd761f4b2624ecea24c397dfe56fdf3d4e746cc6fcf5719b30`
+- `ghcr.io/rambow-cloud/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b`
+- `ghcr.io/rambow-cloud/nodejs@sha256:c00948070c983b92a392ef03c2fc15799c87949cb3691f20b24dc14fae7dae6d`
 
 All ten promotions passed the fixable High/Critical gate. The stable Release assets record the scanner databases and raw findings in the fresh reports.
 

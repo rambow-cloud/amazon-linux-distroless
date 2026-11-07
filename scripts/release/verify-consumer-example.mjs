@@ -14,26 +14,28 @@ const examples = {
 };
 assert.ok(Object.hasOwn(examples, runtime));
 const plan = stablePlan(runtime, JSON.parse(fs.readFileSync('releases/stable-candidates.json'))[runtime]);
+const base = 'ghcr.io/rambow-cloud/' + plan.variant;
+const reference = base + '@' + plan.digest;
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 const capture = (cmd, args) => execFileSync(cmd, args, {
   encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'],
 }).trim();
 const trusted = id => ['--certificate-identity', id, '--certificate-oidc-issuer', issuer];
-run('cosign', ['verify', ...trusted(plan.previewIdentity), plan.channelReference]);
+run('cosign', ['verify', ...trusted(plan.previewIdentity), reference]);
 const envelope = capture('cosign', ['verify-attestation', '--type', stablePredicate,
-  ...trusted(stableIdentity), plan.channelReference]);
+  ...trusted(stableIdentity), reference]);
 const record = attestedPredicates(envelope, stablePredicate, plan.digest).find(candidate =>
   candidate.reference === plan.reference && candidate.runtime === runtime && candidate.releaseTag === plan.releaseTag);
 assert.ok(record, 'Example pin must match an accepted stable release');
 const leaf = record.leaves[arch];
 assert.match(leaf, /^sha256:[a-f0-9]{64}$/);
 run('cosign', ['verify-attestation', '--type', 'cyclonedx',
-  ...trusted(plan.previewIdentity), plan.channelBase + '@' + leaf]);
+  ...trusted(plan.previewIdentity), base + '@' + leaf]);
 
 const [dockerfile, context, argument] = examples[runtime];
 const platform = 'linux/' + arch;
 const tag = 'al2023-consumer-' + runtime + ':tested';
-run('docker', ['build', '--platform', platform, '--build-arg', argument + '=' + plan.channelReference,
+run('docker', ['build', '--platform', platform, '--build-arg', argument + '=' + reference,
   '-f', dockerfile, '-t', tag, context]);
 const [image] = JSON.parse(capture('docker', ['image', 'inspect', tag]));
 assert.equal(image.Architecture, arch);
@@ -52,7 +54,7 @@ if (runtime === 'nodejs24') {
 }
 fs.mkdirSync('out/consumer', { recursive: true });
 fs.writeFileSync('out/consumer/verification.json', JSON.stringify({
-  runtime, version: plan.version, platform, reference: plan.channelReference, leaf,
+  runtime, version: plan.version, platform, reference, leaf,
   applicationImage: image.Id, release: record.releaseUrl, standard, commonjs,
   nonroot: image.Config.User, readOnly: true, tmpfs: '/tmp', capabilities: [],
 }, null, 2) + '\n');
