@@ -1,0 +1,12 @@
+{
+  "version": "24.22.2",
+  "url": "https://nodejs.org/dist/v24.22.2/node-v24.22.2-linux-arm64.tar.xz",
+  "sha256": "eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8",
+  "sourceUrl": "https://nodejs.org/dist/v24.22.2/node-v24.22.2.tar.xz",
+  "sourceSha256": "8fe2ec1723bb9f8d0b683907c82708debbeda64af21cb2aa214c4241eed0a061",
+  "signature": {
+    "type": "openpgp",
+    "signer": "5BE8A3F6C8A5C01D106C0AD820B1A390B168D356",
+    "keyRevision": "481637f813e912c4aa3622d7964ab426c97b8e8d"
+  }
+}

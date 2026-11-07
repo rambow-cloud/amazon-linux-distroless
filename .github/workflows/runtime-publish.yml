@@ -5,7 +5,7 @@ on:
       runtime:
         description: Qualified language runtime to publish
         type: choice
-        options: ['python314', 'nodejs24']
+        options: ['python311', 'python312', 'python313', 'python314', 'nodejs22', 'nodejs24', 'nodejs26']
         default: 'python314'
         required: true
 env:
@@ -28,11 +28,15 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - if: startsWith(inputs.runtime, 'python')
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
       - run: node scripts/runtime/build.mjs ${{ inputs.runtime || 'python314' }} ${{ matrix.arch }}
       - run: node scripts/runtime/verify.mjs ${{ inputs.runtime || 'python314' }} ${{ matrix.arch }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -45,7 +45,7 @@ if(mode==='serve') {
 } else if(['tls','hostname','untrusted','http'].includes(mode)) {
   await request(mode==='hostname'?'wrong-name':'tls-fixture',mode==='tls'||mode==='hostname',mode==='hostname'||mode==='untrusted',mode==='http');
 } else {
-  assert.ok(process.versions.node.startsWith('24.'));assert.equal(process.getuid(),65532);assert.equal(process.getgid(),65532);assert.equal(process.pid,1);
+  assert.equal(process.getuid(),65532);assert.equal(process.getgid(),65532);assert.equal(process.pid,1);
   assert.equal(process.cwd(),'/app');assert.equal(process.env.NODE_DISABLE_COMPILE_CACHE,'1');
   const root=fs.readFileSync('/proc/mounts','utf8').split('\n').find(line=>line.split(' ')[1]==='/');
   assert.ok(root.split(' ')[3].split(',').includes('ro'));
@@ -55,7 +55,8 @@ if(mode==='serve') {
   assert.equal(new Intl.DateTimeFormat('es-ES',{month:'long',timeZone:'UTC'}).format(new Date('2026-01-02')),'enero');
   const temporary=fs.mkdtempSync('/tmp/\u00e9-\u6d4b\u8bd5-'), file=temporary+'/\u00e9-\u6d4b\u8bd5.txt';
   fs.writeFileSync(file,'\u00e9-\u6d4b\u8bd5');assert.equal(fs.readFileSync(file,'utf8'),'\u00e9-\u6d4b\u8bd5');fs.unlinkSync(file);fs.rmdirSync(temporary);
-  for(const name of ['npm','npm-24','npx','npx-24','corepack','gcc','sh']) assert.equal(fs.existsSync('/usr/bin/'+name),false,name);
+  const major=process.versions.node.split('.')[0];
+  for(const name of ['npm','npm-'+major,'npx','npx-'+major,'corepack','gcc','sh']) assert.equal(fs.existsSync('/usr/bin/'+name),false,name);
   assert.throws(()=>require.resolve('npm'),{code:'MODULE_NOT_FOUND'});
   assert.equal(addon.add(19,23),42);
   assert.ok(require.resolve('native-contract').startsWith('/app/node_modules/'));
@@ -64,5 +65,6 @@ if(mode==='serve') {
   const roots=tls.getCACertificates('system').length;assert.ok(roots>=100);
   assert.ok(fs.readFileSync(process.env.SSL_CERT_FILE,'utf8').includes('BEGIN CERTIFICATE'));
   console.log(JSON.stringify({node:process.versions.node,arch:process.arch,pid:process.pid,uid:process.getuid(),napi:process.versions.napi,moduleABI:process.versions.modules,
-    nativeAnswer:42,readOnlyRootfs:true,installersAbsent:true,compileCacheDisabled:true,timezone:'UTC',icu:process.versions.icu,intlLocales:locales,trustAnchors:roots,caPolicy:'openssl-system'}));
+    nativeAnswer:42,readOnlyRootfs:true,installersAbsent:true,compileCacheDisabled:true,timezone:'UTC',icu:process.versions.icu,intlLocales:locales,trustAnchors:roots,caPolicy:'openssl-system',
+    versions:process.versions}));
 }
