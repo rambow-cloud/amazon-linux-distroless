@@ -1,15 +1,6 @@
 name: Java prototype
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - prototype/**
-      - scripts/prototype/**
-      - scripts/prototype.mjs
-      - examples/java/**
-      - locks/**
-      - .dockerignore
-      - .github/workflows/prototype-build.yml
 permissions:
   contents: read
 concurrency:

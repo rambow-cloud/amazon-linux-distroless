@@ -9,3 +9,10 @@
 !examples/
 !examples/java/
 !examples/java/**
+!images/
+!images/java21/
+!images/java21/**
+!scripts/java21/
+!scripts/java21/**
+!examples/java21/
+!examples/java21/**

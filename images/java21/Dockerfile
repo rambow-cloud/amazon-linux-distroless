@@ -17,7 +17,8 @@ RUN --network=none ["/usr/bin/python3", "/java-tools/assemble_java.py", "/locks/
 FROM tools AS fixture-build
 COPY examples/java21/Probe.java /src/Probe.java
 RUN mkdir /classes /fixture && javac --release 21 -d /classes /src/Probe.java \
-    && jar --create --file /fixture/probe.jar --main-class Probe -C /classes . \
+    && printf 'Main-Class: Probe\nPremain-Class: Probe\n\n' > /manifest \
+    && jar --create --file /fixture/probe.jar --manifest /manifest -C /classes . \
     && keytool -genkeypair -alias server -storetype PKCS12 -keystore /fixture/server.p12 \
       -storepass test-only-password -keypass test-only-password -keyalg RSA -keysize 2048 \
       -validity 30 -dname CN=tls-fixture -ext SAN=dns:tls-fixture,dns:localhost,ip:127.0.0.1 \

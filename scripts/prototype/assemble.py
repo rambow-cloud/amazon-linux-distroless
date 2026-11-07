@@ -147,14 +147,17 @@ def rooted_path(root, path):
 
 
 class Assembler:
-    def __init__(self, source, destination):
+    def __init__(self, source, destination, excluded_names=()):
         self.source, self.root = Path(source), Path(destination)
+        self.excluded_names = set(excluded_names)
         self.root.mkdir(parents=True)
         self.copied, self.generated, self.elf_queue, self.elf_seen = set(), {}, [], set()
         self.normalized_links = {}
 
     def copy(self, path):
         path = PurePosixPath(path)
+        if path.name in self.excluded_names:
+            return
         if ".." in path.parts:
             resolved = rooted_path(self.source, str(path))
             path = PurePosixPath("/" + resolved.relative_to(self.source).as_posix())
@@ -214,6 +217,8 @@ class Assembler:
             for interpreter in re.findall(r"Requesting program interpreter: ([^\]]+)", program):
                 self.copy(interpreter)
             for library in re.findall(r"\(NEEDED\).*Shared library: \[([^\]]+)\]", dynamic):
+                if library in self.excluded_names:
+                    raise RuntimeError("Required native library was excluded: " + library)
                 candidates = [self.source / "usr/lib64" / library, self.source / "lib64" / library]
                 candidates += sorted(self.source.glob("usr/lib/jvm/**/" + library))
                 candidate = next((p for p in candidates if p.is_file() or p.is_symlink()), None)
@@ -258,12 +263,14 @@ def license_paths(marked):
             yield file
 
 
-def assemble(lock, cache, output):
+def assemble(lock, cache, output, java_profile=None):
     cache, output = Path(cache), Path(output)
     for package in locked_packages(lock):
         if checksum(cache / package["filename"]) != package["sha256"]:
             raise RuntimeError("RPM changed after signature verification")
     for variant, definition in lock["variants"].items():
+        if java_profile and variant != "java":
+            continue
         source = output / (variant + "-installed")
         source.mkdir(parents=True)
         # Signature verification used the pinned builder key before this offline
@@ -279,8 +286,9 @@ def assemble(lock, cache, output):
         expected = {"{name}-{epoch}:{version}-{release}.{arch}".format(**p) for p in definition["packages"]}
         if {p for p in installed if not p.startswith("gpg-pubkey-")} != expected:
             raise RuntimeError("Offline installed set differs from lock")
+        profile = java_profile(source, definition, lock, output) if java_profile else None
         selected = output / variant / "rootfs"
-        image = Assembler(source, selected)
+        image = Assembler(source, selected, profile["excluded_names"] if profile else ())
         for seed in ["/usr/lib64/libc.so.6", "/usr/lib64/libm.so.6",
                      "/usr/lib64/libresolv.so.2",
                      "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
@@ -290,11 +298,14 @@ def assemble(lock, cache, output):
             if rooted_path(source, optional).exists():
                 image.copy(optional)
         if variant == "java":
-            home = "/usr/lib/jvm/java-21-amazon-corretto.x86_64"
+            home = profile["home"] if profile else "/usr/lib/jvm/java-21-amazon-corretto.x86_64"
             for item in ("bin/java", "conf", "lib", "legal", "release"):
                 image.copy(home + "/" + item)
             image.link("/opt/java", home)
             image.link("/usr/bin/java", "/opt/java/bin/java")
+        if profile:
+            for seed in profile["seeds"]:
+                image.copy(seed)
         image.elf_closure()
         # Retain package-marked licenses as well as the conventional license tree.
         if (source / "usr/share/licenses").exists():
@@ -325,6 +336,11 @@ def assemble(lock, cache, output):
         entries = inspect_tree(selected)
         for entry in entries:
             entry["packages"] = sorted(set(owners.get(entry["path"], [])))
+            if profile and entry["path"].startswith(home.lstrip("/") + "/"):
+                if not entry["packages"]:
+                    entry["packages"] = [profile["runtime_package"]]
+                entry["generated_by"] = "jlink from locked same-version Corretto devel toolset"
+                entry["runtime_transform"] = "corretto-jlink"
             if entry["path"] in image.normalized_links:
                 entry["original_symlink_target"] = image.normalized_links[entry["path"]]
                 entry["transformation"] = "normalized to an absolute target within the runtime root"
@@ -348,6 +364,11 @@ def assemble(lock, cache, output):
                             "Matching source RPMs accompany the download; signing and stable support are not implemented",
                             "The headless runtime is not jlink module-minimized"],
         }
+        if profile:
+            report["prototype"] = False
+            report["runtime_transform"] = profile["transform"]
+            report["limitations"] = ["Native Java 21 candidate; project-wide stable release obligations remain tracked separately",
+                                     "Package-level vulnerability findings require transformed-file applicability review"]
         (output / variant / "inventory.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
         print("Assembled {}: {} files, {} bytes".format(variant, len(entries), report["runtime_bytes"]), flush=True)
 

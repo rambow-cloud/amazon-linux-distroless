@@ -1,0 +1,67 @@
+name: Java 21 qualification
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - images/java21/**
+      - locks/java21/**
+      - scripts/java21/**
+      - scripts/prototype/**
+      - examples/java21/**
+      - .dockerignore
+      - .github/workflows/java21-build.yml
+permissions:
+  contents: read
+concurrency:
+  group: java21-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    name: Java 21 (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build native Java runtime from reviewed locks
+        run: node scripts/java21/build.mjs ${{ matrix.arch }}
+      - name: Verify hardened headless service, TLS and final image
+        run: node scripts/java21/verify.mjs ${{ matrix.arch }}
+      - name: Summarize native results
+        run: cat out/java21/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java21-${{ matrix.arch }}-image
+          path: out/java21/${{ matrix.arch }}/image.tar.gz
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java21-${{ matrix.arch }}-evidence
+          path: |
+            out/java21/${{ matrix.arch }}/*.json
+            out/java21/${{ matrix.arch }}/*.md
+            out/java21/${{ matrix.arch }}/project-source.tar.gz
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java21-${{ matrix.arch }}-sources
+          path: out/java21/${{ matrix.arch }}/sources.tar.gz
+          compression-level: 0
+          retention-days: 14
+      - name: Preserve diagnostic metadata
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java21-${{ matrix.arch }}-diagnostics
+          path: out/java21/${{ matrix.arch }}/*.json
+          if-no-files-found: ignore
