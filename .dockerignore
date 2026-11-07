@@ -16,3 +16,8 @@
 !scripts/java21/**
 !examples/java21/
 !examples/java21/**
+
+!images/java17/
+!images/java17/**
+!images/java25/
+!images/java25/**

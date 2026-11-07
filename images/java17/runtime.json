@@ -1,0 +1,44 @@
+{
+  "java_major": 17,
+  "modules": [
+    "java.se",
+    "jdk.attach",
+    "jdk.charsets",
+    "jdk.crypto.ec",
+    "jdk.crypto.cryptoki",
+    "jdk.dynalink",
+    "jdk.httpserver",
+    "jdk.jfr",
+    "jdk.jsobject",
+    "jdk.localedata",
+    "jdk.management",
+    "jdk.management.agent",
+    "jdk.management.jfr",
+    "jdk.naming.dns",
+    "jdk.naming.rmi",
+    "jdk.net",
+    "jdk.nio.mapmode",
+    "jdk.sctp",
+    "jdk.security.auth",
+    "jdk.security.jgss",
+    "jdk.unsupported",
+    "jdk.unsupported.desktop",
+    "jdk.xml.dom",
+    "jdk.zipfs"
+  ],
+  "forbidden_modules": [
+    "jdk.compiler",
+    "jdk.jlink",
+    "jdk.javadoc",
+    "jdk.jdeps",
+    "jdk.jartool",
+    "jdk.jconsole",
+    "jdk.jcmd",
+    "jdk.jdi"
+  ],
+  "excluded_native_files": [
+    "libawt_xawt.so",
+    "libjawt.so",
+    "libsplashscreen.so"
+  ]
+}

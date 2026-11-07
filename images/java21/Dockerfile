@@ -1,8 +1,9 @@
 ARG AL2023_BASE=public.ecr.aws/amazonlinux/amazonlinux@sha256:381352c430f36d8aa6b8b670de06e7e4e5642fe0cb9dbd463bb8d1e79aefc0c7
 FROM $AL2023_BASE AS tools
 ARG AL2023_RELEASE
+ARG JAVA_MAJOR=21
 RUN dnf --releasever="$AL2023_RELEASE" -y --setopt=install_weak_deps=False \
-      install binutils dnf-plugins-core java-21-amazon-corretto-devel java-21-amazon-corretto-jmods \
+      install binutils dnf-plugins-core java-${JAVA_MAJOR}-amazon-corretto-devel java-${JAVA_MAJOR}-amazon-corretto-jmods \
     && dnf clean all
 COPY scripts/prototype/ /tools/
 COPY scripts/java21/ /java-tools/
@@ -10,13 +11,13 @@ COPY scripts/java21/ /java-tools/
 FROM tools AS dependencies
 ARG LOCK_FILE
 COPY ${LOCK_FILE} /locks/java21.json
-COPY images/java21/runtime.json /runtime.json
+COPY images/java${JAVA_MAJOR}/runtime.json /runtime.json
 RUN ["/usr/bin/python3", "/tools/assemble.py", "fetch", "/locks/java21.json", "/rpms"]
 RUN --network=none ["/usr/bin/python3", "/java-tools/assemble_java.py", "/locks/java21.json", "/rpms", "/result", "/runtime.json"]
 
 FROM tools AS fixture-build
 COPY examples/java21/Probe.java /src/Probe.java
-RUN mkdir /classes /fixture && javac --release 21 -d /classes /src/Probe.java \
+RUN mkdir /classes /fixture && javac --release "$JAVA_MAJOR" -d /classes /src/Probe.java \
     && printf 'Main-Class: Probe\nPremain-Class: Probe\n\n' > /manifest \
     && jar --create --file /fixture/probe.jar --manifest /manifest -C /classes . \
     && keytool -genkeypair -alias server -storetype PKCS12 -keystore /fixture/server.p12 \
@@ -31,7 +32,7 @@ COPY --from=dependencies /result/java/rootfs/ /
 ARG SOURCE_REVISION
 ARG RELEASE_VERSION
 LABEL org.opencontainers.image.source="https://github.com/rambow-cloud/amazon-linux-distroless" \
-      org.opencontainers.image.description="AL2023 Amazon Corretto 21 headless JRE; component licenses retained individually" \
+      org.opencontainers.image.description="AL2023 Amazon Corretto headless JRE; component licenses retained individually" \
       org.opencontainers.image.revision=$SOURCE_REVISION \
       org.opencontainers.image.version=$RELEASE_VERSION
 USER 65532:65532
