@@ -50,5 +50,5 @@ const candidate = JSON.parse(fs.readFileSync(candidatePath));
 if (mode === 'check') assert.deepEqual(candidate, current, 'Fresh RPM resolution differs from the committed lock');
 run('run', '--rm', '--network', 'none',
   '--mount', 'type=bind,src=' + process.cwd() + ',dst=/workspace,readonly',
-  '--env', 'PYTHONPATH=/tools', '--entrypoint', '/usr/bin/python3',
+  '--entrypoint', '/usr/bin/python3',
   tools, '/workspace/scripts/foundation/test_lock.py', '/workspace/' + candidatePath);

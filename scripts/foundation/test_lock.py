@@ -5,6 +5,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 
+sys.path.insert(0, "/tools")
 from assemble import checksum, fetch, read_lock
 
 lock = read_lock(sys.argv[1], foundation=True)

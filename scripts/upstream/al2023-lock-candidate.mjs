@@ -52,7 +52,7 @@ const resolved = family === 'foundation' ? 'out/foundation-lock/' + lock :
   isJava ? 'out/' + family + '-lock/linux-' + arch + '.json' : 'out/resolved/' + lock;
 if (mode === 'stage') {
   const before = read(spec);
-  if (!plan.rehearse) write(spec, { ...before, releasever: plan.releasever, builder_tag: plan.builder });
+  write(spec, { ...before, releasever: plan.releasever, builder_tag: plan.builder });
 } else if (mode === 'collect') {
   const before = read(lock);
   const after = read(resolved);
