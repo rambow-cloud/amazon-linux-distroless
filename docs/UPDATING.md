@@ -1,6 +1,6 @@
 # Updating AL2023 builders and runtime packages
 
-Java 17/21/25, Python 3.14 and Node.js 24 have independent reviewed inputs/locks and native Actions qualification/publication. See [delivered runtimes](RUNTIMES.md) and [support boundaries](SUPPORT.md). Builder discovery is active; automatic lock-update PRs and project-wide stable automation remain [#12](https://github.com/rambow-cloud/amazon-linux-distroless/issues/12).
+Java RPM updates and Python/Node.js upstream releases use reviewed locks and native GitHub Actions qualification. The AL2023 builder digest, system RPM snapshot and language release can advance independently. See [delivered runtimes](RUNTIMES.md) and [support boundaries](SUPPORT.md). Builder discovery is active; automatic lock-update PRs and project-wide stable automation remain [#12](https://github.com/rambow-cloud/amazon-linux-distroless/issues/12).
 
 ## Inputs that change independently
 
@@ -8,21 +8,22 @@ Runtime images start FROM scratch. The builder supplies tools, official RPM trus
 
 | Input | Source of truth | Effect |
 | --- | --- | --- |
-| Official builder tag | `images/ID/packages.json: builder_tag` | Resolution records the immutable digest |
-| Builder identity | `locks/ID/linux-ARCH.json: builder` | Normal builds consume this digest without following tags |
+| Official builder tag | `images/javaID/packages.json` or `images/upstream/packages.json` | Resolution records the immutable digest |
+| Builder identity | `builder` in the matching architecture RPM lock | Normal builds consume the locked digest |
 | Repository snapshot | Per-runtime `packages.json: releasever`, repeated in locks | Selects the binary/source RPM transaction |
 | Package/file/module roots | Per-runtime `packages.json` and `runtime.json` | Selects native/data closure, linked Java modules and omitted tools |
-| Exact RPMs and sources | Per-runtime/per-architecture locks | Pins NEVRA, URLs, checksums, verified signatures, licenses and source |
+| Exact RPMs and sources | Java version locks or family/architecture locks in `locks/upstream/` | Pins NEVRA, URLs, checksums, verified signatures, licenses and source |
+| Upstream runtime | `images/upstream/versions.json` and per-version/per-architecture archive locks | Pins the signed official CPython source or Node.js binary and corresponding source |
 | Builder tools | Lock `tool_packages` | Drift fails consumption; JDK/JMods and native headers must match the contract |
 | Actions/scanner/signing tools | Pinned action SHAs and tool image/version pins | Reviewed independently from runtime packages |
 
-ID is java17, java21, java25, python314 or nodejs24. AL2023 snapshots are deterministic: the same releasever does not expose later snapshots. Select an explicit published release and regenerate locks. Updating only a builder digest does not update locked RPMs. See [AWS deterministic upgrades](https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades.html).
+AL2023 snapshots are deterministic: the same releasever does not expose later snapshots. Select an explicit published release and regenerate locks. Updating only a builder digest does not update locked RPMs. See [AWS deterministic upgrades](https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades.html).
 
 ## Automatic discovery
 
 AL2023 builder discovery runs daily at **03:17 UTC / 11:17 Asia/Shanghai**, with manual dispatch. It resolves official public.ecr.aws/amazonlinux/amazonlinux:2023 to a digest, reads the pinned release marker and compares it with the maintained Java 21 input/amd64 lock. Changed candidates create one maintenance issue per platform/digest, deduplicating open and closed proposals. Evidence stays with the run.
 
-This shared-baseline detector currently anchors Java 21; it is not five independent package/advisory monitors. It does not edit locks, move aliases, publish or rebuild consumers. Follow [the discovery contract](UPSTREAM-DISCOVERY.md).
+The detector tracks the shared AL2023 baseline through Java 21 and opens a review issue for changed candidates. Follow [the discovery contract](UPSTREAM-DISCOVERY.md).
 
 ```sh
 gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless --ref main
@@ -30,19 +31,20 @@ gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless
 
 ## Reviewed update process
 
-1. Create a maintenance issue with milestone, type/area/priority/status labels and acceptance criteria. Edit the relevant images/ID package specification on an update branch, selecting an official builder tag and explicit repository release. For a common AL2023 baseline refresh, review all five runtime lines. Review upstream advisories and per-package support boundaries alongside ALAS; an available snapshot is not automatically an acceptable security update.
+The [upstream runtime guide](UPSTREAM-RUNTIMES.md) covers independent Python and Node.js patch updates.
+
+1. Create a maintenance issue with milestone, type/area/priority/status labels and acceptance criteria. Edit the relevant package specification on an update branch, selecting an official builder tag and explicit repository release. Review all ten version lines when refreshing a shared AL2023 baseline. Update the upstream version manifest for a Python or Node.js patch refresh. Review upstream advisories and per-package support boundaries alongside ALAS; an available snapshot is not automatically an acceptable security update.
 2. Resolve selected inputs on native amd64/arm64 runners:
 
    ```sh
    gh workflow run java21-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh -f major=17
    gh workflow run java21-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh -f major=21
    gh workflow run java21-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh -f major=25
-   gh workflow run runtime-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh -f runtime=python314
-   gh workflow run runtime-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh -f runtime=nodejs24
+   gh workflow run runtime-lock.yml --repo rambow-cloud/amazon-linux-distroless --ref update/al2023-refresh
    ```
 
-3. Download the selected run's ID-lock-amd64 and ID-lock-arm64 artifacts. Review package/source availability, official signatures/checksums, licenses, tool identities and native differences before committing linux-ARCH.json to locks/ID/. Review linked Java modules, Python SOABI/default-GIL extensions, or Node module ABI/N-API/ICU as appropriate. Never change checksums to bypass verification or mix unrelated snapshots. A targeted security fix still needs coherent constraints and complete resolution.
-4. Open an issue-linked PR after specs and locks agree. Main requires Issue policy, Repository checks, Java 21 gate and Language runtime gate. Shared Java changes qualify all six Java major/architecture pairs; shared language changes qualify Python and Node on both architectures. Common rootfs/audit changes qualify both suites. Review actual saved-image inventory, nonroot/PID 1/read-only behavior, Unicode/UTC, trust/TLS/DNS, signals, absent tools, native dependency fixtures, source/SBOM and size changes. Java additionally qualifies agents/fonts/ImageIO; Python qualifies builder-installed wheels and stdlib extensions; Node qualifies locked production node_modules, N-API, ICU and HTTP. Documentation-only changes skip native rebuilds while reporting required gate status.
+3. Download the two architecture lock artifacts for each selected Java major or the four upstream family/architecture lock artifacts. Review package/source availability, official signatures and checksums, licenses, tool identities and native differences before committing the locks. Review linked Java modules, Python SOABI/default-GIL extensions, or Node module ABI/N-API/ICU as appropriate. Never change checksums to bypass verification or mix unrelated snapshots. A targeted security fix still needs coherent constraints and complete resolution.
+4. Open an issue-linked PR after specs and locks agree. Main requires Issue policy, Repository checks, Java 21 gate and Language runtime gate. Shared Java changes qualify all six Java major/architecture pairs; shared language changes qualify all fourteen Python and Node version/architecture pairs. Common rootfs/audit changes qualify both suites. Review actual saved-image inventory, nonroot/PID 1/read-only behavior, Unicode/UTC, trust/TLS/DNS, signals, absent tools, native dependency fixtures, source/SBOM and size changes. Java additionally qualifies agents/fonts/ImageIO; Python qualifies builder-installed wheels and stdlib extensions; Node qualifies locked production node_modules, N-API, ICU and HTTP. Documentation-only changes skip native rebuilds while reporting required gate status.
 5. After checks pass and the PR merges, publish each selected runtime from trusted main:
 
    ```sh
@@ -53,7 +55,7 @@ gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless
    gh workflow run runtime-publish.yml --repo rambow-cloud/amazon-linux-distroless --ref main -f runtime=nodejs24
    ```
 
-6. Publication rebuilds/qualifies both architectures at the actual main source commit, verifies exact payload SBOM coverage, blocks known fixable High/Critical ALAS matches, and preserves matching source RPMs, project source, image archives, inventories, locks, native reports, raw scans and checksums in a persistent prerelease. It verifies the index signature and qualified-build provenance before advancing only the selected runtime's preview alias. Review published.json, exact index/leaf digests, workflow identity and visibility. Every intended open-source package must be Public; new package visibility is independent.
+6. Publication rebuilds/qualifies both architectures at the actual main source commit, verifies exact payload SBOM coverage, blocks known fixable High/Critical findings from ALAS and the applicable upstream scan, and preserves upstream sources, matching source RPMs, project source, image archives, inventories, locks, native reports, raw scans and checksums in a persistent prerelease. It verifies the index signature and qualified-build provenance before advancing only the selected runtime's preview alias. Review published.json, exact index/leaf digests, workflow identity and visibility. Every intended open-source package must be Public; new package visibility is independent.
 7. Rebuild and test application images using the accepted runtime digest, then deploy the new application digest. Runtime refreshes do not update dependencies inside JARs, wheels or node_modules. Record the accepted runtime/application pair and previous pair for rollback.
 
 All container resolution, builds, runtime tests and scans run only in GitHub Actions. There is no package-manager update command inside a delivered runtime: the update unit is a new verified image plus rebuilt applications.

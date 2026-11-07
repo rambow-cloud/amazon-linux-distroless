@@ -1,5 +1,7 @@
 # Python 3.14 delivery
 
+This page records the original AL2023 RPM-based preview. See [current upstream releases](UPSTREAM-RELEASES.md) for the published multi-version matrix.
+
 Python **3.14.8** has a public signed linux/amd64 + linux/arm64 preview, following Java 17/21/25. Node.js 24 is also delivered; see [all runtime references](RUNTIMES.md). Project-wide stable v1 acceptance remains open.
 
 [Trusted main publication](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42336514085) · [Permanent release/source/evidence](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-bb4ed2b45f00) · [Public package](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fpython314)

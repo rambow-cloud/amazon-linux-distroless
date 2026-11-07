@@ -1,19 +1,19 @@
 # Architecture and implementation strategy
 
-Status: proposed implementation route. Java, Python, and Node.js are committed v1.0 runtimes. The shared runtime-contract RFC and language-runtime RFC must settle their remaining implementation choices before image assembly.
+The language previews use the published runtime contracts. The foundation and stable release criteria remain in the roadmap.
 
-The owner-directed Java-first implementation in #20/#37 defines the concrete [Java 21 contract](JAVA21.md), including native amd64/arm64 qualification and generic JRE linking. The prior prototype is historical evidence; Python and Node.js remain subsequent committed work. Broader foundation/runtime decisions outside the Java contract remain tracked in their RFCs.
+The [Java contract](JAVA.md) covers linked Corretto runtimes. The [upstream runtime contract](UPSTREAM-RUNTIMES.md) covers signed CPython source and Node.js binary releases with AL2023 system libraries.
 
 An owner-authorized [Java prototype](PROTOTYPE.md), tracked in #25, exercises this candidate route before the broader RFCs are complete. It uses a verified offline RPM transaction followed by fresh file selection. Its Java 21/amd64 choices and validation limits do not constitute the stable runtime contract.
 
 ## Goals
 
-Build a small, inspectable runtime from official AL2023 packages, with explicit contents and traceable updates. Preserve compatibility for the documented workload contract rather than attempting general-purpose Linux compatibility.
+Build a small runtime with an explicit file inventory, verified AL2023 system packages and traceable language sources. Preserve compatibility for the documented workload contract rather than attempting general-purpose Linux compatibility.
 
 ## Assembly pipeline
 
 1. **Lock inputs.** Store an official AL2023 builder image index digest, architecture mapping, exact `releasever`, tool versions, selected package versions/NEVRAs, RPM checksums, and repository metadata references. Reject floating release selection in release builds. A builder digest and a repository release are separate inputs and both must be pinned.
-2. **Resolve in a builder.** Start with the standard AL2023 image for full DNF/RPM tooling. Resolve only official, signature-verified AL2023 RPMs for the target architecture. Disable weak dependencies where appropriate. Materialize and record the transitive package closure. Use a disposable install root or verified RPM extraction; the RFC/prototype must settle scriptlet handling and configuration generation.
+2. **Resolve in a builder.** Start with the standard AL2023 image for full DNF/RPM tooling. Resolve only official, signature-verified AL2023 RPMs for the target architecture. Disable weak dependencies where appropriate. Materialize and record the transitive package closure. Use an isolated staging root. Upstream language assembly stages the verified RPM payloads with scripts and triggers disabled and imports the CA and crypto policy files from the matching builder packages.
 3. **Select runtime files.** Package closure alone is too broad. Derive an explicit per-variant file allowlist with ownership/provenance, preserve symlinks and license notices, and fail on missing or unexpected files. Do not populate the final rootfs by copying the entire builder and deleting obvious tools.
 4. **Audit runtime closure.** Inspect ELF interpreter and `DT_NEEDED` dependencies, including transitive libraries, architecture-specific loader paths, and runtime-loaded components. Cover NSS, CA trust configuration, OpenSSL configuration when applicable, and symlink targets. Avoid invoking `ldd` on arbitrary untrusted binaries as an audit technique.
 5. **Package from scratch.** Use `FROM scratch`, numeric `USER 65532:65532`, OCI source/version/license labels, exec-form application entrypoints in examples, and no inherited shell command. Keep build metadata outside the final rootfs unless runtime or license obligations require it.
@@ -39,15 +39,15 @@ The contract must decide `/etc/os-release`, `/etc/nsswitch.conf`, CA bundle path
 
 ## Committed language variants
 
-Java, Python, and Node.js are required deliverables for v1.0, with an intermediate v0.3 implementation milestone. All three use the shared AL2023 runtime contract and must pass on `linux/amd64` and `linux/arm64`. Select one maintained version line per language in the language-runtime RFC, lock its package identity and paths, and add additional versions only through separately scoped issues.
+Java, Python, and Node.js are required deliverables for v1.0, with an intermediate v0.3 implementation milestone. All three use the shared AL2023 runtime contract and must pass on `linux/amd64` and `linux/arm64`. Use an accepted RFC for each version expansion and lock the runtime identity and paths. RFC #51 defines the upstream Python and Node.js inputs.
 
 | Variant | Assembly and application contract | Runtime-specific verification |
 | --- | --- | --- |
 | `java` | Official AL2023 Amazon Corretto headless runtime; executable JARs built in a separate builder; explicit `java` path and `JAVA_HOME` | JVM native libraries, Java truststore/CA behavior, DNS, direct JAR startup, signals, and non-root temporary-file behavior |
-| `python` | Versioned AL2023 interpreter and reviewed stdlib; dependencies installed into a documented path by a matching builder; no runtime pip or ensurepip installer payloads | `sys.path`, importlib/encodings, SSL and supported extension modules, native wheel ABI, bytecode/cache writes, and script/module entrypoints |
-| `nodejs` | Versioned AL2023 Node.js executable; production `node_modules` installed by a matching builder; direct `node` startup without npm/npx/corepack | ESM/CommonJS, Node/OpenSSL CA policy, DNS, Intl/data scope, native addon ABI/N-API, signals, and HTTP service operation |
+| `python` | Verified upstream CPython source built on AL2023 with a reviewed stdlib; dependencies installed into a documented path by a matching builder; no runtime pip or ensurepip installer payloads | `sys.path`, importlib/encodings, SSL and supported extension modules, native wheel ABI, bytecode/cache writes, and script/module entrypoints |
+| `nodejs` | Verified upstream Node.js executable with the AL2023 shared library closure; production `node_modules` installed by a matching builder; direct `node` startup without npm/npx/corepack | ESM/CommonJS, Node/OpenSSL CA policy, DNS, Intl/data scope, native addon ABI/N-API, signals, and HTTP service operation |
 
-Keep package-version selection separate from floating alternatives symlinks. AWS documents namespaced Python and Node.js versions; the assembled image must have complete, intentional executable/symlink targets and configuration. Required development tools stay in the builder. Runtime executables such as `java`, `python`, and `node` are deliberately allowed even though they can execute application code.
+Keep package-version selection separate from floating alternatives symlinks. Pin versioned entrypoints and provide aliases to the selected executables. Required development tools stay in the builder. Runtime executables such as `java`, `python`, and `node` are deliberately allowed even though they can execute application code.
 
 A standalone `cc` variant and general C++ workload support are out of scope. This does not prohibit a required `libstdc++`, `libgcc`, JNI library, Python extension, or Node native addon: include only the audited dependency closure of a supported workload. A C fixture may continue to test the shared glibc layer without constituting a C++ runtime product.
 

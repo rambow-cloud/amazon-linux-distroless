@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-Status: [Java 17/21/25](JAVA-RELEASES.md), [Python 3.14](PYTHON-RELEASE.md) and [Node.js 24](NODEJS-RELEASE.md) have public signed dual-architecture previews. Native final-image qualification, permanent matching source/evidence and verified signatures/provenance are delivered for every language line. See [the runtime index](RUNTIMES.md) and [support boundaries](SUPPORT.md).
+Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed dual-architecture previews. See [the runtime index](RUNTIMES.md) and [support boundaries](SUPPORT.md).
 
 The owner-directed sequence is complete: Java 21 first, expanded Java 17/21/25 in #41/#42/#43/#44, Python #21/#45/#46/#47, then Node.js #22/#48/#49. The language contract RFC #16 records the final matrix. This completes the requested language implementation and preview delivery; project-wide stable v1 acceptance remains open.
 
@@ -53,7 +53,7 @@ The table records the original dependency plan; live issue states and the delive
 | Python | Versioned AL2023 interpreter/stdlib and documented builder-installed dependency path | Stdlib/import paths, SSL, version-matched native extension, cache/bytecode behavior, and hardened non-root execution |
 | Node.js | Versioned AL2023 runtime with production dependencies installed by a matching builder | ESM/CommonJS, HTTP/TLS/DNS, native addon ABI/N-API, CA/Intl behavior, signals, and hardened non-root execution |
 
-The accepted matrix supports Java 17/21/25, Python 3.14 (default GIL build) and Node.js 24. Version selection, image naming, executable paths, ABI boundaries, and support windows are decisions in #16, based on the pinned AL2023 package release and upstream/package lifecycle evidence.
+The accepted matrix supports Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26. RFC #51 adds independently versioned official upstream releases for Python and Node.js.
 
 ## Stable-release acceptance
 

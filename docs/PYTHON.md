@@ -1,5 +1,7 @@
 # Python 3.14 runtime contract
 
+This page records the original AL2023 RPM-based preview. See [current upstream releases](UPSTREAM-RELEASES.md) for the published multi-version matrix.
+
 Python follows the completed Java 17/21/25 phase, under [#21](https://github.com/rambow-cloud/amazon-linux-distroless/issues/21) and the [language RFC #16](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16). Native resolution of the explicit AL2023 2023.12.20261102 snapshot selected Python **3.14.8** for both amd64 and arm64 in [Actions run 42334960167](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42334960167). [The public signed delivery report](PYTHON-RELEASE.md) records actual native qualification, immutable references, source/evidence and signature checks.
 
 ## Runtime and dependencies
