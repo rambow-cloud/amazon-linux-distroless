@@ -118,6 +118,19 @@ class AssemblyTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "checksum mismatch"):
                 fetch(lock, cached)
 
+    def test_python_alias_allowance_is_explicit_and_does_not_allow_shells(self):
+        (self.source / "usr/bin").mkdir(parents=True)
+        (self.source / "usr/bin/python3.14").write_bytes(b"runtime")
+        (self.source / "usr/bin/python3").symlink_to("python3.14")
+        with self.assertRaisesRegex(ValueError, "Forbidden"):
+            inspect_tree(self.source)
+        self.assertEqual(len(inspect_tree(self.source, ("usr/bin/python3",))), 2)
+        with self.assertRaisesRegex(ValueError, "Unsupported"):
+            inspect_tree(self.source, ("usr/bin/sh",))
+        (self.source / "usr/bin/sh").write_bytes(b"shell")
+        with self.assertRaisesRegex(ValueError, "Forbidden"):
+            inspect_tree(self.source, ("usr/bin/python3",))
+
     def test_lock_rejects_floating_builder_wrong_arch_untrusted_url_and_missing_source(self):
         original = json.loads(Path("/workspace/locks/linux-amd64.json").read_text())
         for mutation in ("builder", "arch", "url", "sources"):

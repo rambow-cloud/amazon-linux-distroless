@@ -24,3 +24,12 @@ jobs:
         run: node --test tests/java21-release.test.mjs
       - name: Check Java publication script syntax
         run: node --check scripts/release/java21-publish.mjs
+
+      - name: Validate language runtime publication policy
+        run: node --test tests/runtime-release.test.mjs
+      - name: Check shared and language publisher syntax
+        run: |
+          node --check scripts/release/publish.mjs
+          node --check scripts/release/runtime-publish.mjs
+      - name: Validate inventory SBOM coverage behavior
+        run: node --test security/compare.test.mjs

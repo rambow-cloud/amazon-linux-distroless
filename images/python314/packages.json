@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux:2023.12.20261102.0",
+  "releasever": "2023.12.20261102",
+  "roots": {
+    "base": ["glibc", "ca-certificates", "tzdata"],
+    "python": ["glibc", "ca-certificates", "tzdata", "python3.14"]
+  }
+}

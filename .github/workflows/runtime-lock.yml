@@ -1,0 +1,31 @@
+name: Language runtime lock update
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resolve:
+    name: Resolve Python 3.14 (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: node scripts/runtime/lock.mjs python314 ${{ matrix.arch }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: python314-lock-${{ matrix.arch }}
+          path: |
+            out/locks/python314/linux-${{ matrix.arch }}.json
+            out/locks/python314/files-${{ matrix.arch }}.txt
+            out/locks/python314/runtime-${{ matrix.arch }}.json
+          retention-days: 14
