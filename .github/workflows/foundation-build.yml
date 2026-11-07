@@ -124,12 +124,18 @@ jobs:
           tar -czf out/foundation-index/static.oci.tar.gz -C out/foundation-index/layouts/static .
           tar -czf out/foundation-index/base.oci.tar.gz -C out/foundation-index/layouts/base .
           cat out/foundation-index/indexes.json
+      - name: Verify corresponding source and bind SBOMs to native leaves
+        run: |
+          python3 scripts/foundation/source-evidence.py out/foundation-input/foundation-candidate-amd64
+          python3 scripts/foundation/source-evidence.py out/foundation-input/foundation-candidate-arm64
+          node scripts/release/foundation-evidence.mjs out/foundation-input out/foundation-index
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: foundation-oci-indexes
           path: |
             out/foundation-index/*.tar.gz
             out/foundation-index/indexes.json
+            out/foundation-index/evidence/*.json
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
