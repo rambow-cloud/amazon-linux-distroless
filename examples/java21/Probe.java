@@ -94,6 +94,10 @@ public final class Probe {
         require(StandardCharsets.UTF_8.equals(java.nio.charset.Charset.defaultCharset()), "Expected UTF-8");
         require(Files.getFileStore(Path.of("/")).isReadOnly(), "Root is writable");
         Path temporary = Files.createTempFile("java-runtime-", ".txt"); Files.writeString(temporary, "temporary"); Files.delete(temporary);
+        Path unicode = Files.createTempFile("\u00e9-\u6d4b\u8bd5-", ".txt");
+        Files.writeString(unicode, "\u00e9-\u6d4b\u8bd5");
+        require(Files.readString(unicode).equals("\u00e9-\u6d4b\u8bd5"), "Unicode filename/content round trip failed");
+        Files.delete(unicode);
         require(ToolProvider.getSystemJavaCompiler() == null, "Compiler implementation is present");
         List<String> forbidden = List.of("jdk.compiler", "jdk.jlink", "jdk.javadoc", "jdk.jdeps", "jdk.jartool", "jdk.jdi", "jdk.jconsole", "jdk.jcmd");
         for (String module : forbidden) require(ModuleLayer.boot().findModule(module).isEmpty(), "Tool module present: " + module);

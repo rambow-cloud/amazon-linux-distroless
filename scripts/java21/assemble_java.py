@@ -45,8 +45,13 @@ def profile(config):
             raise RuntimeError("Invalid disposable JVM replacement path")
         shutil.rmtree(destination)
         shutil.copytree(linked, destination, symlinks=True)
+        # Java 17 and native filename conversion use glibc's selected locale.
+        # These files are supplied by the already locked minimal langpack RPM.
+        locale = source / "usr/lib/locale/C.utf8"
+        if not locale.is_dir():
+            raise RuntimeError("Locked C.UTF-8 locale is missing: " + str(locale))
         return {"home": home, "runtime_package": runtime["name"], "excluded_names": config["excluded_native_files"],
-                "seeds": ["/usr/lib/system-release", "/usr/lib64/libfontconfig.so.1", "/etc/fonts",
+                "seeds": ["/usr/lib/system-release", "/usr/lib/locale/C.utf8", "/usr/lib64/libfontconfig.so.1", "/etc/fonts",
                           "/usr/share/fontconfig", "/usr/share/fonts"],
                 "transform": {"kind": "jlink", "java_major": major, "tool_package": prefix + "-devel-" + tool,
                               "jmods_package": prefix + "-jmods-" + jmods_tool,

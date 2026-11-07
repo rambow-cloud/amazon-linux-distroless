@@ -14,6 +14,8 @@ Native resolution of the reviewed `2023.12.20261102` repository snapshot produce
 
 All lines follow the [headless runtime contract](JAVA21.md): direct `/usr/bin/java`, `JAVA_HOME=/opt/java`, UID/GID 65532, UTF-8/UTC, system/JVM trust, basic fonts/ImageIO and required native closure, with no compiler implementation, shell, package manager, RPM database or JMods. Applications requiring runtime compilation, interactive GUI, additional fonts or arbitrary JNI dependencies need separately qualified application dependencies. Compile application bytecode for the chosen Java line using a compatible JDK builder; newer bytecode cannot be run on older Java runtimes.
 
+The locked `glibc-minimal-langpack` C.UTF-8 locale files are selected explicitly. This supports Java 17's environment-derived default charset and native Unicode filename conversion on every line. The UTF-8 probe also creates, writes, reads and removes a file with a Unicode name; passing only the JVM charset property is insufficient.
+
 ## Actions configuration
 
 The existing `scripts/java21` directory, `images/java21/Dockerfile` and workflow filenames remain compatibility entry points. Their implementation now selects the major from the third positional argument (build/verify/lock), or `JAVA_MAJOR`, defaulting to 21. Only 17, 21 and 25 are accepted. Container commands are rejected outside GitHub Actions.
