@@ -3,7 +3,8 @@
     "strict": true,
     "contexts": [
       "Issue policy",
-      "Repository checks"
+      "Repository checks",
+      "Java 21 gate"
     ]
   },
   "enforce_admins": true,

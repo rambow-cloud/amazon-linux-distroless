@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "source": "public.ecr.aws/amazonlinux/amazonlinux:2023",
+  "platform": "linux/amd64",
+  "proposal_milestone": 4,
+  "input_spec": "images/java21/packages.json",
+  "lock_file": "locks/java21/linux-amd64.json"
+}

@@ -1,0 +1,117 @@
+"""Resolve official AL2023 RPMs inside the digest-pinned tools container."""
+import argparse
+import hashlib
+import json
+import posixpath
+from pathlib import Path
+import subprocess
+import urllib.parse
+import dnf
+
+
+def run(*args):
+    return subprocess.check_output(args, text=True).strip()
+
+
+def tool_packages():
+    return sorted(line for line in run("rpm", "-qa", "--qf",
+                  "%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n").splitlines()
+                  if not line.startswith("gpg-pubkey-"))
+
+
+def canonical_url(url):
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc,
+                                   posixpath.normpath(parts.path), parts.query, ""))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--inputs", required=True)
+    parser.add_argument("--builder", required=True)
+    parser.add_argument("--epoch", required=True, type=int)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    inputs = json.loads(Path(args.inputs).read_text())
+    package_arch = {"linux/amd64": "x86_64", "linux/arm64": "aarch64"}[inputs["platform"]]
+    for key in sorted(Path("/etc/pki/rpm-gpg").glob("RPM-GPG-KEY-amazon-linux-2023")):
+        subprocess.run(["rpm", "--import", str(key)], check=True)
+    lock = {
+        "schema_version": 1, "platform": inputs["platform"],
+        "builder": args.builder, "releasever": inputs["releasever"],
+        "source_date_epoch": args.epoch, "tool_packages": tool_packages(),
+        "trust": {"key_source": "Pinned official AL2023 builder /etc/pki/rpm-gpg",
+                  "verification": "rpmkeys --checksig; SHA-256 checked again on consumption"},
+        "variants": {},
+    }
+    for variant, roots in inputs["roots"].items():
+        with dnf.Base() as base:
+            base.conf.substitutions["releasever"] = inputs["releasever"]
+            base.conf.install_weak_deps = False
+            base.conf.cachedir = "/tmp/prototype-dnf-" + variant
+            base.read_all_repos()
+            for repo in base.repos.iter_enabled():
+                repo.gpgcheck = True
+            base.fill_sack(load_system_repo=False)
+            for package in roots:
+                base.install(package)
+            base.resolve()
+            packages = sorted(base.transaction.install_set, key=lambda p: str(p))
+            base.download_packages(packages)
+            entries = []
+            for package in packages:
+                path = Path(package.localPkg())
+                verification = run("rpmkeys", "--checksig", "--verbose", str(path))
+                if "signature" not in verification.lower():
+                    raise RuntimeError("No RPM signature: " + str(path))
+                if package.arch not in (package_arch, "noarch"):
+                    raise RuntimeError("Unexpected RPM architecture: " + package.arch)
+                entries.append({
+                    "name": package.name, "epoch": str(package.epoch),
+                    "version": package.version, "release": package.release,
+                    "arch": package.arch, "filename": path.name,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "url": canonical_url(package.remote_location()), "license": package.license,
+                    "source_rpm": package.sourcerpm, "signature_verified": True,
+                })
+            lock["variants"][variant] = {"roots": roots, "packages": entries}
+            print("Resolved {}: {} verified RPMs".format(variant, len(entries)), flush=True)
+    required_sources = {p["source_rpm"] for v in lock["variants"].values() for p in v["packages"]}
+    with dnf.Base() as base:
+        base.conf.substitutions["releasever"] = inputs["releasever"]
+        base.conf.cachedir = "/tmp/prototype-dnf-source"
+        base.read_all_repos()
+        for repo in base.repos.iter_enabled():
+            repo.disable()
+        base.repos["amazonlinux-source"].enable()
+        base.fill_sack(load_system_repo=False)
+        sources = {}
+        for package in base.sack.query().available().filter(arch="src"):
+            filename = Path(urllib.parse.urlsplit(package.remote_location()).path).name
+            if filename in required_sources:
+                sources[filename] = package
+        missing = required_sources - set(sources)
+        if missing:
+            raise RuntimeError("Matching source RPMs are missing: " + ", ".join(sorted(missing)))
+        base.download_packages(list(sources.values()))
+        lock["sources"] = []
+        for filename, package in sorted(sources.items()):
+            path = Path(package.localPkg())
+            verification = run("rpmkeys", "--checksig", "--verbose", str(path))
+            if "signature" not in verification.lower():
+                raise RuntimeError("Source RPM has no signature: " + filename)
+            lock["sources"].append({
+                "name": package.name, "epoch": str(package.epoch),
+                "version": package.version, "release": package.release, "arch": "src",
+                "filename": filename, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "url": canonical_url(package.remote_location()), "license": package.license,
+                "signature_verified": True,
+            })
+        print("Locked {} corresponding source RPMs".format(len(sources)), flush=True)
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
+
+
+if __name__ == "__main__":
+    main()

@@ -2,6 +2,10 @@
 
 Status: proposed implementation route. Java, Python, and Node.js are committed v1.0 runtimes. The shared runtime-contract RFC and language-runtime RFC must settle their remaining implementation choices before image assembly.
 
+The owner-directed Java-first implementation in #20/#37 defines the concrete [Java 21 contract](JAVA21.md), including native amd64/arm64 qualification and generic JRE linking. The prior prototype is historical evidence; Python and Node.js remain subsequent committed work. Broader foundation/runtime decisions outside the Java contract remain tracked in their RFCs.
+
+An owner-authorized [Java prototype](PROTOTYPE.md), tracked in #25, exercises this candidate route before the broader RFCs are complete. It uses a verified offline RPM transaction followed by fresh file selection. Its Java 21/amd64 choices and validation limits do not constitute the stable runtime contract.
+
 ## Goals
 
 Build a small, inspectable runtime from official AL2023 packages, with explicit contents and traceable updates. Preserve compatibility for the documented workload contract rather than attempting general-purpose Linux compatibility.

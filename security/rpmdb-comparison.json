@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "platform": "linux/amd64",
+  "prototype_run_id": 42253997086,
+  "prototype_artifact": "al2023-java-prototype-with-sources",
+  "prototype_tag": "al2023-distroless-java:prototype",
+  "official_tag": "gcr.io/distroless/java21-debian13@sha256:b22857e939bd95abd69d9d747f0421a274f9f70855ecfc335f7d97f6eeef578d",
+  "scanner_tag": "aquasec/trivy@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb",
+  "scanner_version": "0.76.2"
+}

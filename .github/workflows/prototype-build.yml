@@ -1,0 +1,46 @@
+name: Java prototype
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: java-prototype-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  prototype:
+    name: Java prototype
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build only from the committed lock
+        run: node scripts/prototype.mjs build
+      - name: Verify final images and collect corresponding source
+        run: node scripts/prototype/verify.mjs
+      - name: Package the preview and build source together
+        shell: bash
+        run: |
+          gzip -n out/prototype/images.tar
+          git archive --format=tar.gz --output=out/prototype/project-source.tar.gz HEAD
+          cp prototype/ARTIFACT-README.txt out/prototype/README.txt
+          cd out/prototype
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+      - name: Add the preview result to the run summary
+        run: cat out/prototype/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload images, corresponding source, and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: al2023-java-prototype-with-sources
+          path: out/prototype/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Preserve diagnostic inventories on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: prototype-failure-evidence
+          path: out/prototype/*.json
+          if-no-files-found: ignore

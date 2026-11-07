@@ -1,0 +1,36 @@
+name: Native RPM database CVE comparison
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    name: Compare native RPM databases
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check coverage, overlay and comparison behavior
+        run: node --test security/compare.test.mjs security/rpmdb.test.mjs
+      - name: Download the original tested prototype
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: al2023-java-prototype-with-sources
+          path: out/prototype-input
+          run-id: 42253997086
+          github-token: ${{ github.token }}
+      - name: Reconstruct native RPM metadata and scan with one database snapshot
+        run: node security/compare.mjs --with-rpmdb
+      - name: Add comparison to the run summary
+        run: cat out/cve/comparison.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload native databases and all scan evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: java-native-rpmdb-cve-comparison
+          path: out/cve/
+          if-no-files-found: error
+          retention-days: 30
