@@ -38,14 +38,15 @@ test('project mirror evidence rejects drift at Quay after GHCR has succeeded', (
 });
 
 test('stable aliases advance by version and revision with safe replay', () => {
-  const old = { ...plan, version: '26.12.9', reference: plan.base + '@sha256:' + '1'.repeat(64) };
-  assert.doesNotThrow(() => verifyAdvance(plan));
-  assert.doesNotThrow(() => verifyAdvance(plan, old));
-  assert.doesNotThrow(() => verifyAdvance(plan, plan));
-  assert.throws(() => verifyAdvance({ ...old, revision: 2 }, plan), /rollback/);
-  assert.throws(() => verifyAdvance({ ...plan, revision: 2 }, plan), /already/);
-  assert.throws(() => verifyAdvance({ ...plan, reference: old.reference, revision: 3 }, plan), /revision/);
-  assert.doesNotThrow(() => verifyAdvance({ ...plan, reference: old.reference, revision: 2 }, plan));
+  const initial = { ...plan, version: '26.13.0', revision: 1 };
+  const old = { ...initial, version: '26.12.9', reference: plan.base + '@sha256:' + '1'.repeat(64) };
+  assert.doesNotThrow(() => verifyAdvance(initial));
+  assert.doesNotThrow(() => verifyAdvance(initial, old));
+  assert.doesNotThrow(() => verifyAdvance(initial, initial));
+  assert.throws(() => verifyAdvance({ ...old, revision: 2 }, initial), /rollback/);
+  assert.throws(() => verifyAdvance({ ...initial, revision: 2 }, initial), /already/);
+  assert.throws(() => verifyAdvance({ ...initial, reference: old.reference, revision: 3 }, initial), /revision/);
+  assert.doesNotThrow(() => verifyAdvance({ ...initial, reference: old.reference, revision: 2 }, initial));
 });
 
 test('stable channels use shared language packages and keep existing revision references', () => {
