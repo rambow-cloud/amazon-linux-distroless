@@ -45,8 +45,8 @@ export function verifyProposedLocks(runtime, config, observed, diff, readCurrent
   return updated;
 }
 
-export function checkState(rollup) {
-  const byName = new Map(requiredChecks.map(name => [name, []]));
+export function checkState(rollup, extraChecks = []) {
+  const byName = new Map([...requiredChecks, ...extraChecks].map(name => [name, []]));
   for (const row of rollup) byName.get(row.name ?? row.context)?.push(row);
   for (const [name, rows] of byName) {
     if (rows.some(row => row.status === 'COMPLETED' && row.conclusion !== 'SUCCESS' ||

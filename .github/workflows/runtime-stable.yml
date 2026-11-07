@@ -1,4 +1,5 @@
 name: Runtime stable promotion
+run-name: Stable ${{ inputs.mode }} ${{ inputs.runtime }}
 on:
   workflow_dispatch:
     inputs:

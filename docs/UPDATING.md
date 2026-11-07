@@ -1,6 +1,6 @@
 # Updating AL2023 builders and runtime packages
 
-Java RPM updates and Python/Node.js upstream releases use reviewed locks and native GitHub Actions qualification. The AL2023 builder digest, system RPM snapshot and language release can advance independently. See [delivered runtimes](RUNTIMES.md) and [support boundaries](SUPPORT.md). Builder discovery is active; automatic lock-update PRs and project-wide stable automation remain [#12](https://github.com/rambow-cloud/amazon-linux-distroless/issues/12).
+Java RPM updates and Python/Node.js upstream releases use protected lock PRs and native GitHub Actions qualification. The AL2023 builder digest, system RPM snapshot and language release can advance independently. See [delivered runtimes](RUNTIMES.md) and [support boundaries](SUPPORT.md).
 
 ## Inputs that change independently
 
@@ -21,7 +21,7 @@ AL2023 snapshots are deterministic: the same releasever does not expose later sn
 
 ## Automatic discovery
 
-AL2023 builder discovery runs daily at **03:17 UTC / 11:17 Asia/Shanghai**, with manual dispatch. It resolves official public.ecr.aws/amazonlinux/amazonlinux:2023 to a digest, reads the pinned release marker and compares it with the maintained Java 21 input/amd64 lock. Changed candidates create one maintenance issue per platform/digest, deduplicating open and closed proposals. Evidence stays with the run.
+AL2023 builder discovery runs daily at **03:17 UTC / 11:17 Asia/Shanghai**, with manual dispatch. It resolves the official moving builder tag to an immutable digest, reads its release marker and separately queries the newest official RPM repository snapshot. It compares both inputs against the shared Java 21 baseline. Each platform, builder digest and repository snapshot has one maintenance proposal. Evidence stays with the run.
 
 The detector tracks the shared AL2023 baseline through Java 21 and opens a review issue for changed candidates. Follow [the discovery contract](UPSTREAM-DISCOVERY.md).
 
@@ -29,17 +29,26 @@ The detector tracks the shared AL2023 baseline through Java 21 and opens a revie
 gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless --ref main
 ```
 
-## Reviewed update process
+## Protected AL2023 refresh
 
-A successful newer AL2023 discovery can trigger `Prepare AL2023 snapshot lock candidates`. It resolves the native foundation, Java, Python-system and Node.js-system RPM locks from one immutable builder and explicit repository release. Each artifact records exact package and license changes, source RPMs and tool changes. Python and Node.js upstream release locks remain separate. A manual dispatch rehearses resolution against the current pinned snapshot. Candidate generation uses read-only permissions.
+1. An eligible discovery triggers `Prepare AL2023 snapshot lock candidates`. Its read-only jobs resolve all 12 native RPM locks from one immutable builder and explicit repository snapshot. Each artifact lists exact binary and source RPM inputs, version and license changes, and tool changes. A direct dispatch rehearses resolution against the current lock.
+2. The repository-scoped GitHub App opens the issue-linked lock PR. Project qualification runs the full native matrix, source and SBOM checks, size ceilings and paired language builds. The `al2023-refresh-evidence` artifact compares actual payload RPMs, licenses, unpacked bytes and ALAS findings against the signed public baseline. Both sides use one fresh ALAS database. The App verifies the five protected checks and the exact PR's full qualification run before it can squash-merge.
+3. The workflow publishes signed previews for all ten lines, then submits a stable plan through a second protected PR. Corretto follows the RPM transaction. Same-patch rebuilds advance the revision. Python and Node.js keep their separately pinned upstream archives. The existing stable workflow re-scans the approved previews and publishes them to GHCR and Quay. Once both mirrors are current, the foundation publisher runs full qualification and fresh scans before signing and publishing static and base.
+4. `releases/al2023-refresh.json` records the approved builder, repository snapshot and foundation revision. The next discovery reconciles the unfinished refresh before proposing another one. It can reuse verified previews, approved plans and in-flight publication runs. Independent language updates wait while the snapshot is publishing.
+
+If a check fails, inspect the linked Actions run and proposal before dispatching discovery again. Closing an unmerged proposal opts out of that candidate. If a foundation publication stops after creating its immutable draft, rerun the original foundation run from Actions to preserve its source SHA. Escalate a conflicting immutable revision for maintainer review. To pause scheduled and manually triggered discovery, disable **AL2023 builder discovery** in Actions.
+
+## Independent upstream language updates
 
 The `Upstream language update discovery` workflow observes the official CPython and Node.js indexes daily and can be dispatched manually. It considers only newer final releases within existing supported version lines. On protected main it verifies the candidate source and binaries using the pinned release signer policy and outputs both architecture locks and their exact diffs. Unchanged versions produce only the observation report. This stage prepares inputs for the update gates; it does not merge a PR or publish a tag. Corretto updates follow the AL2023 snapshot and RPM locks.
 
-The optional unattended language workflow consumes only successful discovery runs from protected main. It proposes one runtime update at a time, verifies every required check and the exact PR contents before each merge, and dispatches the trusted preview and stable workflows. Later discovery runs resume a merged bot update even when the upstream version has not changed. A preview is reusable when its signature and build inputs match the approved locks. A new attempt uses its own preview tag so an incomplete release cannot block it. An approved stable release with missing mirror tags goes through the existing mirror repair workflow. A failed protected check still requires investigation through the tracked PR.
+The unattended language workflow consumes successful discovery runs from protected main. It proposes one runtime update at a time, verifies every required check and the exact PR contents before each merge, and dispatches the trusted preview and stable workflows. Later discovery runs resume a merged bot update even when the upstream version has not changed. A preview is reusable when its signature and build inputs match the approved locks. A new attempt uses its own preview tag so an incomplete release cannot block it. An approved stable release with missing mirror tags goes through the existing mirror repair workflow. A failed protected check still requires investigation through the tracked PR.
 
 One-time setup: install a private GitHub App only on `rambow-cloud/amazon-linux-distroless`. Give it Contents and Pull requests write, Checks and Commit statuses read, plus mandatory Metadata read. Store the App ID as the repository variable `UPSTREAM_UPDATE_APP_ID` and the private key as the Actions secret `UPSTREAM_UPDATE_APP_PRIVATE_KEY`. The App does not need Packages, Actions, Workflows, administration or branch-protection bypass permissions. The normal job token handles issue metadata and workflow dispatch. Without the App configuration the write job stays disabled. [GitHub explains](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs) why the default token cannot start the PR checks without approval.
 
 The [upstream runtime guide](UPSTREAM-RUNTIMES.md) covers independent Python and Node.js patch updates.
+
+## Manual refresh and emergency fixes
 
 1. Create a maintenance issue with milestone, type/area/priority/status labels and acceptance criteria. Edit the relevant package specification on an update branch, selecting an official builder tag and explicit repository release. Review all ten version lines when refreshing a shared AL2023 baseline. Update the upstream version manifest for a Python or Node.js patch refresh. Review upstream advisories and per-package support boundaries alongside ALAS; an available snapshot is not automatically an acceptable security update.
 2. Resolve selected inputs on native amd64/arm64 runners:
@@ -82,6 +91,6 @@ After a preview is published, review its digest and release evidence in a stable
 
 Retain all scan severities and raw findings. ALAS unfixed and language-runtime advisory matching remain limited; zero matches do not prove zero exposure or superiority over Debian-based Distroless. Review transformed-file advisory applicability separately when needed. Inspect the actual publication stage before recovery: immutable release tags are not silently overwritten on rerun. A partial publication requires a deliberate recovery decision or a new reviewed source commit.
 
-Consumers should pin a multi-platform index digest, or a platform manifest when intentionally selecting one architecture. Preview aliases are convenience references. Roll back by redeploying the prior accepted application/runtime digest pair with its source and qualification record. Do not overwrite immutable tags or bypass gates. Stable policy, measured OCI reproducibility and complete automated refresh/exception handling remain #8/#9/#10/#11/#12/#23.
+Consumers should pin a multi-platform index digest, or a platform manifest when intentionally selecting one architecture. Roll back by redeploying the prior accepted application/runtime digest pair with its signed release record. For a foundation pin, open the prior GitHub Release, read `foundation-release.json`, and run the **Verify published foundation pulls** workflow with that release tag. It pulls the signed immutable indexes on both architectures. Leave the stable aliases and immutable tags in place during consumer rollback. A corrective refresh goes through the same protected gates.
 
 Original prototype lock/build workflows are manual historical entry points documented in [PROTOTYPE.md](PROTOTYPE.md). Trivy/native-RPM/Grype comparison workflows remain disabled and do not run during normal updates. Publication security gates remain active.

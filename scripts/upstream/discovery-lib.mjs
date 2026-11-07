@@ -21,7 +21,7 @@ export function decide(current, upstream) {
   assert.equal(upstream.platform, 'linux/amd64');
   const old = snapshot(current.releasever), next = snapshot(upstream.releasever);
   const relation = Math.sign(next[0] - old[0] || next[1] - old[1]);
-  const changed = current.builder !== upstream.ref;
+  const changed = current.builder !== upstream.ref || relation !== 0;
   const status = !changed ? 'unchanged' : relation < 0 ? 'older-release-review' : relation > 0 ? 'newer-release' : 'digest-refresh';
   return { changed, status, releaseRelationToLockedRepository: relation,
     current: { builder: current.builder, repositoryRelease: current.releasever }, candidate: upstream };
@@ -29,7 +29,16 @@ export function decide(current, upstream) {
 export function proposalKey(report) {
   validateRef(report.candidate.ref);
   assert.equal(report.candidate.platform, 'linux/amd64');
-  return '<!-- al2023-builder-discovery:' + report.candidate.platform + ':' + report.candidate.ref.split('@')[1] + ' -->';
+  snapshot(report.candidate.releasever);
+  return '<!-- al2023-builder-discovery:' + report.candidate.platform + ':' + report.candidate.ref.split('@')[1] +
+    ':' + report.candidate.releasever + ' -->';
+}
+export function matchesProposal(report, issue) {
+  if (issue.pull_request) return false;
+  const key = proposalKey(report);
+  const legacy = key.replace(':' + report.candidate.releasever + ' -->', ' -->');
+  return (issue.body || '').includes(key) || ((issue.body || '').includes(legacy) &&
+    (issue.body || '').includes('Builder release marker: ' + report.candidate.releasever + '\n'));
 }
 export function proposalRequest(report, milestone) {
   if (!report.changed) throw new Error('Unchanged builder does not need an update issue');
@@ -40,23 +49,23 @@ export function proposalRequest(report, milestone) {
   return {
     title: '[Maintenance] Review AL2023 builder ' + report.candidate.releasever + ' (' + digest.slice(7, 19) + ')',
     labels: ['type:maintenance', 'area:build', 'priority:p1', 'status:triage'], milestone,
-    body: key + '\n\n## Context\nThe upstream builder discovery workflow observed a different official AL2023 builder digest. This is an update proposal; committed inputs/locks, runtime images and published tags were not modified.\n\n' +
+    body: key + '\n\n## Context\nThe upstream detector observed a changed official AL2023 builder digest or repository snapshot. This proposal tracks the protected refresh.\n\n' +
       '- Discovery source: ' + report.source + '\n- Platform: ' + report.candidate.platform +
       '\n- Current locked builder: ' + report.current.builder + '\n- Current locked RPM repository: ' + report.current.repositoryRelease +
-      '\n- Observed builder: ' + report.candidate.ref + '\n- Builder release marker: ' + report.candidate.releasever +
+      '\n- Observed builder: ' + report.candidate.ref + '\n- Observed builder release marker: ' +
+      (report.candidate.imageReleasever ?? report.candidate.releasever) + '\n- Observed RPM repository: ' + report.candidate.releasever +
       '\n- Classification: ' + report.status + '\n- Evidence: ' + report.runUrl + '\n\n' +
       'Release comparison is against the locked RPM snapshot. The builder marker alone does not prove that a particular RPM update is qualified. An older-release-review candidate needs explicit review; never downgrade inputs automatically.\n\n' +
       '## Acceptance criteria\n- [ ] Review the upstream builder/snapshot and relevant advisories; accept or reject the candidate\n' +
       '- [ ] If accepted, regenerate and review complete binary/source RPM locks through Actions\n' +
       '- [ ] Validate the supported runtime matrix and inspect payload/package/license changes\n' +
       '- [ ] Publish only after the applicable evidence and release gates pass\n\n' +
-      '## Validation plan\nFollow docs/UPDATING.md and link a scoped implementation PR after setting this issue ready. References #12 and #35. Closing this proposal records a maintainer decision; the detector will not recreate the same platform/digest proposal.\n',
+      '## Validation plan\nFollow docs/UPDATING.md. Eligible candidates enter the protected lock PR and release gates automatically. Closing an unmerged proposal records a maintainer decision. The detector deduplicates by platform, digest and snapshot. References #12 and #35.\n',
   };
 }
 export async function ensureProposal(report, milestone, api) {
   if (!report.changed) return { action: 'unchanged' };
-  const key = proposalKey(report);
-  const existing = (await api.listIssues()).find(i => !i.pull_request && (i.body || '').includes(key));
+  const existing = (await api.listIssues()).find(issue => matchesProposal(report, issue));
   if (existing) return { action: 'exists', number: existing.number, state: existing.state, url: existing.html_url };
   const selected = await api.getMilestone(milestone);
   assert.equal(selected.state, 'open', 'Configure an open proposal milestone before creating update issues');

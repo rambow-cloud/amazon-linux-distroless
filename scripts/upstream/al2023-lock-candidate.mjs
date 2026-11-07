@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { markerRelease, snapshot, validateRef } from './discovery-lib.mjs';
+import { markerRelease, validateRef } from './discovery-lib.mjs';
+import { families, lockPath, newerSnapshot, specPath } from './al2023-refresh-policy.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Prepare AL2023 candidates only in Actions');
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -24,30 +25,29 @@ if (mode === 'plan') {
     assert.equal(run.head_repository.full_name, process.env.GITHUB_REPOSITORY);
     assert.equal(run.path.split('@')[0], '.github/workflows/al2023-discovery.yml');
     assert.equal(discovered.sourceCommit, run.head_sha);
-    assert.equal(run.head_sha, process.env.GITHUB_SHA);
     next = discovered.candidate;
-    assert.equal(markerRelease(next.releaseMarker), next.releasever);
-    changed = discovered.changed;
+    assert.equal(markerRelease(next.releaseMarker), next.imageReleasever);
+    if (run.head_sha === process.env.GITHUB_SHA) {
+      assert.equal(discovered.current.builder, old.builder, 'Discovered baseline differs from the foundation lock');
+      changed = discovered.changed;
+    }
   }
   validateRef(next.ref);
-  const [major, date] = snapshot(next.releasever);
-  const [oldMajor, oldDate] = snapshot(old.releasever);
-  const eligible = rehearse || changed && (major > oldMajor || major === oldMajor && date >= oldDate);
+  const eligible = rehearse || changed && newerSnapshot(old, { builder: next.ref, releasever: next.releasever });
   write(planFile, { sourceCommit: process.env.GITHUB_SHA, rehearse, eligible,
     builder: next.ref, releasever: next.releasever });
   fs.appendFileSync(process.env.GITHUB_OUTPUT, 'eligible=' + eligible + '\n');
   process.exit(0);
 }
-assert.ok(['foundation', 'java17', 'java21', 'java25', 'python', 'nodejs'].includes(family));
+assert.ok(families.includes(family));
 assert.ok(['amd64', 'arm64'].includes(arch));
 const plan = read(planFile);
 assert.equal(plan.sourceCommit, process.env.GITHUB_SHA);
 assert.equal(plan.eligible, true);
 validateRef(plan.builder);
 const isJava = family.startsWith('java');
-const spec = 'images/' + (isJava ? family : 'upstream') + '/packages.json';
-const lock = family === 'foundation' || isJava
-  ? 'locks/' + family + '/linux-' + arch + '.json' : 'locks/upstream/' + family + '-linux-' + arch + '.json';
+const spec = specPath(family);
+const lock = lockPath(family, arch);
 const resolved = family === 'foundation' ? 'out/foundation-lock/' + lock :
   isJava ? 'out/' + family + '-lock/linux-' + arch + '.json' : 'out/resolved/' + lock;
 if (mode === 'stage') {

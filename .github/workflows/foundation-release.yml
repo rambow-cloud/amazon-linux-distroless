@@ -1,4 +1,5 @@
 name: Publish stable foundation images
+run-name: Foundation revision ${{ inputs.revision }}
 on:
   workflow_dispatch:
     inputs:
@@ -7,6 +8,10 @@ on:
         type: string
         default: '1'
         required: true
+      expected_commit:
+        description: Protected main commit selected by update automation
+        type: string
+        default: ''
 permissions:
   contents: read
   pull-requests: read
@@ -26,9 +31,11 @@ jobs:
       - id: plan
         env:
           REVISION: ${{ inputs.revision }}
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_REPOSITORY" = rambow-cloud/amazon-linux-distroless
+          test -z "$EXPECTED_COMMIT" || test "$GITHUB_SHA" = "$EXPECTED_COMMIT"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import fs from 'node:fs';
