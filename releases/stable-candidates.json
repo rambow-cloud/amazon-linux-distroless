@@ -17,10 +17,10 @@
   },
   "java25": {
     "version": "25.0.5",
-    "revision": 1,
-    "sourceCommit": "40a17983a91aac4c160110710ec26185a6616bff",
-    "previewTag": "java25-40a17983a91a",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java25@sha256:0c354b31ec54bb950af9a97d51feaf698c7c6e4bef480d214cbccc8528724382",
+    "revision": 2,
+    "sourceCommit": "2b5e2fab76dc2913c687e9858125fd80c318a582",
+    "previewTag": "java25-2b5e2fab76dc",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java25@sha256:c5ab8cec00b8a1d999e5663b26a5f11646183a1b99ea82676f1fed4a02eee51f",
     "maxImageMiB": 112
   },
   "python311": {
@@ -49,10 +49,10 @@
   },
   "python314": {
     "version": "3.14.10",
-    "revision": 1,
-    "sourceCommit": "b1e33dc620f5e8065e766457110b353996e2b0dd",
-    "previewTag": "python314-b1e33dc620f5",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:3be1cc8a55fb98b48aa0678ab71c0339e4c92e5378d0d7b473d15fbc7374f137",
+    "revision": 2,
+    "sourceCommit": "2b5e2fab76dc2913c687e9858125fd80c318a582",
+    "previewTag": "python314-2b5e2fab76dc",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:16b602c89ecdc261e39c7270f52bb613813827fb0db307368f8c90d3273dff1c",
     "maxImageMiB": 104
   },
   "nodejs22": {
@@ -73,10 +73,10 @@
   },
   "nodejs26": {
     "version": "26.13.0",
-    "revision": 1,
-    "sourceCommit": "b1e33dc620f5e8065e766457110b353996e2b0dd",
-    "previewTag": "nodejs26-b1e33dc620f5",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs26@sha256:c00948070c983b92a392ef03c2fc15799c87949cb3691f20b24dc14fae7dae6d",
+    "revision": 2,
+    "sourceCommit": "2b5e2fab76dc2913c687e9858125fd80c318a582",
+    "previewTag": "nodejs26-2b5e2fab76dc",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs26@sha256:c8ec656025a3c7bac8484a4f50fa64c621740874579887692a791ba60f9c20d5",
     "maxImageMiB": 168
   }
 }
