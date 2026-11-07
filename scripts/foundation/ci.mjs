@@ -3,6 +3,7 @@ const exact = new Set([
   '.dockerignore', '.github/workflows/foundation-build.yml',
   'images/upstream/Dockerfile', 'images/upstream/packages.json',
   'scripts/prototype/assemble.py', 'scripts/runtime/config.mjs', 'scripts/runtime/dockerfile.mjs',
+  'scripts/release/foundation-evidence.mjs', 'scripts/release/file-digest.mjs', 'security/compare-lib.mjs',
 ]);
 
 export function affectsFoundation(files) {

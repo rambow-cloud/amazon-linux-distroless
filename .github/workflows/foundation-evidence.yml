@@ -1,0 +1,50 @@
+name: Sign foundation candidate evidence
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  trusted:
+    name: Require the protected main ref
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "$GITHUB_REF" = refs/heads/main && test "$GITHUB_REPOSITORY" = rambow-cloud/amazon-linux-distroless
+  foundation:
+    name: Build and qualify foundation candidates
+    needs: trusted
+    uses: ./.github/workflows/foundation-build.yml
+    with:
+      force: true
+  sign:
+    name: Sign the exact evidence digest
+    needs: foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: foundation-oci-indexes
+          path: out/evidence
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - working-directory: out/evidence
+        run: |
+          find . -type f -print0 | sort -z | xargs -0 sha256sum > ../SHA256SUMS
+          mv ../SHA256SUMS .
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+          cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+            --certificate-identity 'https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/foundation-evidence.yml@refs/heads/main' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: foundation-signed-evidence
+          path: out/evidence/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

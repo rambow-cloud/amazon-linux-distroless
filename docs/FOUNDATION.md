@@ -21,3 +21,18 @@ Run `gh workflow run foundation-repro.yml --ref main` for a paired clean build o
 Each candidate CI run enforces the [measured size ceilings](../images/foundation/budgets.json). Unpacked bytes are the Docker image size; modeled transfer bytes sum individually gzip-compressed image layers plus the manifest and config. File count includes regular files and symlinks, and package count includes only RPM owners of selected payload files. The reproducibility report also lists official AL2023 base and minimal images from the selected release, including the platform digest and the registry's actual manifest, config and layer byte sizes. Review the report before changing a ceiling.
 
 For a prebuilt application, use an exec-form `ENTRYPOINT ["/app/program"]` and mount only the writable paths the application needs. Match the application binary and native libraries to the target architecture. Follow [Updating inputs](UPDATING.md#foundation-rpm-locks) to refresh the signed RPM locks.
+
+## SBOM, source and provenance
+
+The OCI index artifact includes `evidence/provenance.json`, a CycloneDX SBOM and a payload RPM report for each variant and architecture. The SBOM subject is the exact OCI leaf digest. Components name the owning RPM, package and source versions, license, and pinned source download. The coverage report distinguishes partial RPM payloads from transaction inputs that did not ship. The provenance includes the builder and repository pins, tool package identities, source commit and SHA-256 for each native evidence file. The corresponding source archives are attached to the same run in the architecture artifacts.
+
+For signed evidence, dispatch `gh workflow run foundation-evidence.yml --ref main`. Download the `foundation-signed-evidence` artifact from the successful run and verify it:
+
+```sh
+cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity 'https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/foundation-evidence.yml@refs/heads/main' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' SHA256SUMS
+sha256sum -c SHA256SUMS
+```
+
+Compare architecture artifact files with the checksums in `evidence/provenance.json`. This establishes candidate provenance; registry-level attestations are part of the foundation publication issue.
