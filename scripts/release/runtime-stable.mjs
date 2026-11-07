@@ -53,9 +53,20 @@ function tagDigest(ref) {
   return digest;
 }
 
-function writeTag(tag, plan) {
-  execute('docker', ['buildx', 'imagetools', 'create', '--tag', tag, plan.reference]);
+function writeTag(tag, plan, reference = plan.reference) {
+  execute('docker', ['buildx', 'imagetools', 'create', '--tag', tag, reference]);
   assert.equal(tagDigest(tag), plan.digest, 'Promoted digest differs');
+}
+
+function registryLogin() {
+  execute('docker', ['login', 'ghcr.io', '--username', process.env.GITHUB_ACTOR, '--password-stdin'],
+    { input: process.env.GH_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
+}
+
+function packageVisibility(name) {
+  const output = optional('gh', ['api', 'orgs/rambow-cloud/packages/container/' +
+    encodeURIComponent('amazon-linux-distroless/' + name)], /HTTP 404/);
+  return output === null ? null : JSON.parse(output).visibility;
 }
 
 function gitTagCommit(tag) {
@@ -77,8 +88,9 @@ const candidates = read('releases/stable-candidates.json');
 assert.ok(Object.hasOwn(candidates, runtime), 'No reviewed stable candidate');
 const plan = stablePlan(runtime, candidates[runtime]);
 const publish = process.env.STABLE_MODE === 'publish';
-assert.ok(publish || process.env.STABLE_MODE === 'check', 'Expected check or publish');
-if (publish) {
+const mirror = process.env.STABLE_MODE === 'mirror';
+assert.ok(publish || mirror || process.env.STABLE_MODE === 'check', 'Expected check, publish, or mirror');
+if (publish || mirror) {
   assert.ok(process.env.DOCKER_CONFIG && process.env.GH_TOKEN, 'Missing publishing configuration');
   fs.mkdirSync(process.env.DOCKER_CONFIG, { recursive: true });
 }
@@ -86,8 +98,7 @@ execute('git', ['merge-base', '--is-ancestor', plan.sourceCommit, head]);
 assert.equal(capture('git', ['rev-parse', 'refs/tags/' + plan.previewTag + '^{commit}']), plan.sourceCommit);
 const preview = JSON.parse(capture('gh', ['api', releaseAPI(plan.previewTag)]));
 assert.ok(preview.prerelease && !preview.draft && preview.tag_name === plan.previewTag, 'Expected published preview');
-assert.equal(JSON.parse(capture('gh', ['api', 'orgs/rambow-cloud/packages/container/' +
-  encodeURIComponent('amazon-linux-distroless/' + runtime)])).visibility, 'public');
+assert.equal(packageVisibility(runtime), 'public');
 
 const input = 'out/stable-input';
 const out = 'out/stable-evidence';
@@ -146,6 +157,73 @@ const existingDigest = tagDigest(plan.immutable);
 assert.ok(existingDigest === null || existingDigest === plan.digest, 'Immutable image tag collision');
 const existingCommit = gitTagCommit(plan.releaseTag);
 if (existingCommit) execute('git', ['merge-base', '--is-ancestor', existingCommit, head]);
+const required = {
+  schemaVersion: 1, runtime, version: plan.version, revision: plan.revision, reference: plan.reference,
+  sourceCommit: plan.sourceCommit, immutable: plan.immutable, alias: plan.alias, releaseTag: plan.releaseTag,
+  previewRelease: releaseURL(plan.previewTag), previewEvidenceSHA256: provenance.evidenceSHA256,
+  leaves: provenance.leaves,
+};
+
+function publishedStableRecord() {
+  const released = JSON.parse(capture('gh', ['api', releaseAPI(plan.releaseTag)]));
+  assert.ok(!released.draft && !released.prerelease, 'Expected published stable release');
+  assert.equal(existingDigest, plan.digest, 'Published stable release is missing its immutable image');
+  releaseDownload(plan.releaseTag, input, ['stable.json']);
+  const record = read(input + '/stable.json');
+  for (const [key, value] of Object.entries(required)) assert.deepEqual(record[key], value, 'Stable record differs: ' + key);
+  assert.ok(existingCommit && record.releaseCommit === existingCommit, 'Published stable Git tag differs from the signed record');
+  verifyAttestations(plan.reference, stablePredicate, stableIdentity, plan.digest, record);
+  assetMatches(released.assets, 'stable.json', 'sha256:' + hash(input + '/stable.json'));
+  for (const [name, checksum] of Object.entries(record.scanHashes)) assetMatches(released.assets, name, checksum);
+  return record;
+}
+
+function publishChannel(record) {
+  registryLogin();
+  const visibility = packageVisibility(plan.variant);
+  const current = visibility === null ? null : tagDigest(plan.channel);
+  if (current) {
+    const { statements } = verifyAttestations(plan.channelBase + '@' + current, stablePredicate, stableIdentity, current);
+    const known = statements.filter(item => item.runtime === runtime && item.alias === plan.alias &&
+      item.reference === plan.base + '@' + current);
+    assert.ok(known.length, 'The shared channel has no matching stable record');
+    assert.ok(known.every(item => item.version === known[0].version && item.revision === known[0].revision),
+      'Conflicting stable records for the shared channel');
+    verifyAdvance(plan, known[0]);
+  }
+  if (current !== plan.digest) {
+    // Copy the index, leaves and their Cosign attachments by digest before
+    // publishing the moving tag.
+    execute('cosign', ['copy', plan.reference, plan.channelReference]);
+  }
+  assert.equal(packageVisibility(plan.variant), 'public', 'The shared channel package must be public');
+  validateIndex(JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', plan.channelReference])), record.leaves);
+  execute('cosign', ['verify', '--certificate-identity', plan.previewIdentity,
+    '--certificate-oidc-issuer', issuer, plan.channelReference]);
+  verifyAttestations(plan.channelReference, plan.previewPredicate, plan.previewIdentity, plan.digest, provenance);
+  verifyAttestations(plan.channelReference, stablePredicate, stableIdentity, plan.digest, record);
+  for (const arch of architectures) {
+    const leaf = record.leaves[arch];
+    verifyAttestations(plan.channelBase + '@' + leaf, 'cyclonedx', plan.previewIdentity, leaf,
+      read(input + '/' + arch + '-sbom.cdx.json'));
+  }
+  if (current !== plan.digest) {
+    assert.equal(tagDigest(plan.channel), current, 'The shared channel changed during promotion');
+    writeTag(plan.channel, plan, plan.channelReference);
+  }
+  write(out + '/published-channel.json', {
+    runtime, alias: plan.channel, reference: plan.channelReference, leaves: record.leaves,
+    releaseUrl: record.releaseUrl,
+  });
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'Stable channel ' + plan.channel + '\n\n' +
+    plan.channelReference + '\n');
+}
+
+if (mirror) {
+  assert.equal(oldDigest, plan.digest, 'Complete the approved stable release before mirroring');
+  publishChannel(publishedStableRecord());
+  process.exit(0);
+}
 
 const alas = alasScanner(out, execute, read, hash);
 const grype = upstream ? upstreamScanner(out, execute, capture, hash) : null;
@@ -161,15 +239,6 @@ const security = {
   ...(grype ? { upstream: { scanner: grype.scanner, database: grype.database, scans: upstreamScans } } : {}),
 };
 write(out + '/security.json', security);
-const required = {
-  schemaVersion: 1, runtime, version: plan.version, revision: plan.revision, reference: plan.reference,
-  sourceCommit: plan.sourceCommit, immutable: plan.immutable, alias: plan.alias, releaseTag: plan.releaseTag,
-  previewRelease: releaseURL(plan.previewTag), previewEvidenceSHA256: provenance.evidenceSHA256,
-  leaves: provenance.leaves,
-};
-const matchRecord = record => {
-  for (const [key, value] of Object.entries(required)) assert.deepEqual(record[key], value, 'Stable record differs: ' + key);
-};
 let record = {
   ...required, previousReference: oldReference,
   promotionRun: 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID,
@@ -184,16 +253,7 @@ if (publish) {
     '--json', 'isDraft,isPrerelease,body,targetCommitish'], /release not found|HTTP 404/i);
   const existing = release === null ? null : JSON.parse(release);
   if (existing && !existing.isDraft) {
-    assert.equal(existing.isPrerelease, false);
-    assert.equal(existingDigest, plan.digest, 'Published stable release is missing its immutable image');
-    releaseDownload(plan.releaseTag, input, ['stable.json']);
-    record = read(input + '/stable.json');
-    matchRecord(record);
-    assert.ok(existingCommit && record.releaseCommit === existingCommit, 'Published stable Git tag differs from the signed record');
-    verifyAttestations(plan.reference, stablePredicate, stableIdentity, plan.digest, record);
-    const released = JSON.parse(capture('gh', ['api', releaseAPI(plan.releaseTag)]));
-    assetMatches(released.assets, 'stable.json', 'sha256:' + hash(input + '/stable.json'));
-    for (const [name, checksum] of Object.entries(record.scanHashes)) assetMatches(released.assets, name, checksum);
+    record = publishedStableRecord();
   } else {
     const marker = '<!-- stable-candidate ' + plan.reference + ' -->';
     if (existing) assert.ok(existing.body.includes(marker), 'Draft belongs to a different promotion');
@@ -205,14 +265,13 @@ if (publish) {
       'Build source commit `' + plan.sourceCommit + '`. The release Git tag identifies the promotion commit.', '',
       'Native amd64 and arm64 evidence, corresponding source and SBOMs are attached to the [qualified preview](' +
         record.previewRelease + '). This release attaches the fresh scan results and signed promotion record.', '',
-      'Rolling stable tag `' + plan.alias + '`.', '',
+      'Rolling stable tag `' + plan.channel + '`.', '',
     ].join('\n'));
     if (!existing) ghRelease('create', plan.releaseTag, '--draft', '--target', head,
       '--title', runtime + ' ' + plan.version + '-r' + plan.revision + ' stable', '--notes-file', notes);
     else if (!existingCommit && existing.targetCommitish !== head) ghRelease('edit', plan.releaseTag, '--target', head);
     write(out + '/stable.json', record);
-    execute('docker', ['login', 'ghcr.io', '--username', process.env.GITHUB_ACTOR, '--password-stdin'],
-      { input: process.env.GH_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
+    registryLogin();
     execute('cosign', ['attest', '--yes', '--type', stablePredicate, '--predicate', out + '/stable.json', plan.reference]);
     const verified = verifyAttestations(plan.reference, stablePredicate, stableIdentity, plan.digest, record);
     fs.writeFileSync(out + '/stable-attestation-verification.json', verified.raw + '\n');
@@ -228,11 +287,11 @@ if (publish) {
   }
   if (oldDigest !== plan.digest) {
     assert.equal(tagDigest(plan.alias), oldDigest, 'The stable alias changed during promotion');
-    if (existing && !existing.isDraft) execute('docker', ['login', 'ghcr.io', '--username', process.env.GITHUB_ACTOR,
-      '--password-stdin'], { input: process.env.GH_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
+    if (existing && !existing.isDraft) registryLogin();
     writeTag(plan.alias, plan);
   }
   write(out + '/published-stable.json', record);
+  publishChannel(record);
 }
 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
   '# ' + (publish ? 'Published stable ' : 'Validated stable candidate ') + runtime + '\n\n' +

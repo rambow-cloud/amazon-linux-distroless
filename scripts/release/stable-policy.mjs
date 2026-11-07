@@ -27,6 +27,7 @@ export function stablePlan(runtime, candidate) {
   assert.match(digest, digestPattern);
   assert.equal(extra.length, 0);
   const tag = candidate.version + '-r' + candidate.revision;
+  const channelBase = 'ghcr.io/' + repository + '/' + config.variant;
   return {
     ...candidate,
     runtime,
@@ -35,6 +36,9 @@ export function stablePlan(runtime, candidate) {
     digest,
     immutable: base + ':' + tag,
     alias: base + ':' + config.version,
+    channelBase,
+    channel: channelBase + ':' + config.version,
+    channelReference: channelBase + '@' + digest,
     releaseTag: runtime + '-' + tag,
     previewIdentity: identity(major ? 'java21-publish.yml' : 'runtime-publish.yml'),
     previewPredicate: 'https://rambow-cloud.github.io/amazon-linux-distroless/' + runtime + '-qualified-build/v1',

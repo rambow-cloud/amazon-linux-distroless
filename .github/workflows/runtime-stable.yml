@@ -9,9 +9,9 @@ on:
         default: all
         required: true
       mode:
-        description: Check the candidate or publish the stable release
+        description: Check, publish, or mirror an existing stable release
         type: choice
-        options: [check, publish]
+        options: [check, publish, mirror]
         default: check
         required: true
 permissions:
