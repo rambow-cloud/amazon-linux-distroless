@@ -1,8 +1,6 @@
 # Delivered language runtimes
 
-All ten version lines have public stable revisions and moving stable tags. The [stable release index](STABLE.md) records the exact digests, release evidence and promotion workflow.
-
-All ten lines have public signed previews for native **linux/amd64 and linux/arm64**, with trusted-main publication records, native final-image verification, matching source and persistent evidence. Project-wide stable v1 acceptance remains open.
+All ten version lines have public signed stable revisions on native **linux/amd64 and linux/arm64**. Use the [stable release index](STABLE.md) for current tags, digests and release evidence. The [v1.0 acceptance report](V1-ACCEPTANCE.md) records the initial stable baseline. The preview references below identify the builds that supplied that release evidence.
 
 Image prefix: `ghcr.io/rambow-cloud/amazon-linux-distroless/`.
 
@@ -58,6 +56,43 @@ cosign verify-attestation --type cyclonedx --certificate-identity "$build" --cer
 ```
 
 For Java, use the build identity ending in `java21-publish.yml@refs/heads/main`. For arm64, select the arm64 leaf. Match the signed predicate and corresponding source links to the release record.
+
+## Runtime behavior and troubleshooting
+
+| Area | Runtime contract |
+| --- | --- |
+| System CA roots | The AL2023 PEM bundle is available at `/etc/ssl/certs/ca-certificates.crt`. Foundation, Python and Node.js images set `SSL_CERT_FILE` to that path. Python's standard-library TLS uses OpenSSL trust defaults, and Node.js sets `NODE_OPTIONS=--use-openssl-ca`. |
+| Java trust | Corretto's `$JAVA_HOME/lib/security/cacerts` links to the AL2023 Java truststore at `/etc/pki/java/cacerts`. Configure a separate JVM truststore with `-Djavax.net.ssl.trustStore=/path/to/truststore` when the application needs private roots. |
+| Identity and DNS | UID and GID `65532` map to `nonroot`. The glibc images use local passwd/group files and resolve hosts through local files followed by DNS. Docker or Kubernetes supplies `/etc/hosts` and `/etc/resolv.conf`. A fully static application's resolver behavior depends on how it was built. |
+| Time zones and locale | The system zoneinfo payload provides UTC, with `TZ=UTC` and `/etc/localtime` linked to UTC. The glibc images provide `C.UTF-8`. `static` carries the environment setting and leaves locale handling to the application. Node.js has its own ICU locale data. Test named time zones and formatting with the selected language API and supply any additional data your application requires. |
+
+For a private CA, mount a bundle read-only and set the application's trust configuration explicitly. A client library may use its own bundle or a custom SSL context. Preserve the system roots in a replacement bundle when the application also needs public trust. Keep certificate and hostname verification enabled.
+
+Choose the build environment for the target architecture and ABI. Use pure Go with `CGO_ENABLED=0` for the qualified static workload, or an AL2023-compatible loader and library closure with [`base`](FOUNDATION.md). Build Java bytecode for the selected major and check the linked [module list](JAVA.md) and JNI dependencies. Install wheels for the selected CPython minor, default GIL ABI and architecture. Build Node.js addons for the selected architecture and module ABI or a supported N-API level. Copy any extra application libraries in the builder stage.
+
+Inspect startup failures from outside the container. For Docker, record the image ID, exit code, OOM state and application logs:
+
+```sh
+docker inspect --format '{{.Image}} {{.State.ExitCode}} {{.State.OOMKilled}} {{.State.Error}}' "$container"
+docker logs "$container"
+```
+
+For Kubernetes, check events, the effective image ID and container logs. Use `--previous` after a restart. See [Docker inspect](https://docs.docker.com/reference/cli/docker/inspect/) and [Kubernetes Pod debugging](https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/).
+
+```sh
+kubectl -n "$namespace" describe pod "$pod"
+kubectl -n "$namespace" logs "$pod" -c "$container"
+kubectl -n "$namespace" logs "$pod" -c "$container" --previous
+```
+
+| Symptom | What to check |
+| --- | --- |
+| `exec format error`, missing loader or missing shared object | Compare the node architecture with the OCI leaf and application binary. Inspect the binary's interpreter and `DT_NEEDED` entries with `readelf` in the builder. |
+| Class version, missing module, wheel import or addon load failure | Check the Java target and linked modules, CPython SOABI, or Node ABI/N-API against the selected version and architecture. |
+| DNS or TLS failure | Compare the service name, namespace, DNS configuration, network policy, certificate chain and hostname. A diagnostic container uses its own trust store, so reproduce verification in the application or its fixture as well. |
+| `EROFS` or permission denied | Check the numeric UID/GID and mount ownership. Direct temporary writes to a writable `/tmp` and use explicit writable volumes for persistent data. |
+
+For network diagnostics, use an approved tool image pinned by digest in an isolated container. Docker can share the network namespace of a running target with `--network container:$container`. In Kubernetes, use an ephemeral container if RBAC and admission allow it. Its filesystem and trust settings are separate from the workload. Reproduce a startup crash in a disposable environment with the same image digest, arguments and mounts. The decision on project-maintained debug images is tracked for v1.1 in [#15](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15). See [Docker container networking](https://docs.docker.com/engine/network/) and [Kubernetes ephemeral containers](https://kubernetes.io/docs/concepts/workloads/pods/ephemeral-containers/).
 
 ## Evidence and maintenance
 

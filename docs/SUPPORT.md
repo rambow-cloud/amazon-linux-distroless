@@ -1,6 +1,6 @@
 # Runtime support and maintenance
 
-The delivered matrix is Java 17/21/25, Python 3.11–3.14 (default GIL builds), and Node.js 22/24/26 on native linux/amd64 and linux/arm64. These are community-maintained previews owned by rambow-cloud, without a commercial support SLA. [Runtime delivery](RUNTIMES.md) records observed patch versions and evidence.
+The stable matrix is Java 17/21/25, Python 3.11–3.14 (default GIL builds), and Node.js 22/24/26 on native linux/amd64 and linux/arm64. rambow-cloud maintains these images on a community basis. The [stable release index](STABLE.md) and [v1.0 acceptance report](V1-ACCEPTANCE.md) record published versions and evidence.
 
 ## Lifecycle boundaries
 
@@ -33,12 +33,12 @@ The [qualification policy](../releases/runtime-support.json) records the earlier
 
 rambow-cloud maintainers own reviewed builder/repository/RPM refreshes, file and ABI contracts, native qualification, source/license delivery, vulnerability decisions and signed publication. Consumers own application dependencies, application-specific native libraries, digest updates and deployment rollback.
 
-Daily AL2023 discovery and daily Python/Node.js discovery feed the protected refresh workflows. [UPDATING.md](UPDATING.md) describes native resolution, issue-linked lock PRs, protected checks, signed publication, evidence verification and consumer digest promotion. Preview maintenance carries no response-time guarantee.
+Daily AL2023 discovery and daily Python/Node.js discovery feed the protected refresh workflows. [UPDATING.md](UPDATING.md) describes native resolution, issue-linked lock PRs, protected checks, signed publication, evidence verification and consumer digest promotion. Community maintenance carries no response-time guarantee.
 
 ## ABI, size and licensing
 
 Java uses per-major linked headless module contracts. Python wheels must match the selected CPython minor ABI, the default GIL build, architecture and compatible AL2023 libraries. Node addons must match architecture/libc and either the selected module ABI or a supported N-API boundary. Arbitrary JNI, wheel and addon compatibility is not guaranteed. See [Java](JAVA.md), [Python](PYTHON.md) and [Node.js](NODEJS.md).
 
-Delivery reports measure uncompressed runtime-image bytes separately from source/evidence archives. Native qualification and exact file audits are delivered; enforced size budgets and measured byte-identical OCI reproducibility remain #8/#23. Deterministic RPM locks alone do not prove either.
+Native qualification enforces size ceilings and audits the saved image files. The [acceptance report](V1-ACCEPTANCE.md) separates uncompressed runtime-image bytes from evidence archives and records the outcome of paired clean builds at the normalized-file and OCI digest levels.
 
 Project-authored files use Apache-2.0. Redistributed components retain their individual licenses, notices and applicable corresponding-source obligations; Apache-2.0 does not relicense AL2023 packages. Releases preserve source RPMs, applicable upstream source archives and project source. Consumer examples copy the project license for their project-owned native fixture. No standalone C++ image, FIPS certification, general GUI/CJK-font bundle or unrestricted native-library compatibility is claimed.

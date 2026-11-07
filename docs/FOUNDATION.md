@@ -49,7 +49,7 @@ cosign verify-blob --bundle SHA256SUMS.sigstore.json \
 sha256sum -c SHA256SUMS
 ```
 
-Compare architecture artifact files with the checksums in `evidence/provenance.json`. This establishes candidate provenance; registry-level attestations are part of the foundation publication issue.
+Compare architecture artifact files with the checksums in `evidence/provenance.json`. Use the stable release below for registry-level verification.
 
 ## Stable foundation promotion
 
@@ -61,6 +61,29 @@ gh workflow run foundation-release.yml --ref main -f revision=1
 
 Promotion runs the full native foundation/language qualification and fresh scans. It signs both OCI indexes, attaches the platform SBOMs, preserves matching source and scan evidence in the GitHub Release, and then moves `static:2023` and `base:2023` under `ghcr.io/rambow-cloud/amazon-linux-distroless/`. Each image has a fixed tag such as `base:2023.12.20261102-r1`. Use revision 1 for a newer AL2023 repository snapshot, or increment the revision for a new digest of the same snapshot.
 
-Read the exact digest from `foundation-release.json` in the GitHub Release. Verify the index and its promotion attestation with Cosign using certificate identity `https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/foundation-release.yml@refs/heads/main`, issuer `https://token.actions.githubusercontent.com`, and attestation type `https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1`. Verify each platform CycloneDX attestation on its own manifest digest with the same identity and issuer. Release asset SHA-256 values are in the signed record.
+Select a GitHub Release tag from the [acceptance report](V1-ACCEPTANCE.md) or the later foundation releases. Verify the index, the signed release record and the platform SBOM. This example selects the v1.0 base image on amd64:
+
+```sh
+set -eu
+release='foundation-2023.12.20261102-r1'
+variant='base'
+arch='amd64'
+repo='rambow-cloud/amazon-linux-distroless'
+issuer='https://token.actions.githubusercontent.com'
+identity="https://github.com/$repo/.github/workflows/foundation-release.yml@refs/heads/main"
+predicate='https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1'
+record=$(gh release download "$release" --repo "$repo" --pattern foundation-release.json --output -)
+image=$(printf '%s' "$record" | jq -er --arg v "$variant" '.images[$v].reference')
+leaf=$(printf '%s' "$record" | jq -er --arg v "$variant" --arg a "$arch" '.images[$v].leaves[$a]')
+cosign verify --certificate-identity "$identity" --certificate-oidc-issuer "$issuer" "$image"
+attestations=$(cosign verify-attestation --type "$predicate" --certificate-identity "$identity" \
+  --certificate-oidc-issuer "$issuer" "$image")
+printf '%s\n' "$attestations" | jq -es --argjson record "$record" \
+  '[.[] | (if type == "array" then .[] else . end) | .payload | @base64d | fromjson | .predicate] | any(. == $record)'
+cosign verify-attestation --type cyclonedx --certificate-identity "$identity" \
+  --certificate-oidc-issuer "$issuer" "${image%@*}@$leaf"
+```
+
+The signed record's `assets` entries give the SHA-256 digests for downloaded evidence files. Select `arm64` for that platform or `static` for the static image.
 
 If promotion stops partway through, rerun the failed job from the same release workflow and source commit. A draft belongs to the exact approved digests; an already published release is only replayed after checking its immutable image and signed evidence. Roll back a consumer by redeploying its prior verified application and base digests.

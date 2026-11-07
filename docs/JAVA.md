@@ -38,6 +38,4 @@ Each publication rebuilds both architectures at the actual trusted source commit
 
 The keyless certificate identity remains `https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/java21-publish.yml@refs/heads/main`. The issuer is `https://token.actions.githubusercontent.com`; the exact qualified-build predicate type is recorded with the release. Retired comparison workflows remain disabled; production publication retains the fixable High/Critical ALAS gate and advisory-coverage limitations.
 
-## Delivery order
-
-Complete Java 17/21/25 qualification and public signed delivery first. Python [#21](https://github.com/rambow-cloud/amazon-linux-distroless/issues/21) follows, then Node.js [#22](https://github.com/rambow-cloud/amazon-linux-distroless/issues/22). Supporting all three Java lines does not complete the full requested language matrix or the project-wide stable-release milestones.
+The [stable release index](STABLE.md) tracks the public Java channels. The [v1.0 acceptance report](V1-ACCEPTANCE.md) records the initial stable revisions alongside the other runtimes.
