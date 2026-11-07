@@ -30,7 +30,7 @@ def checksum(path):
     return digest.hexdigest()
 
 
-def read_lock(path):
+def read_lock(path, *, foundation=False):
     lock = json.loads(Path(path).read_text())
     if lock.get("schema_version") != 1 or lock.get("platform") not in ("linux/amd64", "linux/arm64"):
         raise ValueError("Only schema 1, native amd64/arm64 is supported")
@@ -40,7 +40,10 @@ def read_lock(path):
     if not re.fullmatch(r"2023\.\d+\.\d{8}", lock["releasever"]):
         raise ValueError("Explicit repository release required")
     variants = set(lock["variants"]) - {"base"}
-    if "base" not in lock["variants"] or len(variants) != 1 or not variants <= {"java", "python", "nodejs"}:
+    if foundation:
+        if set(lock["variants"]) != {"base"}:
+            raise ValueError("Expected only the foundation RPM transaction")
+    elif "base" not in lock["variants"] or len(variants) != 1 or not variants <= {"java", "python", "nodejs"}:
         raise ValueError("Expected base and one supported language variant")
     if not isinstance(lock.get("source_date_epoch"), int) or lock["source_date_epoch"] < 0:
         raise ValueError("Invalid normalization timestamp")

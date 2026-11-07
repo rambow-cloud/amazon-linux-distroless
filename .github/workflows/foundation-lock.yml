@@ -1,0 +1,39 @@
+name: Foundation RPM locks
+on:
+  pull_request:
+    paths:
+      - .github/workflows/foundation-lock.yml
+      - images/upstream/packages.json
+      - locks/foundation/**
+      - scripts/foundation/lock.mjs
+      - scripts/foundation/test_lock.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resolve:
+    name: Foundation RPM lock (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Resolve and verify official RPMs
+        env:
+          ARCH: ${{ matrix.arch }}
+          MODE: ${{ github.event_name == 'pull_request' && 'check' || 'resolve' }}
+        run: node scripts/foundation/lock.mjs "$ARCH" "$MODE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: foundation-rpm-lock-${{ matrix.arch }}
+          path: out/foundation-lock/
+          if-no-files-found: error

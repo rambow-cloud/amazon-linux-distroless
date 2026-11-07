@@ -60,6 +60,12 @@ The [upstream runtime guide](UPSTREAM-RUNTIMES.md) covers independent Python and
 
 All container resolution, builds, runtime tests and scans run only in GitHub Actions. There is no package-manager update command inside a delivered runtime: the update unit is a new verified image plus rebuilt applications.
 
+## Foundation RPM locks
+
+The native amd64 and arm64 foundation locks record the official builder digest, explicit repository release, strong RPM dependency closure, builder tools and corresponding source RPMs. Weak dependencies are disabled. The initial snapshots use the identical `base` transaction already resolved for the Python and Node.js builders. This is a staging transaction; image inventories determine which files and packages actually ship.
+
+Update the explicit builder tag and repository release in `images/upstream/packages.json`, then run `gh workflow run foundation-lock.yml --ref <candidate-branch>`. Download both `foundation-rpm-lock-<arch>` artifacts and review changes to NEVRA, source RPM, checksum, license, official download URL and tool package lists before committing under `locks/foundation/`. Pull request CI re-resolves the closure using the committed builder digest and verifies a match on both architectures. It also checks rejection of tampered inputs.
+
 ## Stable promotion
 
 After a preview is published, review its digest and release evidence in a stable candidate plan PR. Run the stable workflow on main to refresh the scans, sign the promotion and advance the stable alias. Follow the [stable channel guide](STABLE.md).
