@@ -34,3 +34,8 @@
 
 !images/nodejs24/
 !images/nodejs24/**
+
+!examples/nodejs24/
+!examples/nodejs24/**
+!examples/node-app/
+!examples/node-app/**

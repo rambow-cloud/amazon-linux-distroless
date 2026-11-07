@@ -5,7 +5,7 @@ on:
       runtime:
         description: Qualified language runtime to publish
         type: choice
-        options: ['python314']
+        options: ['python314', 'nodejs24']
         default: 'python314'
         required: true
 env:

@@ -1,0 +1,12 @@
+{
+  "id": "nodejs24",
+  "variant": "nodejs",
+  "version": "24",
+  "executable": "/usr/bin/node-24",
+  "identity_packages": ["nodejs24", "nodejs24-libs", "nodejs24-full-i18n"],
+  "directories": ["app", "tmp"],
+  "seeds": ["/usr/bin/node-24", "/usr/share/node-24/icudata", "/etc/pki/tls/openssl.cnf", "/etc/crypto-policies/back-ends/opensslcnf.config", "/usr/lib64/ossl-modules"],
+  "aliases": {"/usr/bin/node": "/usr/bin/node-24"},
+  "allowed_paths": [],
+  "excluded_names": ["__pycache__", "node_modules", "npm", "npx", "corepack", "node-gyp"]
+}

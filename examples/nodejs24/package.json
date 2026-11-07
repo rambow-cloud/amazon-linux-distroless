@@ -1,0 +1,7 @@
+{
+  "name": "runtime-contract-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {"native-contract": "file:vendor/native-contract"}
+}
