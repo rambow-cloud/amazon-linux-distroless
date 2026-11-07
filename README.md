@@ -2,7 +2,7 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from Amazon Linux 2023 packages with shared static/base foundations.
 
-**Status: Java 17, 21 and 25 have public signed previews qualified on native amd64/arm64. Python and Node.js follow Java; project-wide stable v1 is not yet released.** See [all Java releases, immutable digests and source downloads](docs/JAVA-RELEASES.md), [versioned Java configuration](docs/JAVA.md), [runtime contract](docs/JAVA21.md), and historical [prototype](docs/PROTOTYPE.md). Each Java GHCR package is Public and supports anonymous pulls; its GitHub Release includes downloadable image archives and matching source.
+**Status: Java 17, 21, 25 and Python 3.14 have public signed previews qualified on native amd64/arm64. Node.js follows next; project-wide stable v1 is not yet released.** See [Java delivery](docs/JAVA-RELEASES.md), [Python delivery](docs/PYTHON-RELEASE.md), [versioned Java configuration](docs/JAVA.md), and [Python contract](docs/PYTHON.md). Each delivered GHCR package is Public and supports anonymous pulls; its GitHub Release includes downloadable image archives and matching source.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
@@ -22,7 +22,7 @@ There is no standalone `cc` image or general C++ application support. Audited na
 
 Each language initially targets one explicitly selected maintained version line. [The language-runtime contract RFC](https://github.com/rambow-cloud/amazon-linux-distroless/issues/16) selects versions from the pinned AL2023 release and defines versioned image names, executable paths, ABI boundaries, and maintenance windows. No floating system default is a version contract.
 
-Java 17/21/25 preview references are recorded in [the delivery report](docs/JAVA-RELEASES.md). Names/tags for Python, Node.js and shared foundation variants remain proposals until their release policies are accepted.
+Java 17/21/25 and Python 3.14 preview references are recorded in their delivery reports. Names/tags for Node.js and shared foundation variants remain proposals until their release policies are accepted.
 
 ## Implementation approach
 
