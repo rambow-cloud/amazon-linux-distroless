@@ -145,7 +145,7 @@ verifyAdvance(plan, previous);
 const existingDigest = tagDigest(plan.immutable);
 assert.ok(existingDigest === null || existingDigest === plan.digest, 'Immutable image tag collision');
 const existingCommit = gitTagCommit(plan.releaseTag);
-assert.ok(existingCommit === null || existingCommit === plan.sourceCommit, 'Immutable Git tag collision');
+if (existingCommit) execute('git', ['merge-base', '--is-ancestor', existingCommit, head]);
 
 const alas = alasScanner(out, execute, read, hash);
 const grype = upstream ? upstreamScanner(out, execute, capture, hash) : null;
@@ -173,7 +173,7 @@ const matchRecord = record => {
 let record = {
   ...required, previousReference: oldReference,
   promotionRun: 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID,
-  promotionCommit: head, releaseUrl: releaseURL(plan.releaseTag),
+  promotionCommit: head, releaseCommit: existingCommit ?? head, releaseUrl: releaseURL(plan.releaseTag),
   imageBytes: Object.fromEntries(architectures.map(arch => [arch, records[arch].image.size])),
   maxImageMiB: plan.maxImageMiB,
   scanHashes: Object.fromEntries(fs.readdirSync(out).sort().map(name => [name, 'sha256:' + hash(out + '/' + name)])),
@@ -181,15 +181,15 @@ let record = {
 
 if (publish) {
   const release = optional('gh', ['release', 'view', plan.releaseTag, '--repo', repository,
-    '--json', 'isDraft,isPrerelease,body'], /release not found|HTTP 404/i);
+    '--json', 'isDraft,isPrerelease,body,targetCommitish'], /release not found|HTTP 404/i);
   const existing = release === null ? null : JSON.parse(release);
   if (existing && !existing.isDraft) {
     assert.equal(existing.isPrerelease, false);
     assert.equal(existingDigest, plan.digest, 'Published stable release is missing its immutable image');
-    assert.equal(existingCommit, plan.sourceCommit, 'Published stable release has the wrong Git commit');
     releaseDownload(plan.releaseTag, input, ['stable.json']);
     record = read(input + '/stable.json');
     matchRecord(record);
+    assert.ok(existingCommit && record.releaseCommit === existingCommit, 'Published stable Git tag differs from the signed record');
     verifyAttestations(plan.reference, stablePredicate, stableIdentity, plan.digest, record);
     const released = JSON.parse(capture('gh', ['api', releaseAPI(plan.releaseTag)]));
     assetMatches(released.assets, 'stable.json', 'sha256:' + hash(input + '/stable.json'));
@@ -197,16 +197,19 @@ if (publish) {
   } else {
     const marker = '<!-- stable-candidate ' + plan.reference + ' -->';
     if (existing) assert.ok(existing.body.includes(marker), 'Draft belongs to a different promotion');
+    if (existingCommit) assert.equal(existing?.targetCommitish, existingCommit, 'Immutable Git tag collision');
     const notes = out + '/release-notes.md';
     fs.writeFileSync(notes, [
       '# ' + runtime + ' ' + plan.version + '-r' + plan.revision + ' stable', '',
       marker, '', 'Image digest ' + plan.reference + '.', '',
+      'Build source commit `' + plan.sourceCommit + '`. The release Git tag identifies the promotion commit.', '',
       'Native amd64 and arm64 evidence, corresponding source and SBOMs are attached to the [qualified preview](' +
         record.previewRelease + '). This release attaches the fresh scan results and signed promotion record.', '',
       'Rolling stable tag `' + plan.alias + '`.', '',
     ].join('\n'));
-    if (!existing) ghRelease('create', plan.releaseTag, '--draft', '--target', plan.sourceCommit,
+    if (!existing) ghRelease('create', plan.releaseTag, '--draft', '--target', head,
       '--title', runtime + ' ' + plan.version + '-r' + plan.revision + ' stable', '--notes-file', notes);
+    else if (!existingCommit && existing.targetCommitish !== head) ghRelease('edit', plan.releaseTag, '--target', head);
     write(out + '/stable.json', record);
     execute('docker', ['login', 'ghcr.io', '--username', process.env.GITHUB_ACTOR, '--password-stdin'],
       { input: process.env.GH_TOKEN, stdio: ['pipe', 'pipe', 'inherit'] });
@@ -219,7 +222,7 @@ if (publish) {
     ghRelease('edit', plan.releaseTag, '--draft=false', '--latest=false');
     const released = JSON.parse(capture('gh', ['api', releaseAPI(plan.releaseTag)]));
     assert.ok(!released.draft && !released.prerelease, 'Expected published stable release');
-    assert.equal(gitTagCommit(plan.releaseTag), plan.sourceCommit, 'Stable Git tag differs from candidate commit');
+    assert.equal(gitTagCommit(plan.releaseTag), record.releaseCommit, 'Stable Git tag differs from the promotion record');
     assetMatches(released.assets, 'stable.json', 'sha256:' + hash(out + '/stable.json'));
     for (const [name, checksum] of Object.entries(record.scanHashes)) assetMatches(released.assets, name, checksum);
   }

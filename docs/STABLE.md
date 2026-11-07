@@ -15,6 +15,8 @@ The workflow verifies the signed preview index and qualified-build provenance ag
 
 Promotion binds the same index digest to the fixed revision tag. The rolling alias moves after the versioned image and the published GitHub Release have been verified. The workflow rejects downgrade attempts and collisions. A rerun can finish the alias update for a verified release or resume a draft bound to the same digest. Published revision evidence is preserved.
 
+The GitHub Release tag identifies the protected main promotion commit. The signed record identifies both that commit and the original build source commit, and the qualified preview supplies the matching build source archives.
+
 Consumers can pin the exact index digest. Roll back a deployment by redeploying the previous accepted application and runtime digests. Use the stable release's `stable.json` to recover its digest and previous reference.
 
 The stable attestation type is `https://rambow-cloud.github.io/amazon-linux-distroless/runtime-stable/v1`. Its certificate identity is `https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/runtime-stable.yml@refs/heads/main` and its issuer is `https://token.actions.githubusercontent.com`. The verified predicate records the runtime, revision, source commit, preview and scan checksums. Check the tag and digest in the record before using it as deployment evidence.
