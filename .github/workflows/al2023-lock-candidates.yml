@@ -1,0 +1,87 @@
+name: Prepare AL2023 snapshot lock candidates
+on:
+  workflow_run:
+    workflows: [AL2023 builder discovery]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/al2023-lock-candidates.yml
+      - scripts/upstream/al2023-lock-candidate.mjs
+permissions:
+  actions: read
+  contents: read
+jobs:
+  plan:
+    name: Select the official immutable snapshot
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.repository == 'rambow-cloud/amazon-linux-distroless' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      contains(fromJSON('["schedule","workflow_dispatch"]'), github.event.workflow_run.event))
+    runs-on: ubuntu-24.04
+    outputs:
+      eligible: ${{ steps.plan.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: github.event_name == 'workflow_run'
+        with:
+          name: al2023-builder-discovery
+          path: out/al2023-discovery
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - id: plan
+        run: node scripts/upstream/al2023-lock-candidate.mjs plan
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: al2023-candidate-plan
+          path: out/al2023-candidate/plan.json
+          if-no-files-found: error
+  resolve:
+    name: Prepare native lock (${{ matrix.family }}, ${{ matrix.arch }})
+    needs: plan
+    if: needs.plan.outputs.eligible == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [foundation, java17, java21, java25, python, nodejs]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: al2023-candidate-plan
+          path: out/al2023-candidate
+      - env:
+          FAMILY: ${{ matrix.family }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          node scripts/upstream/al2023-lock-candidate.mjs stage "$FAMILY" "$ARCH"
+          case "$FAMILY" in
+            foundation) node scripts/foundation/lock.mjs "$ARCH" resolve ;;
+            java*) node scripts/java21/lock.mjs "$ARCH" "${FAMILY#java}" ;;
+            python|nodejs) node scripts/runtime/lock.mjs "$FAMILY" "$ARCH" --rpm-only ;;
+            *) exit 1 ;;
+          esac
+          node scripts/upstream/al2023-lock-candidate.mjs collect "$FAMILY" "$ARCH"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: al2023-lock-${{ matrix.family }}-${{ matrix.arch }}
+          path: out/al2023-candidate/delivery/
+          if-no-files-found: error
+          retention-days: 30

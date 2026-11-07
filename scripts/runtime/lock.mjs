@@ -8,6 +8,8 @@ import { fetchUpstream } from './upstream.mjs';
 if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Resolve runtime inputs only in GitHub Actions');
 const variant = process.argv[2];
 const arch = nativeArchitecture(process.argv[3]);
+const rpmOnly = process.argv[4] === '--rpm-only';
+assert.ok(process.argv[4] === undefined || rpmOnly);
 const configs = Object.entries(runtimes).filter(([, config]) => config.variant === variant);
 assert.ok(configs.length, 'Unsupported language family');
 
@@ -34,7 +36,7 @@ docker('run', '--rm', '--mount', 'type=bind,src=' + process.cwd() + ',dst=/works
   '--entrypoint', '/usr/bin/python3', tools, '/tools/resolve.py',
   '--inputs', '/workspace/' + output + '/inputs.json', '--builder', builder,
   '--epoch', epoch, '--output', '/workspace/' + lockFile);
-for (const [id, config] of configs) {
+for (const [id, config] of rpmOnly ? [] : configs) {
   const directory = output + '/downloads/' + id;
   const record = await fetchUpstream(config, arch, directory);
   fs.writeFileSync(output + '/locks/upstream/' + id + '-' + arch + '.json', JSON.stringify(record, null, 2) + '\n');

@@ -31,6 +31,8 @@ gh workflow run al2023-discovery.yml --repo rambow-cloud/amazon-linux-distroless
 
 ## Reviewed update process
 
+A successful newer AL2023 discovery can trigger `Prepare AL2023 snapshot lock candidates`. It resolves the native foundation, Java, Python-system and Node.js-system RPM locks from one immutable builder and explicit repository release. Each artifact records exact package and license changes, source RPMs and tool changes. Python and Node.js upstream release locks remain separate. A manual dispatch rehearses resolution against the current pinned snapshot. Candidate generation uses read-only permissions.
+
 The `Upstream language update discovery` workflow observes the official CPython and Node.js indexes daily and can be dispatched manually. It considers only newer final releases within existing supported version lines. On protected main it verifies the candidate source and binaries using the pinned release signer policy and outputs both architecture locks and their exact diffs. Unchanged versions produce only the observation report. This stage prepares inputs for the update gates; it does not merge a PR or publish a tag. Corretto updates follow the AL2023 snapshot and RPM locks.
 
 The optional unattended language workflow consumes only successful discovery artifacts from protected main. It proposes one runtime update at a time, verifies every required check and the exact PR contents before each merge, and dispatches the existing trusted preview and stable workflows. Failures leave their issue and workflow links for investigation. Fix a stopped update through its tracked PR; the automation does not replace an existing branch or skip a failed gate.
