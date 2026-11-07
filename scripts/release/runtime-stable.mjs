@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { validateIndex } from './java21-policy.mjs';
 import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
+import { sha256File as hash } from './file-digest.mjs';
 import {
   architectures, attestedPredicates, checksumManifest, issuer, repository,
   stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
@@ -17,7 +17,6 @@ const capture = (command, args) => execFileSync(command, args, {
 }).trim();
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
-const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const releaseAPI = tag => 'repos/' + repository + '/releases/tags/' + tag;
 const releaseURL = tag => 'https://github.com/' + repository + '/releases/tag/' + tag;
 const ghRelease = (verb, tag, ...args) => execute('gh', ['release', verb, tag, '--repo', repository, ...args]);
