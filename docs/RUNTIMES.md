@@ -46,7 +46,7 @@ gh workflow run consumer-examples.yml --ref main
 Use the [stable release index](STABLE.md) to select an exact digest. For example, verify Node.js 24 with:
 
 ```sh
-image='ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b'
+image='ghcr.io/rambow-cloud/nodejs@sha256:f90819e2289b694cf165a3cb353320ea43dc3e682553dccf0aa27d21bc12131b'
 issuer='https://token.actions.githubusercontent.com'
 build='https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/runtime-publish.yml@refs/heads/main'
 stable='https://github.com/rambow-cloud/amazon-linux-distroless/.github/workflows/runtime-stable.yml@refs/heads/main'
