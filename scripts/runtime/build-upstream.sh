@@ -2,8 +2,7 @@
 set -eu
 
 variant=$1
-version=$2
-line=$3
+line=$2
 mkdir -p /upstream/unpacked /upstream-root
 tar -xJf /upstream/archive -C /upstream/unpacked --strip-components=1
 

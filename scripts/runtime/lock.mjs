@@ -15,7 +15,7 @@ const platform = 'linux/' + arch;
 const spec = JSON.parse(fs.readFileSync('images/upstream/packages.json'));
 const inputs = { ...spec, platform, roots: { base: spec.roots.base, [variant]: spec.roots[variant] } };
 const output = 'out/resolved';
-fs.mkdirSync(output, { recursive: true });
+fs.mkdirSync(output + '/locks/upstream', { recursive: true });
 fs.writeFileSync(output + '/inputs.json', JSON.stringify(inputs));
 const docker = (...args) => execFileSync('docker', args, { stdio: 'inherit' });
 const capture = (...args) => execFileSync('docker', args, { encoding: 'utf8' }).trim();

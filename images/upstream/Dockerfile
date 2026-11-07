@@ -1,4 +1,4 @@
-ARG AL2023_BASE
+ARG AL2023_BASE=public.ecr.aws/amazonlinux/amazonlinux@sha256:381352c430f36d8aa6b8b670de06e7e4e5642fe0cb9dbd463bb8d1e79aefc0c7
 FROM ${AL2023_BASE} AS tools
 ARG AL2023_RELEASE
 RUN dnf --releasever="$AL2023_RELEASE" -y --setopt=install_weak_deps=False install \
@@ -11,11 +11,12 @@ COPY scripts/java21/check_image.py /runtime-tools/check_image.py
 
 FROM tools AS upstream-build
 ARG RUNTIME_VARIANT
-ARG RUNTIME_VERSION
+ARG ARCHIVE_SHA256
 ARG RUNTIME_LINE
 COPY --from=upstream /archive /upstream/archive
 COPY --from=upstream /upstream.json /upstream/upstream.json
-RUN --network=none /bin/sh /runtime-tools/build-upstream.sh "$RUNTIME_VARIANT" "$RUNTIME_VERSION" "$RUNTIME_LINE"
+RUN --network=none printf '%s  /upstream/archive\n' "$ARCHIVE_SHA256" | sha256sum -c - \
+    && /bin/sh /runtime-tools/build-upstream.sh "$RUNTIME_VARIANT" "$RUNTIME_LINE"
 
 FROM tools AS dependencies
 ARG LOCK_FILE
