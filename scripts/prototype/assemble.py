@@ -368,7 +368,7 @@ def assemble(lock, cache, output, java_profile=None):
         if profile:
             report["prototype"] = False
             report["runtime_transform"] = profile["transform"]
-            report["limitations"] = ["Native Java 21 candidate; project-wide stable release obligations remain tracked separately",
+            report["limitations"] = ["Native Java candidate; project-wide stable release obligations remain tracked separately",
                                      "Package-level vulnerability findings require transformed-file applicability review"]
         (output / variant / "inventory.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
         print("Assembled {}: {} files, {} bytes".format(variant, len(entries), report["runtime_bytes"]), flush=True)

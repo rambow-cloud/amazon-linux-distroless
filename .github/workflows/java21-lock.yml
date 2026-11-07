@@ -1,11 +1,20 @@
-name: Java 21 lock update
+name: Java runtime lock update
 on:
   workflow_dispatch:
+    inputs:
+      major:
+        description: Corretto major to resolve
+        type: choice
+        options: ['17', '21', '25']
+        default: '21'
+        required: true
+env:
+  JAVA_MAJOR: ${{ inputs.major || '21' }}
 permissions:
   contents: read
 jobs:
   resolve:
-    name: Resolve Java 21 (${{ matrix.arch }})
+    name: Resolve Java ${{ inputs.major }} (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
@@ -24,6 +33,6 @@ jobs:
         run: node scripts/java21/lock.mjs ${{ matrix.arch }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: java21-lock-${{ matrix.arch }}
-          path: out/java21-lock/linux-${{ matrix.arch }}.json
+          name: java${{ inputs.major || '21' }}-lock-${{ matrix.arch }}
+          path: out/java${{ inputs.major || '21' }}-lock/*${{ matrix.arch }}.*
           retention-days: 14

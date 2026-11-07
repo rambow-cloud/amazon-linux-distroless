@@ -1,4 +1,4 @@
-name: Java 21 qualification
+name: Java runtime qualification
 on:
   workflow_dispatch:
   pull_request:
@@ -24,15 +24,17 @@ jobs:
               return;
             }
             const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: context.issue.number, per_page: 100 });
-            const relevant = /^(images\/java21\/|locks\/java21\/|scripts\/java21\/|scripts\/prototype\/|examples\/java21\/)|^\.dockerignore$|^\.github\/workflows\/java21-build\.yml$/;
+            const relevant = /^(images\/java(?:17|21|25)\/|locks\/java(?:17|21|25)\/|scripts\/java21\/|scripts\/prototype\/|examples\/java21\/)|^\.dockerignore$|^\.github\/workflows\/java21-build\.yml$/;
             core.setOutput('required', files.some(file => relevant.test(file.filename) || relevant.test(file.previous_filename || '')) ? 'true' : 'false');
   build:
     needs: changes
     if: needs.changes.outputs.required == 'true'
-    name: Java 21 (${{ matrix.arch }})
+    name: Java ${{ matrix.java }} (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
+        java: [17, 21, 25]
+        arch: [amd64, arm64]
         include:
           - arch: amd64
             runner: ubuntu-24.04
@@ -45,37 +47,37 @@ jobs:
         with:
           persist-credentials: false
       - name: Build native Java runtime from reviewed locks
-        run: node scripts/java21/build.mjs ${{ matrix.arch }}
+        run: node scripts/java21/build.mjs ${{ matrix.arch }} ${{ matrix.java }}
       - name: Verify hardened headless service, TLS and final image
-        run: node scripts/java21/verify.mjs ${{ matrix.arch }}
+        run: node scripts/java21/verify.mjs ${{ matrix.arch }} ${{ matrix.java }}
       - name: Summarize native results
-        run: cat out/java21/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat out/java${{ matrix.java }}/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: java21-${{ matrix.arch }}-image
-          path: out/java21/${{ matrix.arch }}/image.tar.gz
+          name: java${{ matrix.java }}-${{ matrix.arch }}-image
+          path: out/java${{ matrix.java }}/${{ matrix.arch }}/image.tar.gz
           compression-level: 0
           retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: java21-${{ matrix.arch }}-evidence
+          name: java${{ matrix.java }}-${{ matrix.arch }}-evidence
           path: |
-            out/java21/${{ matrix.arch }}/*.json
-            out/java21/${{ matrix.arch }}/*.md
-            out/java21/${{ matrix.arch }}/project-source.tar.gz
+            out/java${{ matrix.java }}/${{ matrix.arch }}/*.json
+            out/java${{ matrix.java }}/${{ matrix.arch }}/*.md
+            out/java${{ matrix.java }}/${{ matrix.arch }}/project-source.tar.gz
           retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: java21-${{ matrix.arch }}-sources
-          path: out/java21/${{ matrix.arch }}/sources.tar.gz
+          name: java${{ matrix.java }}-${{ matrix.arch }}-sources
+          path: out/java${{ matrix.java }}/${{ matrix.arch }}/sources.tar.gz
           compression-level: 0
           retention-days: 14
       - name: Preserve diagnostic metadata
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: java21-${{ matrix.arch }}-diagnostics
-          path: out/java21/${{ matrix.arch }}/*.json
+          name: java${{ matrix.java }}-${{ matrix.arch }}-diagnostics
+          path: out/java${{ matrix.java }}/${{ matrix.arch }}/*.json
           if-no-files-found: ignore
   gate:
     name: Java 21 gate
@@ -91,5 +93,5 @@ jobs:
         with:
           script: |
             if (process.env.SCOPE_RESULT !== 'success') core.setFailed('Could not determine Java validation scope.');
-            else if (process.env.JAVA_REQUIRED === 'true' && process.env.BUILD_RESULT !== 'success') core.setFailed('Both native Java qualification jobs must pass.');
+            else if (process.env.JAVA_REQUIRED === 'true' && process.env.BUILD_RESULT !== 'success') core.setFailed('All Java 17/21/25 native architecture jobs must pass.');
             else core.info('Required Java validation is satisfied.');

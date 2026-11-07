@@ -50,7 +50,7 @@ public final class Probe {
         HttpClient client = HttpClient.newBuilder().sslContext(trust(trusted)).connectTimeout(java.time.Duration.ofSeconds(5)).build();
         try {
             var response = client.send(HttpRequest.newBuilder(URI.create("https://" + host + ":8443/ping")).GET().build(), HttpResponse.BodyHandlers.ofString());
-            require(!reject && response.statusCode() == 200 && response.body().equals("java21-ok"), "Unexpected TLS response");
+            require(!reject && response.statusCode() == 200 && response.body().equals("java-runtime-ok"), "Unexpected TLS response");
         } catch (Exception exception) {
             boolean tls = false;
             for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
@@ -70,7 +70,7 @@ public final class Probe {
         HttpsServer server = HttpsServer.create(new InetSocketAddress(8443), 0);
         server.setHttpsConfigurator(new HttpsConfigurator(tls));
         server.createContext("/ping", exchange -> {
-            byte[] bytes = "java21-ok".getBytes(StandardCharsets.UTF_8); exchange.sendResponseHeaders(200, bytes.length);
+            byte[] bytes = "java-runtime-ok".getBytes(StandardCharsets.UTF_8); exchange.sendResponseHeaders(200, bytes.length);
             try (var stream = exchange.getResponseBody()) { stream.write(bytes); }
         });
         Runtime.getRuntime().addShutdownHook(new Thread(() -> { server.stop(0); System.out.println("shutdown-hook-ran"); }));
@@ -84,7 +84,8 @@ public final class Probe {
         if (mode.equals("untrusted")) { request("tls-fixture", false, true); return; }
         if (mode.equals("hostname")) { request("wrong-name", true, true); return; }
         if (mode.equals("agent")) require(System.getProperty("al2023.agent", "").equals("loaded"), "Java agent failed");
-        require(System.getProperty("java.version").startsWith("21."), "Expected Java 21");
+        int expectedMajor = Integer.parseInt(System.getProperty("al2023.expectedMajor"));
+        require(Runtime.version().feature() == expectedMajor, "Wrong Java major");
         String uid = Files.readString(Path.of("/proc/self/status")).lines().filter(s -> s.startsWith("Uid:")).findFirst().orElseThrow().split("\\s+")[1];
         require(uid.equals("65532") && System.getProperty("user.name").equals("nonroot"), "Wrong user");
         require(ProcessHandle.current().pid() == 1, "Java must be PID 1");
@@ -92,7 +93,11 @@ public final class Probe {
         require(ZoneId.systemDefault().getId().equals("UTC"), "Wrong timezone");
         require(StandardCharsets.UTF_8.equals(java.nio.charset.Charset.defaultCharset()), "Expected UTF-8");
         require(Files.getFileStore(Path.of("/")).isReadOnly(), "Root is writable");
-        Path temporary = Files.createTempFile("java21-", ".txt"); Files.writeString(temporary, "temporary"); Files.delete(temporary);
+        Path temporary = Files.createTempFile("java-runtime-", ".txt"); Files.writeString(temporary, "temporary"); Files.delete(temporary);
+        Path unicode = Files.createTempFile("\u00e9-\u6d4b\u8bd5-", ".txt");
+        Files.writeString(unicode, "\u00e9-\u6d4b\u8bd5");
+        require(Files.readString(unicode).equals("\u00e9-\u6d4b\u8bd5"), "Unicode filename/content round trip failed");
+        Files.delete(unicode);
         require(ToolProvider.getSystemJavaCompiler() == null, "Compiler implementation is present");
         List<String> forbidden = List.of("jdk.compiler", "jdk.jlink", "jdk.javadoc", "jdk.jdeps", "jdk.jartool", "jdk.jdi", "jdk.jconsole", "jdk.jcmd");
         for (String module : forbidden) require(ModuleLayer.boot().findModule(module).isEmpty(), "Tool module present: " + module);
@@ -104,7 +109,7 @@ public final class Probe {
         int fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames().length;
         BufferedImage image = new BufferedImage(180, 60, BufferedImage.TYPE_INT_RGB); Graphics2D graphics = image.createGraphics();
         graphics.setColor(Color.WHITE); graphics.fillRect(0, 0, 180, 60); graphics.setColor(Color.BLACK);
-        graphics.setFont(new Font("SansSerif", Font.PLAIN, 18)); graphics.drawString("Java 21 AL2023", 5, 30); graphics.dispose();
+        graphics.setFont(new Font("SansSerif", Font.PLAIN, 18)); graphics.drawString("Java AL2023", 5, 30); graphics.dispose();
         boolean ink = false; for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) if (image.getRGB(x,y) != Color.WHITE.getRGB()) ink = true;
         require(fonts > 0 && ink, "Font rendering failed");
         var bytes = new java.io.ByteArrayOutputStream(); require(ImageIO.write(image, "png", bytes), "PNG encoding unavailable");

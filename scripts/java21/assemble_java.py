@@ -12,14 +12,18 @@ from assemble import assemble, checksum, read_lock, run
 
 def profile(config):
     def prepare(source, definition, lock, output):
+        major = config["java_major"]
+        if major not in (17, 21, 25):
+            raise RuntimeError("Unsupported Java major")
+        prefix = "java-{}-amazon-corretto".format(major)
         arch = {"linux/amd64": "x86_64", "linux/arm64": "aarch64"}[lock["platform"]]
-        home = "/usr/lib/jvm/java-21-amazon-corretto." + arch
-        runtime = next(p for p in definition["packages"] if p["name"] == "java-21-amazon-corretto-headless")
-        tool = run("rpm", "-q", "java-21-amazon-corretto-devel", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}")
+        home = "/usr/lib/jvm/" + prefix + "." + arch
+        runtime = next(p for p in definition["packages"] if p["name"] == prefix + "-headless")
+        tool = run("rpm", "-q", prefix + "-devel", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}")
         expected = "{epoch}:{version}-{release}.{arch}".format(**runtime)
-        if tool != expected or not runtime["version"].startswith("21."):
+        if tool != expected or not runtime["version"].startswith(str(major) + "."):
             raise RuntimeError("jlink tool and runtime package versions differ")
-        jmods_tool = run("rpm", "-q", "java-21-amazon-corretto-jmods", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}")
+        jmods_tool = run("rpm", "-q", prefix + "-jmods", "--qf", "%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}")
         if jmods_tool != expected:
             raise RuntimeError("JMods and runtime package versions differ")
         module_path = Path(home) / "jmods"
@@ -41,11 +45,16 @@ def profile(config):
             raise RuntimeError("Invalid disposable JVM replacement path")
         shutil.rmtree(destination)
         shutil.copytree(linked, destination, symlinks=True)
+        # Java 17 and native filename conversion use glibc's selected locale.
+        # These files are supplied by the already locked minimal langpack RPM.
+        locale = source / "usr/lib/locale/C.utf8"
+        if not locale.is_dir():
+            raise RuntimeError("Locked C.UTF-8 locale is missing: " + str(locale))
         return {"home": home, "runtime_package": runtime["name"], "excluded_names": config["excluded_native_files"],
-                "seeds": ["/usr/lib/system-release", "/usr/lib64/libfontconfig.so.1", "/etc/fonts",
+                "seeds": ["/usr/lib/system-release", "/usr/lib/locale/C.utf8", "/usr/lib64/libfontconfig.so.1", "/etc/fonts",
                           "/usr/share/fontconfig", "/usr/share/fonts"],
-                "transform": {"kind": "jlink", "tool_package": "java-21-amazon-corretto-devel-" + tool,
-                              "jmods_package": "java-21-amazon-corretto-jmods-" + jmods_tool,
+                "transform": {"kind": "jlink", "java_major": major, "tool_package": prefix + "-devel-" + tool,
+                              "jmods_package": prefix + "-jmods-" + jmods_tool,
                               "runtime_package": runtime["name"], "runtime_nevra": expected,
                               "root_modules": config["modules"], "modules": sorted(modules), "jmod_inputs": inputs,
                               "options": ["--no-header-files", "--no-man-pages", "--compress=2"],
