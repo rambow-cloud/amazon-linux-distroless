@@ -71,6 +71,7 @@ if(config.variant==='nodejs') {assert.equal(networkProbes.http.plainHTTP,true); 
 write('verification.json',report);
 fs.writeFileSync(out+'/summary.md','# '+id+' '+arch+'\n\n- Runtime: '+(sample.python||sample.node)+'\n- Bytes: '+image.Size+'\n- Payload RPMs: '+sbom.coverage.selected.length+
   '\n- Native dependency: '+(native.wheel||('N-API '+native.napiTarget))+'\n- Runtime checks: '+report.checks.join(', ')+'\n');
+fs.mkdirSync(out+'/sources',{recursive:true});
 docker(...tools,'/tools/assemble.py','fetch-sources','/workspace/'+lockFile,'/workspace/'+out+'/sources');
 await preserveUpstreamSource(upstream,out+'/input',out+'/sources');
 execFileSync('tar',['-czf',out+'/sources.tar.gz','-C',out,'sources'],{stdio:'inherit'});

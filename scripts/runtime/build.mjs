@@ -64,7 +64,8 @@ const build = (...target) => execFileSync('docker', [...args, ...target, '.'], {
 });
 build('--target', 'tools', '-t', id + '-tools:locked');
 if (arch === 'amd64') {
-  execFileSync('docker', ['run', '--rm', '--entrypoint', '/usr/bin/python3',
+  execFileSync('docker', ['run', '--rm', '--mount', 'type=bind,src=' + process.cwd() + ',dst=/workspace,readonly',
+    '--entrypoint', '/usr/bin/python3',
     id + '-tools:locked', '/tools/test_assemble.py'], { stdio: 'inherit' });
 }
 for (const target of ['runtime', 'fixture']) {
