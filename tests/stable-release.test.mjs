@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
-import { attestedPredicates, checksumManifest, stablePlan, verifyAdvance, verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
+import { attestedPredicates, checksumManifest, latestStableRelease, stablePlan, verifyAdvance, verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
 
 const candidates = JSON.parse(fs.readFileSync(new URL('../releases/stable-candidates.json', import.meta.url)));
 const candidate = candidates.nodejs26;
@@ -36,6 +36,16 @@ test('stable channels use shared language packages and keep existing revision re
     assert.equal(plan.alias, base + id + ':' + line);
     assert.equal(plan.immutable, base + id + ':' + plan.version + '-r' + plan.revision);
   }
+});
+
+test('latest follows the highest published version, then its highest revision', () => {
+  const low = { version: '3.9.99', revision: 5, reference: 'low' };
+  const high = { version: '3.10.1', revision: 1, reference: 'high' };
+  const rebuilt = { ...high, revision: 2, reference: 'rebuilt' };
+  assert.equal(latestStableRelease([rebuilt, high, low]), rebuilt);
+  assert.equal(latestStableRelease([low, high]), high);
+  assert.equal(latestStableRelease([low]), low);
+  assert.throws(() => latestStableRelease([high, { ...high, reference: 'collision' }]), /Conflicting digests/);
 });
 
 test('signed evidence must name the selected digest and each asset exactly once', () => {

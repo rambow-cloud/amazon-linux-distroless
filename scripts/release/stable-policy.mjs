@@ -32,6 +32,7 @@ export function stablePlan(runtime, candidate) {
     ...candidate,
     runtime,
     variant: config.variant,
+    line: config.version,
     base,
     digest,
     immutable: base + ':' + tag,
@@ -96,6 +97,20 @@ export function compareVersions(left, right) {
     if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
   }
   return 0;
+}
+
+export function compareStableReleases(left, right) {
+  for (const record of [left, right]) {
+    assert.ok(Number.isSafeInteger(record.revision) && record.revision >= 1, 'Invalid stable revision');
+  }
+  const order = compareVersions(left.version, right.version) || Math.sign(left.revision - right.revision);
+  if (order === 0) assert.equal(left.reference, right.reference, 'Conflicting digests for the same release');
+  return order;
+}
+
+export function latestStableRelease(records) {
+  assert.ok(records.length, 'No published version lines');
+  return records.reduce((best, record) => compareStableReleases(record, best) > 0 ? record : best);
 }
 
 export function verifyAdvance(plan, previous) {

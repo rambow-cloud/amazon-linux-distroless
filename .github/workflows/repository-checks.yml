@@ -38,4 +38,5 @@ jobs:
           node --test tests/stable-release.test.mjs
           node --test tests/vulnerability-policy.test.mjs
           node --check scripts/release/runtime-stable.mjs
+          node --check scripts/release/verify-runtime-mirrors.mjs
           node --check scripts/release/foundation-publish.mjs
