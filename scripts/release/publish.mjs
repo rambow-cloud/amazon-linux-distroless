@@ -14,6 +14,7 @@ export function publish(profile) {
   assert.match(line,/^[a-z][a-z0-9]*$/);
   assert.match(profile.workflow,/^[a-z0-9-]+\.yml$/);
   assert.match(profile.alias,/^[a-zA-Z0-9_.-]+$/);
+  assert.ok(typeof profile.description === 'string' && profile.description.trim() && profile.description.length <= 512);
   if (process.env.GITHUB_ACTIONS !== 'true' || process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' || process.env.GITHUB_REF !== 'refs/heads/main') throw new Error('Publication requires a manual trusted main run');
   const repo = process.env.GITHUB_REPOSITORY;
   assert.equal(repo, 'rambow-cloud/amazon-linux-distroless');
@@ -82,10 +83,15 @@ export function publish(profile) {
     const pushed = capture('docker',['push',leaf]);
     const digest = /digest:\s*(sha256:[a-f0-9]{64})/.exec(pushed)?.[1]; assert.ok(digest,'Missing pushed manifest digest'); leaves[arch]=digest;
   }
-  execute('docker',['buildx','imagetools','create','--tag',immutable,...Object.values(leaves).map(d=>base+'@'+d)]);
-  validateIndex(JSON.parse(capture('docker',['buildx','imagetools','inspect','--raw',immutable])),leaves);
-  const description = capture('docker',['buildx','imagetools','inspect',immutable]);
-  const digest = /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(description)?.[1]; assert.ok(digest,'Missing index digest');
+  const descriptionKey = 'org.opencontainers.image.description';
+  execute('docker', ['buildx', 'imagetools', 'create', '--tag', immutable,
+    '--annotation', 'index:' + descriptionKey + '=' + profile.description,
+    ...Object.values(leaves).map(d => base + '@' + d)]);
+  const index = JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', immutable]));
+  validateIndex(index, leaves);
+  assert.equal(index.annotations?.[descriptionKey], profile.description, 'Published index description differs');
+  const inspection = capture('docker',['buildx','imagetools','inspect',immutable]);
+  const digest = /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(inspection)?.[1]; assert.ok(digest,'Missing index digest');
   const reference = base+'@'+digest;
   const identity = 'https://github.com/'+repo+'/.github/workflows/' + profile.workflow + '@refs/heads/main';
   execute('cosign',['sign','--yes',reference]);
