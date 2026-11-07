@@ -7,6 +7,8 @@ import { dockerfile } from '../runtime/dockerfile.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Build foundation images only in GitHub Actions');
 const arch = nativeArchitecture(process.argv[2]);
+const metricsOnly = process.argv[3] === '--metrics-only';
+assert.ok(process.argv[3] === undefined || metricsOnly, 'Unsupported build mode');
 const platform = 'linux/' + arch;
 const lockFile = 'locks/foundation/linux-' + arch + '.json';
 const lock = JSON.parse(fs.readFileSync(lockFile));
@@ -25,7 +27,7 @@ const docker = (...args) => run('docker', args);
 run('docker', ['build', '--platform', platform, '-f', '-', '--target', 'tools',
   '--build-arg', 'AL2023_BASE=' + lock.builder, '--build-arg', 'AL2023_RELEASE=' + lock.releasever,
   '-t', tools, '.'], { input: dockerfile(configuration('python314')), stdio: ['pipe', 'inherit', 'inherit'] });
-for (const mode of ['fetch', 'assemble', 'sources']) {
+for (const mode of ['fetch', 'assemble', ...(metricsOnly ? [] : ['sources'])]) {
   docker('run', '--rm', ...(mode === 'assemble' ? ['--network', 'none'] : []),
     '--mount', 'type=bind,src=' + process.cwd() + ',dst=/workspace,readonly',
     '--mount', 'type=bind,src=' + candidate + ',dst=/candidate',
@@ -57,6 +59,8 @@ for (const variant of ['static', 'base']) {
     gzipDockerArchiveBytes: fs.statSync(archive + '.gz').size };
 }
 fs.copyFileSync(lockFile, path.join(evidence, 'lock.json'));
-run('git', ['archive', '--format=tar.gz', '--output=' + path.join(evidence, 'project-source.tar.gz'), commit]);
-run('tar', ['-czf', path.join(evidence, 'sources.tar.gz'), '-C', candidate, 'sources']);
+if (!metricsOnly) {
+  run('git', ['archive', '--format=tar.gz', '--output=' + path.join(evidence, 'project-source.tar.gz'), commit]);
+  run('tar', ['-czf', path.join(evidence, 'sources.tar.gz'), '-C', candidate, 'sources']);
+}
 fs.writeFileSync(path.join(evidence, 'build.json'), JSON.stringify({ commit, platform, images: imageReports }, null, 2) + '\n');

@@ -1,0 +1,26 @@
+{
+  "baselineRun": "https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42361900395",
+  "policy": "Measured bytes plus 10 percent, rounded up to 4 KiB",
+  "limits": {
+    "linux/amd64": {
+      "static": {
+        "unpackedBytes": 233472,
+        "gzipTransferBytes": 139264
+      },
+      "base": {
+        "unpackedBytes": 5640192,
+        "gzipTransferBytes": 2408448
+      }
+    },
+    "linux/arm64": {
+      "static": {
+        "unpackedBytes": 233472,
+        "gzipTransferBytes": 139264
+      },
+      "base": {
+        "unpackedBytes": 5636096,
+        "gzipTransferBytes": 2027520
+      }
+    }
+  }
+}
