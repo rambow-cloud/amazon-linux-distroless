@@ -20,3 +20,5 @@ jobs:
         run: node --test tests/issue-policy.test.mjs
       - name: Check configuration script syntax
         run: node --check scripts/sync-github-config.mjs
+      - name: Validate Java publication policy
+        run: node --test tests/java21-release.test.mjs

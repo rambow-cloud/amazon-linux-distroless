@@ -83,6 +83,17 @@ class AssemblyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Setuid"):
             inspect_tree(self.source)
 
+    def test_native_loader_can_be_resolved_from_usr_lib_on_arm64(self):
+        (self.source / "usr/bin").mkdir(parents=True)
+        (self.source / "usr/lib").mkdir(parents=True)
+        (self.source / "usr/bin/app").write_bytes(b"\x7fELFfixture")
+        (self.source / "usr/lib/ld-native.so").write_bytes(b"loader fixture")
+        image = Assembler(self.source, self.root / "selected")
+        image.copy("/usr/bin/app")
+        with patch("assemble.run", side_effect=lambda *args: "(NEEDED) Shared library: [ld-native.so]" if args[1] == "-d" else ""):
+            image.elf_closure()
+        self.assertEqual((image.root / "usr/lib/ld-native.so").read_bytes(), b"loader fixture")
+
     def test_tampered_cached_rpm_is_rejected_without_network(self):
         cached = self.root / "cache"
         cached.mkdir()

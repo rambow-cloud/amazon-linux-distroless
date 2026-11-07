@@ -219,7 +219,8 @@ class Assembler:
             for library in re.findall(r"\(NEEDED\).*Shared library: \[([^\]]+)\]", dynamic):
                 if library in self.excluded_names:
                     raise RuntimeError("Required native library was excluded: " + library)
-                candidates = [self.source / "usr/lib64" / library, self.source / "lib64" / library]
+                candidates = [rooted_path(self.source, prefix + library) for prefix in
+                              ("/usr/lib64/", "/lib64/", "/usr/lib/", "/lib/")]
                 candidates += sorted(self.source.glob("usr/lib/jvm/**/" + library))
                 candidate = next((p for p in candidates if p.is_file() or p.is_symlink()), None)
                 if candidate is None:
