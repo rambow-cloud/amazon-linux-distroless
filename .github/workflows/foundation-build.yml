@@ -1,0 +1,39 @@
+name: Foundation image build
+on:
+  pull_request:
+    paths:
+      - .github/workflows/foundation-build.yml
+      - images/foundation/**
+      - locks/foundation/**
+      - scripts/foundation/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Foundation images (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build and audit the final image layers
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: node scripts/foundation/build.mjs "$ARCH"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: foundation-candidate-${{ matrix.arch }}
+          path: out/foundation/evidence/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
