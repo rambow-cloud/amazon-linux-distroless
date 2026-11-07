@@ -1,18 +1,49 @@
 name: Foundation image build
 on:
   pull_request:
-    paths:
-      - .github/workflows/foundation-build.yml
-      - images/foundation/**
-      - examples/foundation/**
-      - locks/foundation/**
-      - scripts/foundation/**
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: read
+concurrency:
+  group: foundation-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
+  scope:
+    name: Select foundation validation scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        id: scope
+        with:
+          script: |
+            const { pathToFileURL } = require('node:url');
+            const { affectsFoundation } = await import(pathToFileURL(process.cwd() + '/scripts/foundation/ci.mjs').href);
+            let required = true;
+            if (context.eventName === 'pull_request') {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                ...context.repo, pull_number: context.issue.number, per_page: 100,
+              });
+              required = files.length >= 3000 || affectsFoundation(files);
+            } else if (context.eventName === 'push' && !/^0+$/.test(context.payload.before)) {
+              const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                ...context.repo, basehead: context.payload.before + '...' + context.sha, per_page: 1,
+              });
+              required = !data.files || data.files.length >= 300 || affectsFoundation(data.files);
+            }
+            core.setOutput('required', String(required));
   build:
     name: Foundation images (${{ matrix.arch }})
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +77,25 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+  gate:
+    name: Foundation gate
+    if: always()
+    needs: [scope, build, index]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Enforce foundation validation
+        env:
+          SCOPE: ${{ needs.scope.result }}
+          REQUIRED: ${{ needs.scope.outputs.required }}
+          BUILDS: ${{ needs.build.result }}
+          INDEX: ${{ needs.index.result }}
+        run: |
+          node --test tests/foundation-ci.test.mjs
+          node --input-type=module -e 'import { requireFoundation } from "./scripts/foundation/ci.mjs"; requireFoundation(...process.argv.slice(1));' "$SCOPE" "$REQUIRED" "$BUILDS" "$INDEX"
   index:
     name: Foundation OCI indexes
     needs: build
