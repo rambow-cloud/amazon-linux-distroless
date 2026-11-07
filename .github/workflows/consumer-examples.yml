@@ -1,0 +1,44 @@
+name: Stable consumer examples
+on:
+  pull_request:
+    paths:
+      - .github/workflows/consumer-examples.yml
+      - examples/java-app/**
+      - examples/python-app/**
+      - examples/node-app/**
+      - scripts/release/verify-consumer-example.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  example:
+    name: Stable consumer (${{ matrix.runtime }}, ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [java21, python314, nodejs24]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - env:
+          RUNTIME: ${{ matrix.runtime }}
+          ARCH: ${{ matrix.arch }}
+        run: node scripts/release/verify-consumer-example.mjs "$RUNTIME" "$ARCH"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: consumer-${{ matrix.runtime }}-${{ matrix.arch }}
+          path: out/consumer/verification.json
+          if-no-files-found: error
+          retention-days: 30
