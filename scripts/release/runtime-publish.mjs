@@ -7,6 +7,7 @@ const config=configuration(process.env.RUNTIME_ID || 'python314');
 publish({
   id: config.id,
   title: (config.variant === 'python' ? 'Python ' : 'Node.js ') + config.upstreamVersion,
+  description: (config.variant === 'python' ? 'CPython' : 'Node.js') + ' runtimes built on AL2023 for Linux amd64 and arm64.',
   alias: config.version + '-preview',
   workflow: 'runtime-publish.yml',
   metadata: { runtime: config.id },
