@@ -1,0 +1,62 @@
+name: Foundation reproducibility
+on:
+  pull_request:
+    paths: [.github/workflows/foundation-repro.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sample:
+    name: Clean build (${{ matrix.arch }}, ${{ matrix.sample }})
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        sample: [a, b]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build independently and collect size metrics
+        env:
+          ARCH: ${{ matrix.arch }}
+          SAMPLE: ${{ matrix.sample }}
+        run: |
+          node scripts/foundation/build.mjs "$ARCH" --metrics-only
+          args=()
+          if [ "$SAMPLE" = a ]; then args+=(--official); fi
+          python3 scripts/foundation/measure.py out/foundation/evidence out/foundation/evidence/metrics.json --budgets images/foundation/budgets.json "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: repro-${{ matrix.arch }}-${{ matrix.sample }}
+          path: out/foundation/evidence/metrics.json
+          if-no-files-found: error
+  compare:
+    name: Compare clean-build inventories and OCI digests
+    needs: sample
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: repro-*
+          path: out/repro
+      - run: |
+          python3 scripts/foundation/measure.py out/repro out/repro/foundation-reproducibility.json --compare
+          cat out/repro/foundation-reproducibility.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: foundation-reproducibility
+          path: out/repro/foundation-reproducibility.json
+          if-no-files-found: ignore
