@@ -2,7 +2,7 @@
 
 ## Current support status
 
-Java, Python and Node.js have [published stable runtime channels](docs/STABLE.md). The [support policy](docs/SUPPORT.md) records each line's maintenance boundary. Static and base are still [verified candidates](docs/FOUNDATION.md) pending project-wide release.
+Java, Python and Node.js have [published stable runtime channels](docs/STABLE.md), alongside the [stable static and base foundation images](docs/FOUNDATION.md). The [support policy](docs/SUPPORT.md) records the maintenance boundaries. Project-wide v1 acceptance is tracked separately.
 
 AL2023's upstream lifecycle does not constitute a support promise from this project. Individual package support can differ from the distribution lifecycle.
 

@@ -1,6 +1,20 @@
-# Static and base foundation candidates
+# Static and base foundation images
 
 The [foundation contract](ARCHITECTURE.md#foundation-runtime-contract) covers both images. Use `static` for a Go binary built with `CGO_ENABLED=0`. Use `base` for a compatible application built against the locked AL2023 glibc and loader. Native dependencies beyond that contract belong to the application. Both images provide CA roots and UTC data; neither provides a shell or package manager.
+
+The [first stable foundation release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/foundation-2023.12.20261102-r1) and its [successful Actions run](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42366198722) cover native amd64 and arm64:
+
+| Variant | Rolling tag | Fixed revision |
+| --- | --- | --- |
+| [static](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fstatic) | `static:2023` | `static:2023.12.20261102-r1` |
+| [base](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fbase) | `base:2023` | `base:2023.12.20261102-r1` |
+
+Use the prefix `ghcr.io/rambow-cloud/amazon-linux-distroless/`. For deployment pinning:
+
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/static@sha256:74ad3c883feb5cd0fb61f742a7b30cc03eb2bdd9bc68e95f341fade3b9b9d257`
+- `ghcr.io/rambow-cloud/amazon-linux-distroless/base@sha256:1a096a58c201e9bca0a8986d00b125d9de40944894305273c7fbc372de4464c6`
+
+## Build and qualify a candidate
 
 Build and qualify in GitHub Actions:
 

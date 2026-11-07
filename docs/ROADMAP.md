@@ -4,7 +4,7 @@ Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed dual-a
 
 The owner-directed sequence is complete: Java 21 first, expanded Java 17/21/25 in #41/#42/#43/#44, Python #21/#45/#46/#47, then Node.js #22/#48/#49. The language contract RFC #16 records the final matrix. This completes the requested language implementation and preview delivery; project-wide stable v1 acceptance remains open.
 
-The v0.1 foundation contract and v0.2 native CI milestones are complete. [Foundation candidates](FOUNDATION.md) include verified native static and base images, OCI indexes and measured size and reproducibility evidence. Project-wide SBOM, scanner policy, signed publication and updates remain #9/#10/#11/#12.
+The v0.1 foundation contract, v0.2 native CI and v0.3 language runtime milestones are complete. The [foundation release](FOUNDATION.md) includes signed native static and base indexes, measured size and reproducibility evidence, and matching sources. Unattended updates and the project-wide v1 acceptance report remain #12 and #13.
 
 ## Delivery sequence
 
@@ -43,7 +43,7 @@ The sequence is scope-based, not a calendar promise. Finish each milestone's exi
 | [#13 Deliver consumer examples and v1.0 release acceptance evidence](https://github.com/rambow-cloud/amazon-linux-distroless/issues/13) | v1.0.0 | #11, #12 | p1 |
 | [#15 Define isolated debugging without expanding production images](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15) | v1.1.0 | #13 | p2 |
 
-The table records the original dependency plan; live issue states and the delivery reports above show completed language work. #23 remains the integration point for complete foundation/language stable acceptance, including size/reproducibility criteria that preview delivery does not satisfy.
+The table records the original dependency plan; live issue states and delivery reports show completion. #23 implemented full native foundation and language qualification, including size checks and measured reproducibility.
 
 ## Language deliverables
 
