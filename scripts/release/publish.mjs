@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateIndex, validateScan } from './java21-policy.mjs';
+import { validateIndex } from './java21-policy.mjs';
+import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
 
 // Profile identity/validator comes from a reviewed language-specific entry point.
@@ -37,23 +38,13 @@ export function publish(profile) {
   if (existing.status === 0) throw new Error('This immutable preview release already exists; inspect it before deliberate recovery');
   if (!/not found|release not found|HTTP 404/i.test(existing.stderr || '')) throw new Error('Could not establish release-tag availability: ' + existing.stderr);
 
-  const scanner = 'aquasec/trivy@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb';
-  execute('docker', ['pull', '--platform', 'linux/amd64', scanner]);
-  fs.mkdirSync('out/' + line + '-trivy-cache', { recursive: true });
-  const common = ['run','--rm','--user',process.getuid()+':'+process.getgid(),'--tmpfs','/tmp:rw,nosuid,nodev,mode=1777',
-    '--mount','type=bind,src='+process.cwd()+',dst=/work','--mount','type=bind,src='+process.cwd()+'/out/' + line + '-trivy-cache,dst=/cache',
-    '-e','HOME=/tmp','-e','TRIVY_SKIP_VERSION_CHECK=true'];
-  execute('docker', [...common,scanner,'--cache-dir','/cache','image','--download-db-only']);
-  const database = { sha256: hash('out/' + line + '-trivy-cache/db/trivy.db'), metadata: read('out/' + line + '-trivy-cache/db/metadata.json') };
+  const alas = alasScanner(out, execute, read, hash);
   const scans = {};
   const upstreamScans = {};
   const upstream = profile.upstream ? upstreamScanner(out, execute, capture, hash) : null;
   for (const arch of ['amd64','arm64']) {
     const evidence = input + '/' + line + '-' + arch + '-evidence';
-    execute('docker', [...common,'--network','none',scanner,'--cache-dir','/cache','sbom','--skip-db-update','--skip-java-db-update',
-      '--offline-scan','--scanners','vuln','--severity','UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL','--ignore-unfixed=false','--ignorefile','/dev/null',
-      '--format','json','--list-all-pkgs','--exit-code','0','--output','/work/'+out+'/scan-'+arch+'.json','/work/'+evidence+'/sbom.cdx.json']);
-    scans[arch] = validateScan(read(out+'/scan-'+arch+'.json'), read(evidence+'/payload-packages.json').selected);
+    scans[arch] = alas.scan(evidence+'/sbom.cdx.json', evidence+'/payload-packages.json', arch);
     if (upstream) {
       const file = evidence + '/runtime-sbom.cdx.json';
       upstreamScans[arch] = upstream.scan(file, arch, records[arch].upstream);
@@ -65,8 +56,8 @@ export function publish(profile) {
     fs.renameSync(input+'/' + line + '-'+arch+'-image/image.tar.gz',out+'/' + line + '-'+arch+'-image.tar.gz');
     fs.renameSync(input+'/' + line + '-'+arch+'-sources/sources.tar.gz',out+'/' + line + '-'+arch+'-sources.tar.gz');
   }
-  assert.equal(hash('out/' + line + '-trivy-cache/db/trivy.db'),database.sha256,'Scanner database changed');
-  write('security.json',{scanner,database,scans,
+  alas.verifyDatabase();
+  write('security.json',{scanner:alas.scanner,database:alas.database,scans,
     ...(upstream ? {upstream: {scanner: upstream.scanner, database: upstream.database, scans: upstreamScans}} : {}),
     policy:'Block fixable High/Critical findings; retain raw reports and document advisory coverage limits'});
   const assets = fs.readdirSync(out).filter(n=>!n.endsWith('.md')).sort();
