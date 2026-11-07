@@ -1,6 +1,6 @@
 # Java 21 preview delivery
 
-The first Java delivery uses Amazon Corretto 21.0.13 and the AL2023 2023.12.20261102 package snapshot. It is qualified on native linux/amd64 and linux/arm64. Python #21 and Node.js #22 follow this Java delivery; project-wide v1 acceptance remains open.
+The first Java delivery uses Amazon Corretto 21.0.13 and the AL2023 2023.12.20261102 package snapshot. It is qualified on native linux/amd64 and linux/arm64. See the [v1.0 acceptance report](V1-ACCEPTANCE.md) for the initial stable releases.
 
 ## Image and source
 

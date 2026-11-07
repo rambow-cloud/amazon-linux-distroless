@@ -1,10 +1,8 @@
 # Implementation roadmap
 
-Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed dual-architecture previews. See [the runtime index](RUNTIMES.md) and [support boundaries](SUPPORT.md).
+Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed stable images on both architectures. See the [stable release index](STABLE.md) and [support boundaries](SUPPORT.md).
 
-The owner-directed sequence is complete: Java 21 first, expanded Java 17/21/25 in #41/#42/#43/#44, Python #21/#45/#46/#47, then Node.js #22/#48/#49. The language contract RFC #16 records the final matrix. This completes the requested language implementation and preview delivery; project-wide stable v1 acceptance remains open.
-
-The v0.1 foundation contract, v0.2 native CI and v0.3 language runtime milestones are complete. The [foundation release](FOUNDATION.md) includes signed native static and base indexes, measured size and reproducibility evidence, and matching sources. Unattended updates and the project-wide v1 acceptance report remain #12 and #13.
+The [v1.0 acceptance report](V1-ACCEPTANCE.md) records native qualification, signed language and foundation releases, consumer examples, size and security evidence, and protected updates. Isolated debugging is tracked for v1.1 in [#15](https://github.com/rambow-cloud/amazon-linux-distroless/issues/15).
 
 ## Delivery sequence
 
@@ -77,4 +75,4 @@ Current language versions, library/data boundaries, scanner behavior and preview
 
 GitHub Issues and Milestones are the live execution record. [.github/planning/backlog.json](../.github/planning/backlog.json) and [issue-map.json](../.github/planning/issue-map.json) capture versioned planning snapshots and issue identities; they do not automatically overwrite live issue bodies or states. [retired.json](../.github/planning/retired.json) retains removed work and its decision history. Update this roadmap through an issue-linked PR when scope changes. Labels and milestone descriptions are maintained by the configuration sync script.
 
-Do not assign arbitrary due dates before estimating effort. Close a milestone after its acceptance criteria are met and explicitly move deferred work. Deferring one of the three committed languages requires a new owner-approved scope change.
+The v1.0 milestone is the target for automated maintenance proposals for the stable lines. Change the proposal target to an open maintenance milestone before closing it. Isolated debugging is tracked under v1.1.

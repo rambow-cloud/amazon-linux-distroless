@@ -67,13 +67,13 @@ Do not remove data merely because it is not an ELF dependency. Audit JVM trustst
 
 Omitting RPM tools and the RPM database must not erase package identity from SBOMs. Keep a package-to-file map and exact version metadata in build artifacts, then validate scanner detection against known AL2023 advisories. Fewer detected packages is not proof of fewer vulnerabilities.
 
-The project uses Apache-2.0 for its own work. RPM licenses, notices, redistribution rules, and corresponding-source requirements remain component-specific. The first RFC and supply-chain milestone must resolve how to distribute required notices and source references. Do not claim FIPS compliance from the choice of AL2023 alone.
+The project uses Apache-2.0 for its own work. RPM licenses, notices, redistribution rules, and corresponding-source requirements remain component-specific. Published releases retain license files and matching source archives with the SBOM and provenance. See the [v1.0 acceptance report](V1-ACCEPTANCE.md) for release evidence and deferred scope.
 
 ## Reproducibility and updates
 
 First require a stable rootfs file manifest for identical locked inputs. Normalize timestamps, ordering, ownership, and archive metadata where possible. Separately measure image/index digest reproducibility: provenance timestamps and build metadata can change an OCI digest even when runtime files match. Report both outcomes and any limitations.
 
-Updates are reviewed changes to lock files, never an implicit `--releasever=latest` during release builds. A scheduled update detector should eventually open an issue or PR, with a human-reviewable package diff and security impact. No image publishing workflow is installed during repository bootstrap.
+Scheduled discovery feeds [protected update PRs](UPDATING.md). Release builds use an explicit repository snapshot and exact locks. AL2023 refresh proposals include package, license, size and advisory differences before publication.
 
 ## Upstream references
 

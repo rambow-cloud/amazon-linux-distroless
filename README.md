@@ -2,7 +2,7 @@
 
 Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from verified AL2023 system packages and locked language releases.
 
-**Status: Static, base, Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 have public signed stable images on native amd64/arm64. Project-wide stable v1 is not yet released.** Start with the [foundation images](docs/FOUNDATION.md) and [delivered languages](docs/RUNTIMES.md) for image references, immutable digests, examples and verification. Each delivered GHCR package is public; its GitHub Release preserves runtime archives and matching source.
+**Stable images are available for static, base, Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 on native amd64 and arm64.** The [v1.0 acceptance report](docs/V1-ACCEPTANCE.md) records the qualified digests, native tests, size measurements and scan results. Start with the [foundation images](docs/FOUNDATION.md) and [runtime guide](docs/RUNTIMES.md) for examples, verification and troubleshooting.
 
 The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
 
@@ -18,7 +18,7 @@ Use `ghcr.io/rambow-cloud/nodejs:22` or `quay.io/rambow-cloud/nodejs:22` to foll
 | `python` | Applications written in Python with builder-installed dependencies | `base` plus the selected Python interpreter, standard library, and required extension libraries |
 | `nodejs` | Node.js applications with builder-installed production dependencies | `base` plus the selected Node.js runtime and audited native/data dependencies |
 
-Targets: `linux/amd64` and `linux/arm64`. The first foundation prototype starts with amd64; v1.0 requires all five variants on both architectures. Java, Python, and Node.js are committed deliverables, introduced in v0.3 before the stable release. Default identity: UID/GID `65532:65532`. Production images must not contain shells, package managers, compilers, or build caches.
+All five variants are qualified on `linux/amd64` and `linux/arm64`. They run as UID/GID `65532:65532` and use a shell-free root filesystem with application dependencies prepared in a separate builder.
 
 There is no standalone `cc` image or general C++ application support. Audited native libraries such as `libstdc++` remain permitted when required by a supported Java, Python, or Node.js runtime. `static` and `base` remain shared foundations rather than a C++ product line.
 
@@ -46,7 +46,7 @@ The official AL2023 minimal image still includes a package manager. It can be a 
 - [Open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues) — executable development backlog.
 - [Milestones](https://github.com/rambow-cloud/amazon-linux-distroless/milestones) — release scope and progress.
 - [Contributing](CONTRIBUTING.md) — issue-first workflow and pull request requirements.
-- [Security policy](SECURITY.md) — reporting and planned release security requirements.
+- [Security policy](SECURITY.md) — vulnerability reporting, release scan gates and exceptions.
 
 ## Repository governance
 
