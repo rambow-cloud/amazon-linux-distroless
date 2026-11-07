@@ -4,6 +4,8 @@ Status: [Java 21 has a public signed dual-architecture preview](JAVA21-RELEASE.m
 
 Execution priority follows the owner's Java-first instruction: Java 21 contract and dual-architecture qualification #20/#37 and preview delivery #39 are complete. Python #21 follows Java delivery, then Node.js #22. This changes delivery order without removing any committed language or claiming that all shared/stable-release milestone criteria have been completed.
 
+The owner subsequently expanded the Java phase to Java 17, 21 and 25. [RFC #41](https://github.com/rambow-cloud/amazon-linux-distroless/issues/41) and [native implementation #42](https://github.com/rambow-cloud/amazon-linux-distroless/issues/42) track the versioned contract, exact native locks, six-way qualification and separate signed previews. [Versioned Java operations](JAVA.md) document configuration. Finish this Java expansion before Python and Node.js; the full requested language objective remains active.
+
 ## Delivery sequence
 
 The sequence is scope-based, not a calendar promise. Finish each milestone's exit criteria before promotion. Estimate delivery dates after the prototype establishes real build and maintenance costs.

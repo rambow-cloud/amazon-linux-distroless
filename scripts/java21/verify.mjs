@@ -26,7 +26,7 @@ assert.equal(inventory.runtime_transform.java_major, major);
 const fixture = 'al2023-' + line + '-fixture:candidate';
 const sample = JSON.parse(capture(...hardened, '--network', 'none', '--entrypoint', '/usr/bin/java', fixture,
   '-Dal2023.expectedMajor=' + major, '-javaagent:/fixture/probe.jar', '-jar', '/fixture/probe.jar', 'agent'));
-assert.equal(sample.arch, arch === 'amd64' ? 'amd64' : 'aarch64'); assert.ok(sample.compilerAbsent); assert.ok(sample.java.startsWith(major + '.')); 
+assert.equal(sample.arch, arch === 'amd64' ? 'amd64' : 'aarch64'); assert.ok(sample.compilerAbsent); assert.ok(sample.java.startsWith(major + '.'));
 const exit = spawnSync('docker', [...hardened, '--network', 'none', fixture, 'exit'], { encoding: 'utf8' });
 assert.equal(exit.status, 17);
 const shell = spawnSync('docker', [...hardened, '--network', 'none', '--entrypoint', '/bin/sh', 'al2023-' + line + '-runtime:candidate', '-c', 'true'], { encoding: 'utf8' });

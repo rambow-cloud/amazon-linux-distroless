@@ -21,4 +21,4 @@ if (arch === 'amd64') docker('run', '--rm', '--mount', 'type=bind,src=' + proces
   '--entrypoint', '/usr/bin/python3', line + '-tools:locked', '/tools/test_assemble.py');
 for (const target of ['runtime', 'fixture']) docker(...args, '--target', target, '-t', 'al2023-' + line + '-' + target + ':candidate', '.');
 fs.mkdirSync('out/' + line + '/' + arch, { recursive: true });
-docker(...args, '--target', 'evidence', '--output', 'type=local,dest=out/java21/' + arch, '.');
+docker(...args, '--target', 'evidence', '--output', 'type=local,dest=out/' + line + '/' + arch, '.');

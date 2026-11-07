@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { findings, scanPackages } from '../../security/compare-lib.mjs';
 
-export function validateReports(records, commit) {
+export function validateReports(records, commit, major = 21) {
   assert.deepEqual(Object.keys(records).sort(), ['amd64', 'arm64']);
   let modules;
   for (const [arch, record] of Object.entries(records)) {
     assert.equal(record.sourceCommit, commit, 'Build/source revision mismatch');
+    assert.equal(record.javaMajor, major, 'Reported Java major differs');
+    assert.ok(record.sample.java.startsWith(major + '.'), 'Observed runtime has wrong Java major');
     assert.equal(record.platform, 'linux/' + arch);
     assert.equal(record.image.config.User, '65532:65532');
     assert.deepEqual(record.image.config.Entrypoint, ['/usr/bin/java']);
