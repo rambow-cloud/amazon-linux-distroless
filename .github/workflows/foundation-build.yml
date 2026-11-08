@@ -13,7 +13,7 @@ permissions:
   contents: read
   pull-requests: read
 concurrency:
-  group: foundation-build-${{ github.event.pull_request.number || github.ref }}-${{ inputs.force && 'full' || 'scoped' }}
+  group: foundation-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.force && 'full' || 'scoped' }}
   cancel-in-progress: true
 jobs:
   scope:
