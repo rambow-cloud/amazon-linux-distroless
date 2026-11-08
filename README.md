@@ -24,6 +24,15 @@ docker pull ghcr.io/rambow-cloud/nodejs:latest
 - **Updates within a version line.** Use `:17`, `:21`, or `:25` for Java, `:3.11` through `:3.14` for Python, or `:22`, `:24`, or `:26` for Node.js. For example, `quay.io/rambow-cloud/nodejs:22` follows Node.js 22 updates.
 - **Reproducible deployments.** Replace `:latest` with a fixed revision such as `:25.0.5-r2`, or pin the signed OCI index by digest with `@sha256:…`. Find current tags, exact digests, and signed release records in the [stable release index](docs/STABLE.md).
 
+### Foundation images
+
+| Image | GHCR | Quay | Use it for |
+| --- | --- | --- | --- |
+| `static` | `ghcr.io/rambow-cloud/static:2023` | `quay.io/rambow-cloud/static:2023` | Fully static binaries such as Go binaries built with `CGO_ENABLED=0`. |
+| `base` | `ghcr.io/rambow-cloud/base:2023` | `quay.io/rambow-cloud/base:2023` | Applications linked against compatible AL2023 glibc and system libraries. |
+
+Both foundation images provide CA certificates and UTC timezone data. Use `:2023` or `:latest` to follow the current stable AL2023 snapshot. See the [foundation guide](docs/FOUNDATION.md) for fixed revisions and digest verification.
+
 ## Why use these images?
 
 - **A smaller production filesystem.** Images start from `scratch` and include a reviewed set of runtime files and shared libraries. The final image has no shell, compiler, or package manager.
@@ -42,15 +51,6 @@ CMD ["-jar", "/app/app.jar"]
 ```
 
 For Python wheels and Node.js native addons, build dependencies for the target runtime version and architecture. See the [Java](examples/java-app/Dockerfile), [Python](examples/python-app/Dockerfile), and [Node.js](examples/node-app/Dockerfile) Dockerfile examples and the [application packaging guide](docs/RUNTIMES.md#application-packaging).
-
-### Foundation images
-
-| Image | Pull reference | Use it for |
-| --- | --- | --- |
-| `static` | `ghcr.io/rambow-cloud/amazon-linux-distroless/static:2023` | Fully static binaries such as Go binaries built with `CGO_ENABLED=0`. |
-| `base` | `ghcr.io/rambow-cloud/amazon-linux-distroless/base:2023` | Applications linked against compatible AL2023 glibc and system libraries. |
-
-Both foundation images provide CA certificates and UTC timezone data. See the [foundation guide](docs/FOUNDATION.md) for fixed releases and digest verification.
 
 ## Documentation and contributing
 

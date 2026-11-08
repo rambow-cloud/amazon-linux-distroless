@@ -40,3 +40,4 @@ jobs:
           node --check scripts/release/runtime-stable.mjs
           node --check scripts/release/verify-runtime-mirrors.mjs
           node --check scripts/release/foundation-publish.mjs
+          node --check scripts/release/foundation-mirror.mjs

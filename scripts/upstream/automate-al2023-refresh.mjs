@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
-import { currentFoundation, foundationPublished, publishedRelease, releaseAsset, signedPredicates } from '../release/refresh-baseline.mjs';
+import { currentFoundation, foundationMirrorsPublished, foundationPublished, publishedRelease, releaseAsset, signedPredicates } from '../release/refresh-baseline.mjs';
 import { architectures, compareVersions, latestStableRelease, previewReleaseTag, repository, stablePlan } from '../release/stable-policy.mjs';
 import { mirrorHosts, registryDigest, stableMirror } from '../release/stable-registry.mjs';
 import { runtimes } from '../runtime/config.mjs';
@@ -250,6 +250,11 @@ if (!foundationPublished(tag)) {
   await waitRuns({ foundation: id }, 'signed foundation publication');
 }
 assert.ok(foundationPublished(tag), 'Foundation tags do not match the signed release');
+if (!foundationMirrorsPublished(tag)) {
+  const id = pendingRun(workflow, 'Mirror foundation (both)') ?? start(workflow, { mode: 'mirror', registry: 'both' }, base);
+  await waitRuns({ foundation: id }, 'signed foundation mirror repair');
+  assert.ok(foundationMirrorsPublished(tag), 'Public foundation mirrors do not match the signed release');
+}
 const issue = trackingIssue(refresh);
 const labels = issue.labels.map(label => label.name).filter(label => !label.startsWith('status:'));
 actionAPI('issues/' + issue.number, 'PATCH', { labels: [...labels, 'status:done'] });

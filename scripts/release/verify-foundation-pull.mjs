@@ -5,6 +5,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { nativeArchitecture } from '../runtime/config.mjs';
 import { attestedPredicates, issuer, repository } from './stable-policy.mjs';
 import { sha256File } from './file-digest.mjs';
+import { foundationIdentity, foundationMirror, foundationPredicate, verifyFoundationMirror } from './refresh-baseline.mjs';
+import { mirrorHosts, registryDigest } from './stable-registry.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('Verify native public pulls in Actions');
 const tag = process.argv[2];
@@ -23,20 +25,34 @@ const build = read(file);
 assert.equal(build.commit, record.sourceCommit);
 assert.equal(build.platform, 'linux/' + arch);
 assert.equal('sha256:' + sha256File(dir + '/' + file), record.assets[file]);
-const identity = 'https://github.com/' + repository + '/.github/workflows/foundation-release.yml@refs/heads/main';
-const trust = ['--certificate-identity', identity, '--certificate-oidc-issuer', issuer];
-const predicate = 'https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1';
+const trust = ['--certificate-identity', foundationIdentity, '--certificate-oidc-issuer', issuer];
+const registry = process.env.FOUNDATION_PULL_REGISTRY ?? 'legacy';
+assert.ok(['legacy', 'both', 'ghcr', 'quay'].includes(registry));
 for (const variant of ['static', 'base']) {
   const image = record.images[variant];
   assert.equal(image.reference, 'ghcr.io/' + repository + '/' + variant + '@' + image.digest);
-  run('cosign', ['verify', ...trust, image.reference]);
-  const proof = capture('cosign', ['verify-attestation', '--type', predicate, ...trust, image.reference]);
-  assert.ok(attestedPredicates(proof, predicate, image.digest).some(x => isDeepStrictEqual(x, record)));
-  run('cosign', ['verify-attestation', '--type', 'cyclonedx', ...trust, image.base + '@' + image.leaves[arch]]);
-  run('docker', ['pull', '--platform', 'linux/' + arch, image.reference]);
-  const [downloaded] = JSON.parse(capture('docker', ['image', 'inspect', image.reference]));
-  assert.equal(downloaded.Architecture, arch);
-  assert.equal(downloaded.Id, build.images[variant].id);
-  assert.equal(downloaded.Config.User, '65532:65532');
-  console.log(variant, 'linux/' + arch, image.leaves[arch], downloaded.Id);
+  let references;
+  if (registry === 'legacy') {
+    run('cosign', ['verify', ...trust, image.reference]);
+    const proof = capture('cosign', ['verify-attestation', '--type', foundationPredicate, ...trust, image.reference]);
+    assert.ok(attestedPredicates(proof, foundationPredicate, image.digest).some(x => isDeepStrictEqual(x, record)));
+    run('cosign', ['verify-attestation', '--type', 'cyclonedx', ...trust, image.base + '@' + image.leaves[arch]]);
+    references = [image.reference];
+  } else {
+    const hosts = registry === 'both' ? mirrorHosts : [registry + '.io'];
+    references = hosts.map(host => {
+      const mirror = foundationMirror(host, image);
+      for (const tag of mirror.tags) assert.equal(registryDigest(tag), image.digest, 'Unexpected digest for ' + tag);
+      verifyFoundationMirror(mirror.reference, image, record);
+      return mirror.tags[3];
+    });
+  }
+  for (const reference of references) {
+    run('docker', ['pull', '--platform', 'linux/' + arch, reference]);
+    const [downloaded] = JSON.parse(capture('docker', ['image', 'inspect', reference]));
+    assert.equal(downloaded.Architecture, arch);
+    assert.equal(downloaded.Id, build.images[variant].id);
+    assert.equal(downloaded.Config.User, '65532:65532');
+    console.log(reference, 'linux/' + arch, image.leaves[arch], downloaded.Id);
+  }
 }

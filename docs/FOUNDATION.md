@@ -4,15 +4,15 @@ The [foundation contract](ARCHITECTURE.md#foundation-runtime-contract) covers bo
 
 The [first stable foundation release](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/foundation-2023.12.20261102-r1) and its [successful Actions run](https://github.com/rambow-cloud/amazon-linux-distroless/actions/runs/42366198722) cover native amd64 and arm64:
 
-| Variant | Rolling tag | Fixed revision |
-| --- | --- | --- |
-| [static](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fstatic) | `static:2023` | `static:2023.12.20261102-r1` |
-| [base](https://github.com/orgs/rambow-cloud/packages/container/package/amazon-linux-distroless%2Fbase) | `base:2023` | `base:2023.12.20261102-r1` |
+| Variant | GHCR | Quay | Initial fixed revision |
+| --- | --- | --- | --- |
+| `static` | `ghcr.io/rambow-cloud/static:2023` | `quay.io/rambow-cloud/static:2023` | `2023.12.20261102-r1` |
+| `base` | `ghcr.io/rambow-cloud/base:2023` | `quay.io/rambow-cloud/base:2023` | `2023.12.20261102-r1` |
 
-Use the prefix `ghcr.io/rambow-cloud/amazon-linux-distroless/`. For deployment pinning:
+The `:latest` and `:2023` tags follow the current stable foundation. The full snapshot tag follows revisions of that snapshot. For deployment pinning, use a fixed revision or the signed index digest. The initial release digests on GHCR are:
 
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/static@sha256:74ad3c883feb5cd0fb61f742a7b30cc03eb2bdd9bc68e95f341fade3b9b9d257`
-- `ghcr.io/rambow-cloud/amazon-linux-distroless/base@sha256:1a096a58c201e9bca0a8986d00b125d9de40944894305273c7fbc372de4464c6`
+- `ghcr.io/rambow-cloud/static@sha256:74ad3c883feb5cd0fb61f742a7b30cc03eb2bdd9bc68e95f341fade3b9b9d257`
+- `ghcr.io/rambow-cloud/base@sha256:1a096a58c201e9bca0a8986d00b125d9de40944894305273c7fbc372de4464c6`
 
 ## Build and qualify a candidate
 
@@ -60,6 +60,15 @@ gh workflow run foundation-release.yml --ref main -f revision=1
 ```
 
 Promotion runs the full native foundation/language qualification and fresh scans. It signs both OCI indexes, attaches the platform SBOMs, preserves matching source and scan evidence in the GitHub Release, and then moves `static:2023` and `base:2023` under `ghcr.io/rambow-cloud/amazon-linux-distroless/`. Each image has a fixed tag such as `base:2023.12.20261102-r1`. Use revision 1 for a newer AL2023 repository snapshot, or increment the revision for a new digest of the same snapshot.
+
+The workflow copies the same signed indexes and attestations to the short GHCR and Quay repositories. Quay uses the existing publisher's GitHub OIDC exchange and repository-scoped Write access. On initial setup, make the short GHCR packages public after their first publish and create the public Quay repositories with Write access for the OIDC publisher. To repair the current mirrors or verify both with anonymous native pulls, run:
+
+```sh
+gh workflow run foundation-release.yml --ref main -f mode=mirror -f registry=both
+gh workflow run foundation-pull.yml --ref main -f registry=both -f release=foundation-2023.12.20261102-r1
+```
+
+Select the current signed foundation release tag for mirror verification. The compatibility GHCR repositories also serve the original fixed tags.
 
 Select a GitHub Release tag from the [acceptance report](V1-ACCEPTANCE.md) or the later foundation releases. Verify the index, the signed release record and the platform SBOM. This example selects the v1.0 base image on amd64:
 

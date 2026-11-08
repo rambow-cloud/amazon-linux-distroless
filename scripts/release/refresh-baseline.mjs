@@ -2,15 +2,16 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
 import { attestedPredicates, issuer, repository } from './stable-policy.mjs';
-import { registryDigest } from './stable-registry.mjs';
+import { mirrorHosts, registryDigest } from './stable-registry.mjs';
+import { validateIndex } from './java21-policy.mjs';
 
 const capture = (command, args) => execFileSync(command, args, {
   encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'inherit'], timeout: 90_000,
 });
 
 const base = 'ghcr.io/' + repository;
-const foundationIdentity = 'https://github.com/' + repository + '/.github/workflows/foundation-release.yml@refs/heads/main';
-const foundationPredicate = 'https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1';
+export const foundationIdentity = 'https://github.com/' + repository + '/.github/workflows/foundation-release.yml@refs/heads/main';
+export const foundationPredicate = 'https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1';
 
 export function releaseAsset(tag, name) {
   return capture('gh', ['release', 'download', tag, '--repo', repository, '--pattern', name, '--output', '-']);
@@ -64,4 +65,34 @@ export function foundationPublished(tag) {
   const record = signedFoundation(tag);
   return Object.values(record.images).every(image =>
     registryDigest(image.immutable) === image.digest && registryDigest(image.alias) === image.digest);
+}
+
+export function foundationMirror(host, image) {
+  assert.ok(mirrorHosts.includes(host));
+  assert.ok(['static', 'base'].includes(image.runtime));
+  const destination = host + '/rambow-cloud/' + image.runtime;
+  const tags = [image.version + '-r' + image.revision, image.version, '2023', 'latest'];
+  return { destination, reference: destination + '@' + image.digest, tags: tags.map(tag => destination + ':' + tag) };
+}
+
+export function verifyFoundationMirror(reference, image, record) {
+  const trust = ['--certificate-identity', foundationIdentity, '--certificate-oidc-issuer', issuer];
+  validateIndex(JSON.parse(capture('docker', ['buildx', 'imagetools', 'inspect', '--raw', reference])), image.leaves);
+  capture('cosign', ['verify', ...trust, reference]);
+  assert.ok(signedPredicates(reference, foundationPredicate, foundationIdentity)
+    .some(value => isDeepStrictEqual(value, record)), 'Foundation mirror record differs: ' + reference);
+  const destination = reference.split('@')[0];
+  for (const leaf of Object.values(image.leaves)) {
+    signedPredicates(destination + '@' + leaf, 'cyclonedx', foundationIdentity);
+  }
+}
+
+export function foundationMirrorsPublished(tag) {
+  const record = signedFoundation(tag);
+  return Object.values(record.images).every(image => mirrorHosts.every(host => {
+    const mirror = foundationMirror(host, image);
+    if (!mirror.tags.every(ref => registryDigest(ref, { allowMissing: true }) === image.digest)) return false;
+    verifyFoundationMirror(mirror.reference, image, record);
+    return true;
+  }));
 }
