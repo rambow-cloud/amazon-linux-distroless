@@ -102,13 +102,13 @@ jobs:
             node scripts/runtime/verify.mjs "$LINE" "$ARCH"
           fi
           python3 scripts/release/language-metrics.py "$LINE" "$ARCH" "out/$LINE/$ARCH"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: language-${{ matrix.line }}-${{ matrix.arch }}-${{ matrix.sample }}
           path: out/${{ matrix.line }}/${{ matrix.arch }}/language-metrics.json
           if-no-files-found: error
           retention-days: 14
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: needs.matrix.outputs.refresh == 'true' && matrix.sample == 'a'
         with:
           name: refresh-language-${{ matrix.line }}-${{ matrix.arch }}
@@ -128,7 +128,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: '{refresh-language-*,foundation-oci-indexes}'
           path: out/refresh-inputs
@@ -138,7 +138,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/release/al2023-refresh-evidence.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: al2023-refresh-evidence
@@ -160,7 +160,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DOCKER_CONFIG: ${{ runner.temp }}/anonymous-stable-evidence
         run: node scripts/release/project-stable-evidence.mjs stable-language-evidence.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: stable-language-evidence
           path: stable-language-evidence.json
@@ -186,12 +186,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: '{language-*,foundation-oci-indexes,stable-language-evidence}'
           path: out/qualification
       - run: node scripts/release/project-qualification.mjs out/qualification out/qualification/report.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: project-qualification-report

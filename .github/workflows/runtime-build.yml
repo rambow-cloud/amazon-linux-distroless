@@ -63,13 +63,13 @@ jobs:
       - run: node scripts/runtime/build.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
       - run: node scripts/runtime/verify.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
       - run: cat out/${{ matrix.runtime }}/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-image
           path: out/${{ matrix.runtime }}/${{ matrix.arch }}/image.tar.gz
           compression-level: 0
           retention-days: 14
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-evidence
           path: |
@@ -77,13 +77,13 @@ jobs:
             out/${{ matrix.runtime }}/${{ matrix.arch }}/*.md
             out/${{ matrix.runtime }}/${{ matrix.arch }}/project-source.tar.gz
           retention-days: 30
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-sources
           path: out/${{ matrix.runtime }}/${{ matrix.arch }}/sources.tar.gz
           compression-level: 0
           retention-days: 14
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-diagnostics
