@@ -1,72 +1,64 @@
 # Amazon Linux Distroless
 
-Distroless-like OCI runtime images for Java, Python, and Node.js, assembled from verified AL2023 system packages and locked language releases.
+**Minimal production container images for Java, Python, and Node.js, built on Amazon Linux 2023.**
 
-**Stable images are available for static, base, Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26 on native amd64 and arm64.** The [v1.0 acceptance report](docs/V1-ACCEPTANCE.md) records the qualified digests, native tests, size measurements and scan results. Start with the [foundation images](docs/FOUNDATION.md) and [runtime guide](docs/RUNTIMES.md) for examples, verification and troubleshooting.
+Use these images as the final stage of your Dockerfile. Build your application and install its dependencies in a separate builder, then copy in the files it needs to run. The resulting container has the language runtime, its audited system libraries, and your application. This is an independent community project.
 
-The project targets small, auditable application runtimes with no shell or package manager, a non-root default user, and traceable AL2023 package provenance. This is an independent community project, not an AWS or Google Distroless distribution.
+## Pull the latest stable images
 
-Use `ghcr.io/rambow-cloud/nodejs:22` or `quay.io/rambow-cloud/nodejs:22` to follow the Node.js 22 stable line. Java and Python use the same short paths on both registries. Each language's `latest` tag follows its highest published stable version. See the [stable release index](docs/STABLE.md) for supported version lines, fixed revisions and verified digests.
+Java, Python, and Node.js are available publicly on **GHCR and Quay** for `linux/amd64` and `linux/arm64`. Pass any image reference below to `docker pull` or use it in a Dockerfile `FROM` instruction.
 
-## Image contract and scope
-
-| Variant | Intended workload | Contents |
-| --- | --- | --- |
-| `static` | Fully static binaries, initially Go with `CGO_ENABLED=0` | CA trust, minimal user/group and filesystem metadata; no glibc |
-| `base` | Dynamically linked applications built against compatible AL2023 libraries | `static` contents plus the AL2023 glibc loader and verified runtime dependency closure |
-| `java` | Headless Java applications | `base` plus the selected Amazon Corretto headless runtime, JVM trust configuration, and audited native dependencies |
-| `python` | Applications written in Python with builder-installed dependencies | `base` plus the selected Python interpreter, standard library, and required extension libraries |
-| `nodejs` | Node.js applications with builder-installed production dependencies | `base` plus the selected Node.js runtime and audited native/data dependencies |
-
-All five variants are qualified on `linux/amd64` and `linux/arm64`. They run as UID/GID `65532:65532` and use a shell-free root filesystem with application dependencies prepared in a separate builder.
-
-There is no standalone `cc` image or general C++ application support. Audited native libraries such as `libstdc++` remain permitted when required by a supported Java, Python, or Node.js runtime. `static` and `base` remain shared foundations rather than a C++ product line.
-
-The versioned language matrix includes Java 17/21/25, Python 3.11–3.14 and Node.js 22/24/26. Java uses AL2023 Corretto RPMs. Python builds from signed CPython source and Node.js uses signed upstream binaries. The [upstream runtime guide](docs/UPSTREAM-RUNTIMES.md) describes the inputs and runtime assembly. No floating system default is a version contract.
-
-All language preview references are recorded in [runtime delivery](docs/RUNTIMES.md). [Support boundaries](docs/SUPPORT.md) define lifecycle, ABI and maintenance ownership; [update operations](docs/UPDATING.md) cover refreshes and rollback.
-
-## Implementation approach
-
-1. Pin an official AL2023 builder image by digest and select an explicit AL2023 repository release.
-2. Verify signed AL2023 RPM inputs and the upstream Python or Node.js release. Keep exact checksums, version locks, licenses and source references.
-3. Assemble a reviewed file allowlist into a clean root filesystem, including transitive ELF dependencies and runtime configuration.
-4. Copy that filesystem into a `FROM scratch` image and validate the actual final image.
-5. Assemble separate Java, Python, and Node.js variants with application dependencies installed in compatible builders. Validate runtime-loaded files and native extension/addon compatibility.
-6. Build all variants for both architectures, generate SBOM and provenance, scan, sign, and publish immutable release references.
-
-The official AL2023 minimal image still includes a package manager. It can be a comparison baseline, but it does not satisfy this project's final-image contract. See [architecture](docs/ARCHITECTURE.md) for decisions and unresolved questions.
-
-## Start here
-
-- [Implementation roadmap](docs/ROADMAP.md) — milestones, dependencies, and exit criteria.
-- [Delivered runtimes](docs/RUNTIMES.md) — all ten version lines and immutable delivery evidence.
-- [Java prototype](docs/PROTOTYPE.md) — inspect a real Actions-built preview and its evidence.
-- [Java 21 runtime](docs/JAVA21.md) — JRE module/file contract, native qualification, updates and preview publishing.
-- [Open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues) — executable development backlog.
-- [Milestones](https://github.com/rambow-cloud/amazon-linux-distroless/milestones) — release scope and progress.
-- [Contributing](CONTRIBUTING.md) — issue-first workflow and pull request requirements.
-- [Security policy](SECURITY.md) — vulnerability reporting, release scan gates and exceptions.
-
-## Repository governance
-
-Use an [Issue Form](https://github.com/rambow-cloud/amazon-linux-distroless/issues/new/choose) before starting implementation. Maintainers triage the issue, set its milestone and labels, and move it to `status:ready`. A PR must include a standalone closing reference such as `Closes #2`. The `Issue policy` check verifies the issue's metadata and acceptance criteria. Branch protection requires this check before merging to `main`.
-
-Labels and milestones are versioned in [.github/labels.json](.github/labels.json) and [.github/milestones.json](.github/milestones.json). Preview configuration changes with:
+| Runtime | GHCR | Quay | Fixed revision as of 2026-11-08 |
+| --- | --- | --- | --- |
+| **Java** | `ghcr.io/rambow-cloud/java:latest` | `quay.io/rambow-cloud/java:latest` | [`25.0.5-r2`](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/java25-25.0.5-r2) |
+| **Python** | `ghcr.io/rambow-cloud/python:latest` | `quay.io/rambow-cloud/python:latest` | [`3.14.10-r2`](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/python314-3.14.10-r2) |
+| **Node.js** | `ghcr.io/rambow-cloud/nodejs:latest` | `quay.io/rambow-cloud/nodejs:latest` | [`26.13.0-r2`](https://github.com/rambow-cloud/amazon-linux-distroless/releases/tag/nodejs26-26.13.0-r2) |
 
 ```sh
-node scripts/sync-github-config.mjs --repo rambow-cloud/amazon-linux-distroless
+docker pull ghcr.io/rambow-cloud/java:latest
+docker pull ghcr.io/rambow-cloud/python:latest
+docker pull ghcr.io/rambow-cloud/nodejs:latest
 ```
 
-Maintainers can apply the preview using `--apply` with an authenticated GitHub CLI. The script updates configured entries and preserves unrelated labels and milestones. It never reopens closed milestones.
+- **Newest stable release.** `latest` follows the highest published stable version of each language and its newest revision.
+- **Updates within a version line.** Use `:17`, `:21`, or `:25` for Java, `:3.11` through `:3.14` for Python, or `:22`, `:24`, or `:26` for Node.js. For example, `quay.io/rambow-cloud/nodejs:22` follows Node.js 22 updates.
+- **Reproducible deployments.** Replace `:latest` with a fixed revision such as `:25.0.5-r2`, or pin the signed OCI index by digest with `@sha256:…`. Find current tags, exact digests, and signed release records in the [stable release index](docs/STABLE.md).
+
+## Why use these images?
+
+- **A smaller production filesystem.** Images start from `scratch` and include a reviewed set of runtime files and shared libraries. The final image has no shell, compiler, or package manager.
+- **Non-root by default.** Images run as UID/GID `65532:65532`. The native workload checks exercise read-only root filesystems and explicit writable mounts.
+- **Traceable runtime components.** System libraries come from locked AL2023 RPMs. Java uses headless Amazon Corretto, Python builds from signed CPython source, and Node.js uses signed upstream binaries.
+- **Verifiable releases.** GitHub Actions builds and tests on both architectures. Stable releases include signed OCI indexes, per-platform CycloneDX SBOMs, and vulnerability scan evidence. The [v1.0 acceptance report](docs/V1-ACCEPTANCE.md) records measured image sizes, reproducibility, and native test results.
+
+## Use an image in your application
+
+For an executable JAR built for Java 25 or earlier, use the Java 25 runtime as your final stage:
+
+```dockerfile
+FROM ghcr.io/rambow-cloud/java:25
+COPY app.jar /app/app.jar
+CMD ["-jar", "/app/app.jar"]
+```
+
+For Python wheels and Node.js native addons, build dependencies for the target runtime version and architecture. See the [Java](examples/java-app/Dockerfile), [Python](examples/python-app/Dockerfile), and [Node.js](examples/node-app/Dockerfile) Dockerfile examples and the [application packaging guide](docs/RUNTIMES.md#application-packaging).
+
+### Foundation images
+
+| Image | Pull reference | Use it for |
+| --- | --- | --- |
+| `static` | `ghcr.io/rambow-cloud/amazon-linux-distroless/static:2023` | Fully static binaries such as Go binaries built with `CGO_ENABLED=0`. |
+| `base` | `ghcr.io/rambow-cloud/amazon-linux-distroless/base:2023` | Applications linked against compatible AL2023 glibc and system libraries. |
+
+Both foundation images provide CA certificates and UTC timezone data. See the [foundation guide](docs/FOUNDATION.md) for fixed releases and digest verification.
+
+## Documentation and contributing
+
+- [Architecture](docs/ARCHITECTURE.md) and [upstream runtime inputs](docs/UPSTREAM-RUNTIMES.md) cover how the images are assembled.
+- [Support policy](docs/SUPPORT.md), [updates and rollback](docs/UPDATING.md), and [debugging](docs/DEBUGGING.md) cover day-to-day operation.
+- [Security policy](SECURITY.md) covers vulnerability reporting and release scan gates.
+- [Roadmap](docs/ROADMAP.md), [open issues](https://github.com/rambow-cloud/amazon-linux-distroless/issues), and [milestones](https://github.com/rambow-cloud/amazon-linux-distroless/milestones) track work in progress. Follow the [contribution guide](CONTRIBUTING.md) and open an [issue](https://github.com/rambow-cloud/amazon-linux-distroless/issues/new/choose) before starting a pull request.
 
 ## License
 
-Project-authored code and documentation use Apache-2.0. Redistributed AL2023 components retain their respective licenses. License notices, source availability obligations, and package provenance must be resolved before publishing images.
-
-## References
-
-- [AL2023 deterministic upgrades](https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades.html)
-- [AL2023 minimal container image](https://docs.aws.amazon.com/linux/al2023/ug/minimal-container.html)
-- [AL2023 release cadence](https://docs.aws.amazon.com/linux/al2023/ug/release-cadence.html)
-- [Google Distroless](https://github.com/GoogleContainerTools/distroless)
+Project-authored code and documentation use [Apache-2.0](LICENSE). Redistributed components retain their respective licenses. Stable releases provide component notices and corresponding source information.
