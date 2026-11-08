@@ -4,6 +4,7 @@ on:
     paths:
       - .github/workflows/foundation-pull.yml
       - scripts/release/verify-foundation-pull.mjs
+      - scripts/release/refresh-baseline.mjs
   workflow_dispatch:
     inputs:
       release:
@@ -11,6 +12,11 @@ on:
         default: foundation-2023.12.20261102-r1
         required: true
         type: string
+      registry:
+        description: Compatibility repository or public mirrors of the current release
+        type: choice
+        options: [legacy, both, ghcr, quay]
+        default: legacy
 permissions:
   contents: read
 jobs:
@@ -35,6 +41,8 @@ jobs:
           cosign-release: v3.1.4
       - env:
           GH_TOKEN: ${{ github.token }}
+          DOCKER_CONFIG: ${{ runner.temp }}/anonymous-foundation-pull
           RELEASE: ${{ inputs.release || 'foundation-2023.12.20261102-r1' }}
           ARCH: ${{ matrix.arch }}
+          FOUNDATION_PULL_REGISTRY: ${{ inputs.registry || 'legacy' }}
         run: node scripts/release/verify-foundation-pull.mjs "$RELEASE" "$ARCH"

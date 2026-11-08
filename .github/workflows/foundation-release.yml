@@ -1,8 +1,18 @@
 name: Publish stable foundation images
-run-name: Foundation revision ${{ inputs.revision }}
+run-name: ${{ inputs.mode == 'mirror' && format('Mirror foundation ({0})', inputs.registry) || format('Foundation revision {0}', inputs.revision) }}
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Publish a qualified snapshot or mirror the current signed release
+        type: choice
+        options: [publish, mirror]
+        default: publish
+      registry:
+        description: Destination in mirror mode
+        type: choice
+        options: [both, ghcr, quay]
+        default: both
       revision:
         description: Revision for the pinned AL2023 snapshot
         type: string
@@ -21,6 +31,7 @@ concurrency:
 jobs:
   plan:
     name: Require protected main and select stable language lines
+    if: inputs.mode == 'publish'
     runs-on: ubuntu-24.04
     outputs:
       languages: ${{ steps.plan.outputs.languages }}
@@ -131,3 +142,33 @@ jobs:
           name: published-foundation-release
           path: out/foundation-release/foundation-release.json
           if-no-files-found: error
+  mirror:
+    name: Mirror the signed foundation indexes and attestations
+    needs: publish
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' &&
+      github.repository == 'rambow-cloud/amazon-linux-distroless' &&
+      (inputs.mode == 'mirror' || needs.publish.result == 'success')
+    environment: quay-runtime-publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
+        with:
+          version: 1.3.6
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          DOCKER_CONFIG: ${{ runner.temp }}/foundation-mirror-auth
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          FOUNDATION_MIRROR_REGISTRY: ${{ inputs.mode == 'mirror' && inputs.registry || vars.QUAY_RUNTIME_MIRROR_ENABLED == 'true' && 'both' || 'ghcr' }}
+        run: node scripts/release/foundation-mirror.mjs
