@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: github.event_name == 'workflow_run'
         with:
           name: al2023-builder-discovery
@@ -45,7 +45,7 @@ jobs:
           node --check scripts/upstream/automate-al2023-refresh.mjs
           node --check scripts/release/al2023-refresh-evidence.mjs
           node scripts/upstream/al2023-lock-candidate.mjs plan
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: al2023-candidate-plan
           path: out/al2023-candidate/plan.json
@@ -70,7 +70,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: al2023-candidate-plan
           path: out/al2023-candidate
@@ -86,7 +86,7 @@ jobs:
             *) exit 1 ;;
           esac
           node scripts/upstream/al2023-lock-candidate.mjs collect "$FAMILY" "$ARCH"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: al2023-lock-${{ matrix.family }}-${{ matrix.arch }}
           path: out/al2023-candidate/delivery/
@@ -103,7 +103,7 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.conclusion == 'success' &&
       contains(fromJSON('["schedule","workflow_dispatch"]'), github.event.workflow_run.event) &&
-      vars.UPSTREAM_UPDATE_APP_ID != ''
+      vars.UPSTREAM_UPDATE_APP_CLIENT_ID != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     concurrency:
@@ -118,17 +118,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: al2023-builder-discovery
           path: out/al2023-discovery
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: al2023-candidate-plan
           path: out/al2023-candidate
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: needs.resolve.result == 'success'
         with:
           pattern: al2023-lock-*
@@ -137,9 +137,9 @@ jobs:
         with:
           cosign-release: v3.1.4
       - id: app
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ vars.UPSTREAM_UPDATE_APP_ID }}
+          client-id: ${{ vars.UPSTREAM_UPDATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.UPSTREAM_UPDATE_APP_PRIVATE_KEY }}
           owner: rambow-cloud
           repositories: amazon-linux-distroless
