@@ -29,7 +29,7 @@ export function publishedRelease(tag) {
 export function signedPredicates(reference, type, identity) {
   const raw = capture('cosign', ['verify-attestation', '--type', type, '--certificate-identity', identity,
     '--certificate-oidc-issuer', issuer, reference]);
-  return attestedPredicates(raw, type, reference.split('@')[1]);
+  return attestedPredicates(raw, type === 'cyclonedx' ? null : type, reference.split('@')[1]);
 }
 
 export function signedFoundation(tag, record = JSON.parse(releaseAsset(tag, 'foundation-release.json'))) {
