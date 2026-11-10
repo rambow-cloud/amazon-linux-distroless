@@ -6,9 +6,11 @@ import { repository } from '../release/stable-policy.mjs';
 import { checkState } from './automation-policy.mjs';
 
 const write = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
+const updateBranch = (name, prefix) => name.startsWith(prefix) &&
+  /^(?:-[a-f0-9]{12})?$/.test(name.slice(prefix.length));
 
-export function protectedUpdateClient() {
-  const run = (command, args, options = {}) => execFileSync(command, args, {
+export function protectedUpdateClient({ execute = execFileSync } = {}) {
+  const run = (command, args, options = {}) => execute(command, args, {
     encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 90_000,
     stdio: ['ignore', 'pipe', 'inherit'], ...options,
   }).trim();
@@ -36,9 +38,7 @@ export function protectedUpdateClient() {
 
   function approvedCommit(prefix, base, matches) {
     for (const pr of pulls) {
-      const suffix = pr.head.ref.slice(prefix.length);
-      if (!owned(pr) || !pr.merged_at || !pr.head.ref.startsWith(prefix) ||
-          !/^(?:-[a-f0-9]{12})?$/.test(suffix)) continue;
+      if (!owned(pr) || !pr.merged_at || !updateBranch(pr.head.ref, prefix)) continue;
       const { mergeCommit } = JSON.parse(gh('pr', 'view', String(pr.number), '--repo', repository, '--json', 'mergeCommit'));
       assert.match(mergeCommit.oid, sha);
       git('merge-base', '--is-ancestor', mergeCommit.oid, base);
@@ -61,12 +61,13 @@ export function protectedUpdateClient() {
     throw new Error('Timed out waiting for ' + description);
   }
 
-  async function submit(base, branch, title, context, changes, { issue: trackedIssue, extraChecks = [], minutes, onQualified } = {}) {
+  async function submit(base, prefix, title, context, changes, { issue: trackedIssue, extraChecks = [], minutes, onQualified } = {}) {
     verifyMain(base);
-    const tracked = pulls.filter(pr => pr.head.ref === branch && pr.head.repo.full_name === repository);
+    const tracked = pulls.filter(pr => !pr.merged_at && updateBranch(pr.head.ref, prefix) && pr.head.repo.full_name === repository);
     assert.ok(tracked.every(pr => owned(pr) && pr.state === 'open'), 'An existing update PR was closed or belongs to another author');
-    assert.ok(tracked.length <= 1, 'Multiple PRs use the update branch');
+    assert.ok(tracked.length <= 1, 'Multiple PRs track this update');
     let [pr] = tracked;
+    const branch = pr?.head.ref ?? prefix + '-' + base.slice(0, 12);
     const paths = Object.keys(changes).sort();
     let head = git('ls-remote', '--heads', 'origin', 'refs/heads/' + branch).split('\t')[0];
     let issue = trackedIssue;
@@ -82,10 +83,23 @@ export function protectedUpdateClient() {
       assert.match(head, sha);
       git('fetch', 'origin', 'refs/heads/' + branch);
       assert.equal(git('rev-parse', 'FETCH_HEAD'), head, 'Update branch moved while resuming');
-      assert.equal(git('rev-list', '--parents', '-n', '1', head), head + ' ' + base, 'Unexpected update branch parent');
-      assert.deepEqual(git('diff', '--name-only', base, head).split('\n').sort(), paths, 'Unexpected update branch files');
-      for (const [file, data] of Object.entries(changes)) assert.deepEqual(commitJSON(head, file), data);
       if (pr) assert.equal(pr.head.sha, head, 'Update PR head changed');
+      const previousBase = git('merge-base', base, head);
+      if (previousBase !== base) {
+        assert.ok(pr, 'Only an existing update PR can be refreshed onto a newer main');
+        git('switch', '--detach', head);
+        git('-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com',
+          'merge', '--no-ff', '--no-edit', base);
+        head = git('rev-parse', 'HEAD');
+      }
+      assert.deepEqual(git('diff', '--name-only', base, head).split('\n').sort(), paths, 'Unexpected update branch files');
+      for (const [file, data] of Object.entries(changes)) {
+        assert.deepEqual(commitJSON(head, file), data, 'Unexpected update content: ' + file);
+      }
+      if (previousBase !== base) {
+        verifyMain(base);
+        git('push', 'origin', 'HEAD:refs/heads/' + branch);
+      }
     } else {
       assert.ok(!pr, 'Update PR is missing its branch');
       issue ??= trackUpdate();
@@ -110,12 +124,14 @@ export function protectedUpdateClient() {
       assert.equal(now.state, 'OPEN');
       assert.equal(now.baseRefName, 'main');
       assert.equal(now.headRefName, branch);
-      assert.equal(now.headRefOid, head);
+      if (now.headRefOid !== head && now.headRefOid === pr.head.sha) return null;
+      assert.equal(now.headRefOid, head, 'Update PR head changed');
       assert.deepEqual(now.files.map(file => file.path).sort(), paths, 'Update PR contains unrelated files');
       return now;
     }
     const qualified = () => {
-      const rollup = currentPR().statusCheckRollup;
+      const rollup = currentPR()?.statusCheckRollup;
+      if (!rollup) return false;
       return checkState(rollup, extraChecks) && rollup;
     };
     await waitFor(qualified, 'required PR checks', minutes);

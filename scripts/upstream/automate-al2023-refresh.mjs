@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
-import { currentFoundation, foundationMirrorsPublished, foundationPublished, publishedRelease, releaseAsset, signedPredicates } from '../release/refresh-baseline.mjs';
+import { currentFoundation, foundationPublicationStage, publishedFoundation, publishedRelease, releaseAsset, signedPredicates } from '../release/refresh-baseline.mjs';
 import { architectures, compareVersions, latestStableRelease, previewReleaseTag, repository, stablePlan } from '../release/stable-policy.mjs';
 import { mirrorHosts, registryDigest, stableMirror } from '../release/stable-registry.mjs';
 import { runtimes } from '../runtime/config.mjs';
@@ -46,9 +46,10 @@ const previewPaths = [...pinnedPaths, 'images/', 'locks/upstream/', 'scripts/jav
 const deadline = Date.now() + 49 * 60_000;
 const minutesLeft = () => Math.max(1, Math.floor((deadline - Date.now()) / 60_000));
 let refresh = fs.existsSync(refreshFile) ? read(refreshFile) : null;
+const foundationStageFor = target => foundationPublicationStage(publishedFoundation(foundationTag(target)));
+let foundationStage = refresh ? foundationStageFor(refresh) : null;
 let lockCommit;
 const prefix = (state, target) => 'automation/al2023-' + target.releasever + '-' + target.builder.split('@sha256:')[1] + '-' + state;
-const branch = (state, target) => prefix(state, target) + '-' + base.slice(0, 12);
 const matches = (commit, file, expected) => isDeepStrictEqual(commitJSON(commit, file), expected);
 const sameFiles = (first, second, files) => !git('diff', '--name-only', first, second, '--', ...files);
 function adopt(commit) {
@@ -79,7 +80,7 @@ function trackingIssue(target, advance = false) {
   return issue;
 }
 
-if (refresh && !foundationPublished(foundationTag(refresh))) {
+if (foundationStage) {
   lockCommit = approvedCommit(prefix('lock', refresh), base, commit =>
     matches(commit, refreshFile, refresh) && sameFiles(commit, base, pinnedPaths));
   assert.ok(lockCommit, 'Pending refresh lacks an exact protected lock PR');
@@ -104,12 +105,13 @@ if (refresh && !foundationPublished(foundationTag(refresh))) {
     read('out/al2023-refresh-input/al2023-lock-' + family + '-' + arch + '/' + file),
   order === 0 ? previous.revision + 1 : 1);
   refresh = changes[refreshFile];
+  foundationStage = 'publish';
   const evidence = 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID;
   const context = 'Refresh all AL2023-derived locks from the official immutable builder `' + plan.builder + '`.\n\n' +
     'The [native lock resolution](' + evidence + ') includes binary/source RPM, version and license diffs across ' +
     reports.length + ' native transactions. The project qualification check on this PR records the actual payload, ' +
     'size and ALAS differences against the signed public baseline.\n\nPart of #12.';
-  lockCommit = await submit(base, branch('lock', refresh), 'Refresh AL2023 to ' + plan.releasever, context, changes, {
+  lockCommit = await submit(base, prefix('lock', refresh), 'Refresh AL2023 to ' + plan.releasever, context, changes, {
     issue, extraChecks: [refreshGate], minutes: minutesLeft(),
     async onQualified(pr, rollup) {
       const gate = rollup.find(check => check.name === refreshGate);
@@ -213,7 +215,7 @@ if (!approved) {
     const context = 'Promote the native, signed runtime previews for AL2023 ' + refresh.releasever + '.\n\n' +
       Object.entries(next).map(([runtime, row]) => '- ' + runtime + ': `' + row.reference + '`').join('\n') +
       '\n\nThe refreshed foundation is published after both public runtime mirrors are current. Part of #12.';
-    adopt(await submit(base, branch('stable', refresh), 'Promote runtime rebuilds for AL2023 ' + refresh.releasever,
+    adopt(await submit(base, prefix('stable', refresh), 'Promote runtime rebuilds for AL2023 ' + refresh.releasever,
       context, { [stableFile]: next }, { minutes: Math.min(15, minutesLeft()) }));
   }
 }
@@ -248,16 +250,16 @@ if (!languagesPublished()) {
 const workflow = 'foundation-release.yml';
 const tag = foundationTag(refresh);
 const revision = String(refresh.foundationRevision);
-if (!foundationPublished(tag)) {
+if (foundationStage === 'publish') {
   const id = pendingRun(workflow, 'Foundation revision ' + revision) ?? start(workflow, { revision }, base);
   await waitRuns({ foundation: id }, 'signed foundation publication');
-}
-assert.ok(foundationPublished(tag), 'Foundation tags do not match the signed release');
-if (!foundationMirrorsPublished(tag)) {
-  const id = pendingRun(workflow, 'Mirror foundation (both)') ?? start(workflow, { mode: 'mirror', registry: 'both' }, base);
+} else {
+  const title = 'Repair foundation ' + tag;
+  const id = pendingRun(workflow, title) ??
+    start(workflow, { mode: 'mirror', registry: 'both', release_tag: tag }, base);
   await waitRuns({ foundation: id }, 'signed foundation mirror repair');
-  assert.ok(foundationMirrorsPublished(tag), 'Public foundation mirrors do not match the signed release');
 }
+assert.equal(foundationStageFor(refresh), null, 'Foundation tags do not match the signed release');
 const issue = trackingIssue(refresh);
 const labels = issue.labels.map(label => label.name).filter(label => !label.startsWith('status:'));
 actionAPI('issues/' + issue.number, 'PATCH', { labels: [...labels, 'status:done'] });
