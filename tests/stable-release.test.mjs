@@ -13,8 +13,9 @@ test('approved candidates bind the exact preview commit, registry digest and ver
   assert.throws(() => stablePlan('nodejs26', { ...candidate, version: '24.22.2' }), /crosses/);
   assert.throws(() => stablePlan('nodejs26', { ...candidate, reference: candidate.reference.replace('/nodejs26@', '/nodejs24@') }), /different registry/);
   assert.throws(() => stablePlan('nodejs26', { ...candidate, previewTag: 'nodejs26-preview' }));
-  const retry = candidate.previewTag + '-run12345';
+  const retry = 'nodejs26-' + candidate.sourceCommit.slice(0, 12) + '-run12345';
   assert.equal(stablePlan('nodejs26', { ...candidate, previewTag: retry }).previewTag, retry);
+  assert.throws(() => stablePlan('nodejs26', { ...candidate, previewTag: retry + '-run67890' }));
   assert.throws(() => stablePlan('nodejs26', { ...candidate, previewTag: retry.replace(candidate.sourceCommit.slice(0, 12), '0'.repeat(12)) }));
 });
 
