@@ -27,7 +27,7 @@ assert.ok(process.env.GH_TOKEN && process.env.ACTION_TOKEN);
 assert.match(process.env.UPDATE_APP_SLUG, /^[a-z0-9-]+$/);
 assert.equal(process.env.QUAY_RUNTIME_MIRROR_ENABLED, 'true', 'Both public mirror registries are required');
 
-const { git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, start, workflowResult, waitFor,
+const { run, git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, start, workflowResult, waitFor,
   actionAPI } = protectedUpdateClient();
 let base = git('rev-parse', 'HEAD');
 assert.equal(base, process.env.GITHUB_SHA);
@@ -60,7 +60,10 @@ function adopt(commit) {
 
 function trackingIssue(target, advance = false) {
   const report = { candidate: { ref: target.builder, platform: 'linux/amd64', releasever: target.releasever } };
-  const issues = JSON.parse(gh('api', '--paginate', '--slurp', 'repos/' + repository + '/issues?state=all&per_page=100')).flat();
+  const issues = JSON.parse(run('gh', ['api', '--paginate', '--slurp',
+    'repos/' + repository + '/issues?state=all&per_page=100'], {
+    env: { ...process.env, GH_TOKEN: process.env.ACTION_TOKEN },
+  })).flat();
   const found = issues.filter(issue => matchesProposal(report, issue));
   assert.equal(found.length, 1, 'Expected one deduplicated discovery proposal for the snapshot');
   const [issue] = found;
