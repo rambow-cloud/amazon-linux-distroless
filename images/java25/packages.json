@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux:2023.12.20261102.0",
-  "releasever": "2023.12.20261102",
+  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux@sha256:3f09d02367148ef8086b8dc7ce098d16b21da58bbfe1e1167da25a17df8f0e51",
+  "releasever": "2023.12.20261109",
   "roots": {
     "base": [
       "glibc",
