@@ -6,7 +6,7 @@ import { rpmLock, runtimes } from '../runtime/config.mjs';
 import { architectures, attestedPredicates, compareVersions, issuer, latestStableRelease, previewReleaseTag,
   repository, stablePlan } from '../release/stable-policy.mjs';
 import { mirrorHosts, registryDigest, stableMirror } from '../release/stable-registry.mjs';
-import { foundationPublished } from '../release/refresh-baseline.mjs';
+import { foundationPublicationStage, publishedFoundation } from '../release/refresh-baseline.mjs';
 import { foundationTag, refreshFile } from './al2023-refresh-policy.mjs';
 import { lockFile, stableFile, updateStage, verifyProposedLocks, versionsFile } from './automation-policy.mjs';
 
@@ -41,7 +41,7 @@ let base = git('rev-parse', 'HEAD');
 assert.equal(base, process.env.GITHUB_SHA);
 assert.equal(observations.commit, event.head_sha);
 verifyMain(base);
-if (fs.existsSync(refreshFile) && !foundationPublished(foundationTag(read(refreshFile)))) {
+if (fs.existsSync(refreshFile) && foundationPublicationStage(publishedFoundation(foundationTag(read(refreshFile))))) {
   summary('The AL2023 snapshot refresh is still publishing. Defer independent language updates.');
   process.exit(0);
 }
@@ -50,7 +50,6 @@ const changes = base === observations.commit && fs.existsSync(diffFile) ? read(d
 if (changes) assert.equal(base, changes.sourceCommit);
 const plans = read(stableFile);
 const hosts = mirrorHosts.filter(host => host !== 'quay.io' || process.env.QUAY_RUNTIME_MIRROR_ENABLED === 'true');
-const branch = (runtime, version, stage, head) => branchPrefix(runtime, version, stage) + '-' + head.slice(0, 12);
 const isCurrent = (tag, digest) => registryDigest(tag, { allowMissing: true }) === digest;
 const locksAt = (commit, runtime) => architectures.map(arch => commitJSON(commit, lockFile(runtime, arch)));
 
@@ -151,7 +150,7 @@ if (update.stage === 'lock') {
     file => read(candidateDir + '/candidate/' + file));
   const versions = read(versionsFile);
   assert.equal(read(candidateDir + '/candidate/' + versionsFile)[runtime], version);
-  lockCommit = await submit(base, branch(runtime, version, 'lock', base), 'Update ' + runtime + ' to ' + version,
+  lockCommit = await submit(base, branchPrefix(runtime, version, 'lock'), 'Update ' + runtime + ' to ' + version,
     'The official index announced a newer same-line release. Verified locks: ' + event.html_url,
     { [versionsFile]: { ...versions, [runtime]: version }, ...locks });
   git('fetch', 'origin', 'main');
@@ -177,7 +176,7 @@ if (!candidate) {
 
 const stable = read(stableFile);
 assert.deepEqual(stable[runtime], previous);
-const promoted = await submit(base, branch(runtime, version, 'stable', base), 'Promote ' + runtime + ' ' + version + ' to stable',
+const promoted = await submit(base, branchPrefix(runtime, version, 'stable'), 'Promote ' + runtime + ' ' + version + ' to stable',
   'The trusted preview qualified the signed index ' + candidate.reference + '. Evidence: ' +
     'https://github.com/' + repository + '/releases/tag/' + candidate.previewTag,
   { [stableFile]: { ...stable, [runtime]: candidate } });

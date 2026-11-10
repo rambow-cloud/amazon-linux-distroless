@@ -41,3 +41,5 @@ jobs:
           node --check scripts/release/verify-runtime-mirrors.mjs
           node --check scripts/release/foundation-publish.mjs
           node --check scripts/release/foundation-mirror.mjs
+      - name: Validate unattended publication recovery
+        run: node --test tests/al2023-refresh.test.mjs tests/language-update-automation.test.mjs tests/protected-update.test.mjs

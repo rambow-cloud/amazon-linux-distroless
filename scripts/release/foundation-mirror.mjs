@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import { compareStableReleases, repository } from './stable-policy.mjs';
 import { mirrorHosts, registryDigest } from './stable-registry.mjs';
 import {
-  currentFoundation, foundationIdentity, foundationMirror, foundationPredicate, signedPredicates, verifyFoundationMirror,
+  currentFoundation, foundationIdentity, foundationMirror, foundationPredicate, publishedFoundation,
+  signedPredicates, verifyFoundationMirror,
 } from './refresh-baseline.mjs';
 import { quayLogin } from './quay-oidc.mjs';
 
@@ -27,7 +28,32 @@ function ghcrPackageExists(runtime) {
   throw response.error ?? new Error(response.stderr);
 }
 
-const record = currentFoundation();
+const current = tag => registryDigest(tag, { allowMissing: true });
+function inspectTags(image, destination, tags, exists = true) {
+  const [fixed, ...rolling] = tags.map(tag => [tag, exists ? current(tag) : null]);
+  assert.ok(fixed[1] === null || fixed[1] === image.digest, 'Immutable foundation tag collision: ' + fixed[0]);
+  for (const [tag, digest] of rolling) {
+    if (!digest || digest === image.digest) continue;
+    const previous = signedPredicates(destination + '@' + digest, foundationPredicate, foundationIdentity)
+      .map(record => record.images?.[image.runtime])
+      .find(row => row?.reference === image.base + '@' + digest && row.alias === image.alias);
+    assert.ok(previous && compareStableReleases(image, previous) > 0, 'Foundation rollback blocked: ' + tag);
+  }
+  return [fixed, ...rolling];
+}
+
+function publishTags(tags, reference, digest) {
+  for (const [tag, before] of tags) {
+    if (before === digest) continue;
+    assert.equal(current(tag), before, 'Foundation tag changed during publication: ' + tag);
+    run('docker', ['buildx', 'imagetools', 'create', '--tag', tag, reference]);
+    assert.equal(registryDigest(tag), digest, 'Foundation tag digest differs: ' + tag);
+  }
+}
+
+const releaseTag = process.env.FOUNDATION_RELEASE_TAG;
+const record = releaseTag ? publishedFoundation(releaseTag) : currentFoundation();
+assert.ok(record, 'Expected a published signed foundation release: ' + releaseTag);
 fs.mkdirSync(process.env.DOCKER_CONFIG, { recursive: true });
 if (hosts.includes('ghcr.io')) {
   run('docker', ['login', 'ghcr.io', '--username', process.env.GITHUB_ACTOR, '--password-stdin'],
@@ -35,31 +61,28 @@ if (hosts.includes('ghcr.io')) {
 }
 if (hosts.includes('quay.io')) await quayLogin('foundation-release.yml');
 
+const images = Object.values(record.images);
+if (releaseTag) {
+  const compatibility = images.map(image => {
+    verifyFoundationMirror(image.reference, image, record);
+    return { image, tags: inspectTags(image, image.base, [image.immutable, image.alias]) };
+  });
+  for (const { image, tags } of compatibility) {
+    if (hosts.includes('ghcr.io')) publishTags(tags, image.reference, image.digest);
+    else assert.ok(tags.every(([, digest]) => digest === image.digest), 'Repair the compatibility GHCR tags first');
+  }
+}
+
 const summary = ['# Foundation mirrors', '', record.releaseUrl, ''];
-for (const image of Object.values(record.images)) {
+for (const image of images) {
   for (const host of hosts) {
     const mirror = foundationMirror(host, image);
     const exists = host !== 'ghcr.io' || ghcrPackageExists(image.runtime);
-    const current = tag => registryDigest(tag, { allowMissing: true });
-    const [fixed, ...rolling] = mirror.tags.map(tag => [tag, exists ? current(tag) : null]);
-    assert.ok(fixed[1] === null || fixed[1] === image.digest, 'Immutable foundation mirror tag collision: ' + fixed[0]);
-    for (const [tag, digest] of rolling) {
-      if (!digest || digest === image.digest) continue;
-      const previous = signedPredicates(mirror.destination + '@' + digest, foundationPredicate, foundationIdentity)
-        .map(record => record.images?.[image.runtime])
-        .find(row => row?.reference === image.base + '@' + digest && row.alias === image.alias);
-      assert.ok(previous && compareStableReleases(image, previous) > 0, 'Foundation mirror rollback blocked: ' + tag);
-    }
-
+    const tags = inspectTags(image, mirror.destination, mirror.tags, exists);
     run('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
       process.env.DOCKER_CONFIG + '/config.json', image.reference, mirror.destination]);
     verifyFoundationMirror(mirror.reference, image, record);
-    for (const [tag, before] of [fixed, ...rolling]) {
-      if (before === image.digest) continue;
-      assert.equal(current(tag), before, 'Foundation mirror tag changed during publication: ' + tag);
-      run('docker', ['buildx', 'imagetools', 'create', '--tag', tag, mirror.reference]);
-      assert.equal(registryDigest(tag), image.digest, 'Foundation mirror digest differs: ' + tag);
-    }
+    publishTags(tags, mirror.reference, image.digest);
     summary.push('- `' + mirror.tags[2] + '` and `' + mirror.tags[3] + '` → `' + mirror.reference + '`');
   }
 }

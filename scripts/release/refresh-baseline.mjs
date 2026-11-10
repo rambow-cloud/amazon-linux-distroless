@@ -10,6 +10,7 @@ const capture = (command, args) => execFileSync(command, args, {
 });
 
 const base = 'ghcr.io/' + repository;
+const foundationTagPattern = /^foundation-2023\.\d+\.\d{8}-r[1-9]\d*$/;
 export const foundationIdentity = 'https://github.com/' + repository + '/.github/workflows/foundation-release.yml@refs/heads/main';
 export const foundationPredicate = 'https://rambow-cloud.github.io/amazon-linux-distroless/foundation-stable/v1';
 
@@ -33,7 +34,7 @@ export function signedPredicates(reference, type, identity) {
 }
 
 export function signedFoundation(tag, record = JSON.parse(releaseAsset(tag, 'foundation-release.json'))) {
-  assert.match(tag, /^foundation-2023\.\d+\.\d{8}-r[1-9]\d*$/);
+  assert.match(tag, foundationTagPattern);
   assert.equal(record.releaseTag, tag);
   assert.deepEqual(Object.keys(record.images).sort(), ['base', 'static']);
   for (const [variant, image] of Object.entries(record.images)) {
@@ -58,13 +59,12 @@ export function currentFoundation() {
   return signedFoundation(record.releaseTag, record);
 }
 
-export function foundationPublished(tag) {
+export function publishedFoundation(tag) {
+  assert.match(tag, foundationTagPattern);
   const release = publishedRelease(tag);
-  if (!release) return false;
+  if (!release) return null;
   assert.ok(!release.prerelease);
-  const record = signedFoundation(tag);
-  return Object.values(record.images).every(image =>
-    registryDigest(image.immutable) === image.digest && registryDigest(image.alias) === image.digest);
+  return signedFoundation(tag);
 }
 
 export function foundationMirror(host, image) {
@@ -87,12 +87,16 @@ export function verifyFoundationMirror(reference, image, record) {
   }
 }
 
-export function foundationMirrorsPublished(tag) {
-  const record = signedFoundation(tag);
-  return Object.values(record.images).every(image => mirrorHosts.every(host => {
+export function foundationPublicationStage(record, { digest = registryDigest, verify = verifyFoundationMirror } = {}) {
+  if (!record) return 'publish';
+  const current = (tag, expected) => digest(tag, { allowMissing: true }) === expected;
+  const images = Object.values(record.images);
+  if (!images.every(image => current(image.immutable, image.digest) && current(image.alias, image.digest))) return 'mirror';
+  const mirrorsCurrent = images.every(image => mirrorHosts.every(host => {
     const mirror = foundationMirror(host, image);
-    if (!mirror.tags.every(ref => registryDigest(ref, { allowMissing: true }) === image.digest)) return false;
-    verifyFoundationMirror(mirror.reference, image, record);
+    if (!mirror.tags.every(tag => current(tag, image.digest))) return false;
+    verify(mirror.reference, image, record);
     return true;
   }));
+  return mirrorsCurrent ? null : 'mirror';
 }

@@ -1,5 +1,5 @@
 name: Publish stable foundation images
-run-name: ${{ inputs.mode == 'mirror' && format('Mirror foundation ({0})', inputs.registry) || format('Foundation revision {0}', inputs.revision) }}
+run-name: ${{ inputs.mode == 'mirror' && (inputs.release_tag && format('Repair foundation {0}', inputs.release_tag) || format('Mirror foundation ({0})', inputs.registry)) || format('Foundation revision {0}', inputs.revision) }}
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +13,10 @@ on:
         type: choice
         options: [both, ghcr, quay]
         default: both
+      release_tag:
+        description: Published signed foundation release to recover in mirror mode
+        type: string
+        default: ''
       revision:
         description: Revision for the pinned AL2023 snapshot
         type: string
@@ -170,5 +174,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DOCKER_CONFIG: ${{ runner.temp }}/foundation-mirror-auth
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          FOUNDATION_RELEASE_TAG: ${{ inputs.mode == 'mirror' && inputs.release_tag || '' }}
           FOUNDATION_MIRROR_REGISTRY: ${{ inputs.mode == 'mirror' && inputs.registry || vars.QUAY_RUNTIME_MIRROR_ENABLED == 'true' && 'both' || 'ghcr' }}
         run: node scripts/release/foundation-mirror.mjs

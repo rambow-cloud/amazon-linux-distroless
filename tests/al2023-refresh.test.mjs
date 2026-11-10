@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { difference } from '../scripts/release/refresh-diff.mjs';
+import { foundationMirror, foundationPublicationStage } from '../scripts/release/refresh-baseline.mjs';
 import { families, foundationTag, lockPath, newerSnapshot, nextStableCandidate, refreshFile, specPath,
   verifyRefresh } from '../scripts/upstream/al2023-refresh-policy.mjs';
 
@@ -57,4 +58,38 @@ test('proposal evidence retains changed RPM versions and licenses, added package
   ]);
   const advisory = { id: 'ALAS2023-example', package: 'glibc' };
   assert.deepEqual(difference([advisory], [], x => x.id), [{ before: advisory, after: null }]);
+});
+
+test('a signed foundation release resumes stale compatibility tags and an incomplete Quay mirror', () => {
+  const version = '2023.12.20261109';
+  const revision = 1;
+  const images = Object.fromEntries(['base', 'static'].map((runtime, i) => {
+    const digest = 'sha256:' + String(i + 1).repeat(64);
+    const base = 'ghcr.io/rambow-cloud/amazon-linux-distroless/' + runtime;
+    return [runtime, { runtime, base, digest, version, revision, alias: base + ':2023',
+      immutable: base + ':' + version + '-r' + revision }];
+  }));
+  const record = { images };
+  const tags = new Map();
+  const verified = [];
+  const options = { digest: tag => tags.get(tag) ?? null, verify: ref => verified.push(ref) };
+  for (const image of Object.values(images)) {
+    tags.set(image.immutable, image.digest);
+    tags.set(image.alias, image.digest);
+    for (const host of ['ghcr.io', 'quay.io']) {
+      for (const tag of foundationMirror(host, image).tags) tags.set(tag, image.digest);
+    }
+  }
+  assert.equal(foundationPublicationStage(null, options), 'publish');
+  tags.delete(images.static.alias);
+  assert.equal(foundationPublicationStage(record, options), 'mirror');
+  assert.deepEqual(verified, []);
+  tags.set(images.static.alias, images.static.digest);
+  const quay = foundationMirror('quay.io', images.static);
+  tags.delete(quay.tags.at(-1));
+  assert.equal(foundationPublicationStage(record, options), 'mirror');
+  tags.set(quay.tags.at(-1), images.static.digest);
+  verified.length = 0;
+  assert.equal(foundationPublicationStage(record, options), null);
+  assert.equal(verified.length, 4);
 });
