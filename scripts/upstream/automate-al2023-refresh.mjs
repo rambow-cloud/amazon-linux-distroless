@@ -9,7 +9,7 @@ import { runtimes } from '../runtime/config.mjs';
 import { families, foundationTag, lockPath, nextStableCandidate, refreshFile, refreshGate, specPath,
   verifyRefresh } from './al2023-refresh-policy.mjs';
 import { stableFile } from './automation-policy.mjs';
-import { matchesProposal } from './discovery-lib.mjs';
+import { completedProposal, matchesProposal } from './discovery-lib.mjs';
 import { protectedUpdateClient } from './protected-update.mjs';
 
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -261,7 +261,6 @@ if (foundationStage === 'publish') {
 }
 assert.equal(foundationStageFor(refresh), null, 'Foundation tags do not match the signed release');
 const issue = trackingIssue(refresh);
-const labels = issue.labels.map(label => label.name).filter(label => !label.startsWith('status:'));
-actionAPI('issues/' + issue.number, 'PATCH', { labels: [...labels, 'status:done'] });
+actionAPI('issues/' + issue.number, 'PATCH', completedProposal(issue));
 summary('Published AL2023 ' + refresh.releasever + ' with all language lines and the foundation: https://github.com/' +
   repository + '/releases/tag/' + tag);

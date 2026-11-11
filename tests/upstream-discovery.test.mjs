@@ -1,10 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decide, ensureProposal, markerRelease, matchesProposal, proposalKey, snapshot, trustedProposalEvent } from '../scripts/upstream/discovery-lib.mjs';
+import { completedProposal, decide, ensureProposal, markerRelease, matchesProposal, proposalKey, snapshot, trustedProposalEvent } from '../scripts/upstream/discovery-lib.mjs';
 const ref = digit => 'public.ecr.aws/amazonlinux/amazonlinux@sha256:' + digit.repeat(64);
 const current = { builder: ref('1'), releasever: '2023.12.20261102' };
 const candidate = { ref: ref('2'), platform: 'linux/amd64', releasever: '2023.12.20261105' };
 const report = () => ({ source: 'public.ecr.aws/amazonlinux/amazonlinux:2023', runUrl: 'https://github.com/example/repo/actions/runs/1', ...decide(current, candidate) });
+
+test('completed proposals close their issue and check only the acceptance criteria', () => {
+  const issue = { labels: [{ name: 'type:maintenance' }, { name: 'status:in-progress' }],
+    body: 'Context\n- [ ] Separate task\n\n## Acceptance criteria\n- [ ] Verify locks\n- [x] Publish images\n\n## Follow-up\n- [ ] Separate work\n' };
+  const completed = completedProposal(issue);
+  assert.equal(completed.state, 'closed');
+  assert.equal(completed.state_reason, 'completed');
+  assert.deepEqual(completed.labels, ['type:maintenance']);
+  assert.equal(completed.body, issue.body.replace('- [ ] Verify locks', '- [x] Verify locks'));
+  assert.deepEqual(completedProposal({ ...completed, labels: completed.labels.map(name => ({ name })) }), completed);
+});
 test('builder digest and RPM repository changes can be discovered independently', () => {
   assert.equal(decide(current, { ...candidate, ref: current.builder, releasever: current.releasever }).changed, false);
   assert.equal(decide(current, { ...candidate, ref: current.builder }).status, 'newer-release');

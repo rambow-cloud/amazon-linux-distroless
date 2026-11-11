@@ -75,3 +75,13 @@ export async function ensureProposal(report, milestone, api) {
 export function trustedProposalEvent(event, ref, defaultBranch) {
   return ['schedule', 'workflow_dispatch'].includes(event) && !!defaultBranch && ref === 'refs/heads/' + defaultBranch;
 }
+
+export function completedProposal(issue) {
+  return {
+    state: 'closed',
+    state_reason: 'completed',
+    labels: issue.labels.map(label => label.name).filter(label => !label.startsWith('status:')),
+    body: issue.body.replace(/(^|\n)(## Acceptance criteria[ \t]*\r?\n)([\s\S]*?)(?=\r?\n#{1,2} |$)/,
+      (section, prefix, heading, criteria) => prefix + heading + criteria.replace(/^- \[ \]/gm, '- [x]')),
+  };
+}
