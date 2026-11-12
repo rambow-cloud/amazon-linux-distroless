@@ -56,11 +56,11 @@
     "maxImageMiB": 104
   },
   "nodejs22": {
-    "version": "22.23.4",
-    "sourceCommit": "5d65d46449b536f5a891fb0bd3049b42d041567d",
-    "previewTag": "nodejs22-5d65d46449b5-run42907576145",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs22@sha256:f50afa345e0390cc0933ea34b2c3710d37b82fe7510258a930e2ac6b2d4cb984",
-    "revision": 2,
+    "version": "22.23.5",
+    "revision": 1,
+    "sourceCommit": "2f5e24d4d325ff5b145f4e9743f4e95c90804228",
+    "previewTag": "nodejs22-2f5e24d4d325-run43212958001",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs22@sha256:b94849343730b8c74571265cb6640c11e86e4c75389a0a614048220ab94a645d",
     "maxImageMiB": 136
   },
   "nodejs24": {
