@@ -23,6 +23,17 @@ test('all protected checks must exist and succeed before automatic merge', () =>
   assert.throws(() => checkState([...ready.slice(1), { ...ready[0], conclusion: 'CANCELLED' }]), /Required check failed/);
 });
 
+test('new upstream patches enter the lock stage during an unfinished AL2023 refresh', () => {
+  const pending = { locked: '3.14.10', planned: '3.14.10', refreshPending: true };
+  assert.equal(updateStage({ ...pending, candidate: true }), 'lock');
+  assert.equal(updateStage({ ...pending, stableApproved: true }), null);
+  const locked = { ...pending, locked: '3.14.11', lockApproved: true };
+  assert.equal(updateStage(locked), null);
+  assert.equal(updateStage({ ...locked, candidate: true }), 'lock');
+  assert.equal(updateStage({ ...locked, refreshPending: false }), 'preview');
+  assert.throws(() => updateStage({ ...pending, planned: '3.14.11', candidate: true }), /newer than the committed lock/);
+});
+
 test('a release proposal cannot replace one architecture or use an unrelated source', () => {
   const config = { variant: 'nodejs', version: '22', upstreamVersion: '22.1.0' };
   const observed = { locked: '22.1.0', candidate: '22.1.1' };

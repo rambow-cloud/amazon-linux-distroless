@@ -8,9 +8,10 @@ export const versionsFile = 'images/upstream/versions.json';
 export const lockFile = (runtime, arch) => 'locks/upstream/' + runtime + '-' + arch + '.json';
 export const stableFile = 'releases/stable-candidates.json';
 
-export function updateStage({ locked, planned, lockApproved, stableApproved, published, originCurrent, mirrorsCurrent, candidate }) {
+export function updateStage({ locked, planned, lockApproved, stableApproved, published, originCurrent, mirrorsCurrent, candidate, refreshPending }) {
   const order = compareVersions(locked, planned);
   assert.ok(order >= 0, 'The stable plan is newer than the committed lock');
+  if (refreshPending) return candidate ? 'lock' : null;
   if (order > 0) return lockApproved ? 'preview' : null;
   if (stableApproved) {
     if (!published || !originCurrent) return 'publish';
