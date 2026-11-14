@@ -24,7 +24,7 @@ assert.ok(['schedule', 'workflow_dispatch'].includes(event.event));
 assert.ok(process.env.GH_TOKEN && process.env.ACTION_TOKEN);
 assert.match(process.env.UPDATE_APP_SLUG, /^[a-z0-9-]+$/);
 
-const { run, git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, dispatch } = protectedUpdateClient();
+const { run, git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, dispatch, actionAPI } = protectedUpdateClient();
 const sha = /^[a-f0-9]{40}$/;
 const branchPrefix = (runtime, version, stage) => 'automation/' + runtime + '-' + version + '-' + stage;
 function release(tag) {
@@ -41,10 +41,8 @@ let base = git('rev-parse', 'HEAD');
 assert.equal(base, process.env.GITHUB_SHA);
 assert.equal(observations.commit, event.head_sha);
 verifyMain(base);
-if (fs.existsSync(refreshFile) && foundationPublicationStage(publishedFoundation(foundationTag(read(refreshFile))))) {
-  summary('The AL2023 snapshot refresh is still publishing. Defer independent language updates.');
-  process.exit(0);
-}
+const refreshPending = fs.existsSync(refreshFile) &&
+  Boolean(foundationPublicationStage(publishedFoundation(foundationTag(read(refreshFile)))));
 const diffFile = candidateDir + '/lock-diffs.json';
 const changes = base === observations.commit && fs.existsSync(diffFile) ? read(diffFile) : null;
 if (changes) assert.equal(base, changes.sourceCommit);
@@ -120,14 +118,15 @@ function recoverableUpdate() {
   return null;
 }
 
-let update = recoverableUpdate();
+let update = refreshPending ? null : recoverableUpdate();
 if (!update && changes) {
   const runtime = Object.keys(runtimes).find(id => Object.hasOwn(changes.diffs, id) &&
-    updateStage({ locked: runtimes[id].upstreamVersion, planned: plans[id].version, candidate: true }) === 'lock');
+    updateStage({ locked: runtimes[id].upstreamVersion, planned: plans[id].version, candidate: true, refreshPending }) === 'lock');
   if (runtime) update = { runtime, version: observations.results[runtime].candidate, stage: 'lock' };
 }
 if (!update) {
-  summary('No new or unfinished unattended language release on the current protected main.');
+  summary(refreshPending ? 'The AL2023 refresh is pending; no new signature-verified runtime patch is available for its locks.' :
+    'No new or unfinished unattended language release on the current protected main.');
   process.exit(0);
 }
 
@@ -156,6 +155,14 @@ if (update.stage === 'lock') {
   git('fetch', 'origin', 'main');
   git('switch', '--detach', lockCommit);
   base = lockCommit;
+}
+
+if (refreshPending) {
+  verifyMain(base);
+  const job = actionAPI('actions/workflows/al2023-discovery.yml/dispatches', 'POST', { ref: 'main' });
+  assert.ok(Number.isSafeInteger(job.workflow_run_id));
+  summary('Merged ' + runtime + ' ' + version + ' into the pending AL2023 refresh. Qualification continues at ' + job.html_url);
+  process.exit(0);
 }
 
 const prefix = runtime + '-';
