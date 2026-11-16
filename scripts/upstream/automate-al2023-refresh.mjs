@@ -28,10 +28,11 @@ assert.match(process.env.UPDATE_APP_SLUG, /^[a-z0-9-]+$/);
 assert.equal(process.env.QUAY_RUNTIME_MIRROR_ENABLED, 'true', 'Both public mirror registries are required');
 
 const { run, git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, start, workflowResult, waitFor,
-  actionAPI } = protectedUpdateClient();
+  actionAPI, reconcileIssues } = protectedUpdateClient();
 let base = git('rev-parse', 'HEAD');
 assert.equal(base, process.env.GITHUB_SHA);
 verifyMain(base);
+reconcileIssues(base);
 assert.equal(git('remote', 'get-url', 'origin').replace(/\.git$/, ''), 'https://github.com/' + repository);
 gh('auth', 'setup-git');
 
@@ -110,9 +111,9 @@ if (foundationStage) {
   const context = 'Refresh all AL2023-derived locks from the official immutable builder `' + plan.builder + '`.\n\n' +
     'The [native lock resolution](' + evidence + ') includes binary/source RPM, version and license diffs across ' +
     reports.length + ' native transactions. The project qualification check on this PR records the actual payload, ' +
-    'size and ALAS differences against the signed public baseline.\n\nPart of #12.';
+    'size and ALAS differences against the signed public baseline.\n\nPart of #' + issue.number + '. Part of #12.';
   lockCommit = await submit(base, prefix('lock', refresh), 'Refresh AL2023 to ' + plan.releasever, context, changes, {
-    issue, extraChecks: [refreshGate], minutes: minutesLeft(),
+    extraChecks: [refreshGate], minutes: minutesLeft(),
     async onQualified(pr, rollup) {
       const gate = rollup.find(check => check.name === refreshGate);
       const match = /\/actions\/runs\/(\d+)\/job\/\d+$/.exec(gate.detailsUrl);
