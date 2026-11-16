@@ -24,7 +24,7 @@ assert.ok(['schedule', 'workflow_dispatch'].includes(event.event));
 assert.ok(process.env.GH_TOKEN && process.env.ACTION_TOKEN);
 assert.match(process.env.UPDATE_APP_SLUG, /^[a-z0-9-]+$/);
 
-const { run, git, gh, summary, commitJSON, approvedCommit, verifyMain, submit, dispatch, actionAPI } = protectedUpdateClient();
+const { run, git, gh, summary, commitJSON, approvedCommit, reconcileIssues, verifyMain, submit, dispatch, actionAPI } = protectedUpdateClient();
 const sha = /^[a-f0-9]{40}$/;
 const branchPrefix = (runtime, version, stage) => 'automation/' + runtime + '-' + version + '-' + stage;
 function release(tag) {
@@ -41,6 +41,7 @@ let base = git('rev-parse', 'HEAD');
 assert.equal(base, process.env.GITHUB_SHA);
 assert.equal(observations.commit, event.head_sha);
 verifyMain(base);
+reconcileIssues(base);
 const refreshPending = fs.existsSync(refreshFile) &&
   Boolean(foundationPublicationStage(publishedFoundation(foundationTag(read(refreshFile)))));
 const diffFile = candidateDir + '/lock-diffs.json';

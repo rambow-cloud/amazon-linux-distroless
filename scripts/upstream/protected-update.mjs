@@ -4,10 +4,13 @@ import fs from 'node:fs';
 import { setTimeout } from 'node:timers/promises';
 import { repository } from '../release/stable-policy.mjs';
 import { checkState } from './automation-policy.mjs';
+import { completedProposal } from './discovery-lib.mjs';
 
 const write = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 const updateBranch = (name, prefix) => name.startsWith(prefix) &&
   /^(?:-[a-f0-9]{12})?$/.test(name.slice(prefix.length));
+const stageCriteria = ['Verify the exact locked update through all required checks.',
+  'Merge the qualified commit without bypassing main protection.'];
 
 export function protectedUpdateClient({ execute = execFileSync } = {}) {
   const run = (command, args, options = {}) => execute(command, args, {
@@ -31,10 +34,46 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
   const commitJSON = (commit, file) => JSON.parse(git('show', commit + ':' + file));
   const pullRows = gh('api', '--paginate', '-H', 'X-GitHub-Api-Version: 2026-03-10',
     'repos/' + repository + '/pulls?state=all&base=main&per_page=100', '--jq',
-    '.[] | select(.head.ref | startswith("automation/")) | {number,state,merged_at,user:{login:.user.login},' +
+    '.[] | select(.head.ref | startswith("automation/")) | {number,title,body,state,merged_at,user:{login:.user.login},' +
       'head:{ref:.head.ref,sha:.head.sha,repo:{full_name:.head.repo.full_name}},base:{ref:.base.ref},html_url}');
   const pulls = pullRows ? pullRows.split('\n').map(line => JSON.parse(line)) : [];
   const owned = pr => pr.user.login === bot && pr.head.repo.full_name === repository && pr.base.ref === 'main';
+
+  function completeStageIssue(pr, found) {
+    const references = [...pr.body.matchAll(/^Closes #([1-9]\d*)\s*$/gm)];
+    assert.equal(references.length, 1, 'Expected one maintenance issue for the update PR');
+    const issue = found ?? actionAPI('issues/' + references[0][1]);
+    // Older lock PRs linked the entire refresh. Publication completes that proposal.
+    if (issue.body.includes('<!-- al2023-builder-discovery:')) return;
+    assert.equal(issue.title, '[Maintenance] ' + pr.title, 'Unexpected update issue');
+    const criteria = issue.body.match(/^## Acceptance criteria\s*\r?\n([\s\S]*?)(?=^#{1,2} |$(?![\s\S]))/m)?.[1];
+    assert.deepEqual(criteria && [...criteria.matchAll(/^- \[[ xX]\] ([^\r\n]+)$/gm)].map(match => match[1]),
+      stageCriteria, 'Unexpected update acceptance criteria');
+    const completed = completedProposal(issue);
+    if (issue.state === 'closed' && issue.state_reason === completed.state_reason &&
+        issue.body === completed.body && !issue.labels.some(label => label.name.startsWith('status:'))) return;
+    actionAPI('issues/' + issue.number, 'PATCH', completed);
+    summary('Completed maintenance issue: ' + issue.html_url);
+  }
+
+  function reconcileIssues(base) {
+    const open = new Map();
+    for (let page = 1; ; page++) {
+      const issues = actionAPI('issues?state=open&per_page=100&page=' + page);
+      for (const issue of issues) if (!issue.pull_request) open.set(issue.number, issue);
+      if (issues.length < 100) break;
+    }
+    for (const pr of pulls) {
+      if (!owned(pr) || !pr.merged_at) continue;
+      const number = Number(/^Closes #([1-9]\d*)\s*$/m.exec(pr.body)?.[1]);
+      const issue = open.get(number);
+      if (!issue || issue.body.includes('<!-- al2023-builder-discovery:')) continue;
+      const { mergeCommit } = JSON.parse(gh('pr', 'view', String(pr.number), '--repo', repository, '--json', 'mergeCommit'));
+      assert.match(mergeCommit.oid, sha);
+      git('merge-base', '--is-ancestor', mergeCommit.oid, base);
+      completeStageIssue(pr, issue);
+    }
+  }
 
   function approvedCommit(prefix, base, matches) {
     for (const pr of pulls) {
@@ -61,7 +100,7 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     throw new Error('Timed out waiting for ' + description);
   }
 
-  async function submit(base, prefix, title, context, changes, { issue: trackedIssue, extraChecks = [], minutes, onQualified } = {}) {
+  async function submit(base, prefix, title, context, changes, { extraChecks = [], minutes, onQualified } = {}) {
     verifyMain(base);
     const tracked = pulls.filter(pr => !pr.merged_at && updateBranch(pr.head.ref, prefix) && pr.head.repo.full_name === repository);
     assert.ok(tracked.every(pr => owned(pr) && pr.state === 'open'), 'An existing update PR was closed or belongs to another author');
@@ -70,10 +109,11 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     const branch = pr?.head.ref ?? prefix + '-' + base.slice(0, 12);
     const paths = Object.keys(changes).sort();
     let head = git('ls-remote', '--heads', 'origin', 'refs/heads/' + branch).split('\t')[0];
-    let issue = trackedIssue;
+    let issue;
     const trackUpdate = () => {
       const result = actionAPI('issues', 'POST', { title: '[Maintenance] ' + title,
-        body: '## Context\n' + context + '\n\n## Acceptance criteria\n- [ ] Verify the exact locked update through all required checks.\n- [ ] Merge the qualified commit without bypassing main protection.\n\nPart of #12.',
+        body: '## Context\n' + context + '\n\n## Acceptance criteria\n' +
+          stageCriteria.map(criterion => '- [ ] ' + criterion).join('\n') + '\n\n## Related work\nPart of #12.',
         labels: ['type:maintenance', 'area:release', 'priority:p1', 'status:in-progress'], milestone: 4 });
       assert.ok(Number.isSafeInteger(result.number));
       summary('Tracking issue: ' + result.html_url);
@@ -142,6 +182,7 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     const merged = appAPI('pulls/' + pr.number + '/merge', 'PUT', { sha: head, merge_method: 'squash' });
     assert.ok(merged.merged, merged.message);
     assert.match(merged.sha, sha);
+    completeStageIssue(pr);
     return merged.sha;
   }
 
@@ -169,5 +210,5 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     return waitFor(() => workflowResult(id, expected), workflow, minutes);
   }
 
-  return { run, git, gh, actionAPI, summary, commitJSON, approvedCommit, verifyMain, waitFor, submit, start, workflowResult, dispatch };
+  return { run, git, gh, actionAPI, summary, commitJSON, approvedCommit, reconcileIssues, verifyMain, waitFor, submit, start, workflowResult, dispatch };
 }
