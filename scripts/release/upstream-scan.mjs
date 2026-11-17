@@ -5,7 +5,7 @@ import { verifyDatabaseAge } from './vulnerability-policy.mjs';
 
 const scanner = 'anchore/grype@sha256:6a36234da13f9faa327306ac0b3dab3405cfa2b4eb20c8f904125a8707863913';
 
-export function upstreamScanner(out, execute, capture, hash, assessment) {
+export function upstreamScanner(out, execute, capture, hash, { assessment, fixableOnly = false } = {}) {
   const cache = path.resolve('out/upstream-grype-cache');
   fs.mkdirSync(cache, { recursive: true });
   const args = ['run', '--rm', '--platform', 'linux/amd64',
@@ -42,14 +42,16 @@ export function upstreamScanner(out, execute, capture, hash, assessment) {
         ['high', 'critical'].includes(vulnerability.severity.toLowerCase()) && vulnerability.fix?.state === 'fixed');
       if (!assessment) assert.equal(blockers.length, 0, 'Fixable High/Critical upstream findings: ' +
         blockers.map(({ artifact, vulnerability }) => artifact.name + '/' + vulnerability.id).join(', '));
+      const decision = assessment && assessment(arch, (fixableOnly ? blockers : matches)
+        .map(({ artifact, vulnerability }) => ({
+          package: artifact.name, installed: artifact.version, id: vulnerability.id, severity: vulnerability.severity,
+        })));
       assert.deepEqual(snapshot(), database.files, 'Upstream scan database changed');
       return {
         runtime: { name: runtime.name, version: runtime.version, cpe: runtime.cpe },
         findings: matches.length,
         fixableHighCritical: blockers.length,
-        ...(assessment && { stableGate: assessment(arch, matches.map(({ artifact, vulnerability }) => ({
-          package: artifact.name, installed: artifact.version, id: vulnerability.id, severity: vulnerability.severity,
-        }))) }),
+        ...(assessment && { [fixableOnly ? 'previewGate' : 'stableGate']: decision }),
         limitation: 'Core CPE and bundled component matches depend on the vulnerability database. Review vendor advisories and embedded dependency applicability separately.',
       };
     },

@@ -7,6 +7,7 @@ import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
 import { previewReleaseTag } from './stable-policy.mjs';
+import { vulnerabilityGate } from './vulnerability-policy.mjs';
 
 // Profile identity/validator comes from a reviewed language-specific entry point.
 export function publish(profile) {
@@ -39,7 +40,11 @@ export function publish(profile) {
   const alas = alasScanner(out, execute, read, hash);
   const scans = {};
   const upstreamScans = {};
-  const upstream = profile.upstream ? upstreamScanner(out, execute, capture, hash) : null;
+  const gate = vulnerabilityGate(read('releases/vulnerability-exceptions.json'));
+  const upstream = profile.upstream ? upstreamScanner(out, execute, capture, hash, {
+    assessment: (arch, findings) => gate({ scanner: 'grype', runtime: line, arch }, findings),
+    fixableOnly: true,
+  }) : null;
   for (const arch of ['amd64','arm64']) {
     const evidence = input + '/' + line + '-' + arch + '-evidence';
     scans[arch] = alas.scan(evidence+'/sbom.cdx.json', evidence+'/payload-packages.json', arch);
@@ -57,7 +62,7 @@ export function publish(profile) {
   alas.verifyDatabase();
   write('security.json',{scanner:alas.scanner,database:alas.database,scans,
     ...(upstream ? {upstream: {scanner: upstream.scanner, database: upstream.database, scans: upstreamScans}} : {}),
-    policy:'Block fixable High/Critical findings; retain raw reports and document advisory coverage limits'});
+    policy:'Block fixable High/Critical findings unless an exact, active reviewed exception applies; retain raw reports and applied exceptions'});
   const assets = fs.readdirSync(out).filter(n=>!n.endsWith('.md')).sort();
   fs.writeFileSync(out+'/SHA256SUMS',assets.map(n=>hash(out+'/'+n)+'  '+n).join('\n')+'\n');
   const initialNotes = '# ' + profile.title + ' qualified preview\n\nNative amd64/arm64 qualification passed at source '+commit+'.\n\n'+
