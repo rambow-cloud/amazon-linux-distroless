@@ -319,7 +319,7 @@ if (mirror) {
 const gate = vulnerabilityGate(read('releases/vulnerability-exceptions.json'));
 const assess = scanner => (arch, matches) => gate({ scanner, runtime, arch }, matches);
 const alas = alasScanner(out, execute, read, hash, assess('alas'));
-const grype = upstream ? upstreamScanner(out, execute, capture, hash, assess('grype')) : null;
+const grype = upstream ? upstreamScanner(out, execute, capture, hash, { assessment: assess('grype') }) : null;
 const scans = {};
 const upstreamScans = {};
 for (const arch of architectures) {
