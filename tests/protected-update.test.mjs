@@ -16,6 +16,42 @@ function tokens(t) {
   }
 }
 
+test('workflow polling waits through HTTP 404 without redispatching and preserves identity checks', t => {
+  tokens(t);
+  const expected = 'e'.repeat(40);
+  let response = 404;
+  const execute = (command, args, options) => {
+    assert.equal(command, 'gh');
+    if (args.includes('--paginate')) return '';
+    assert.ok(args.includes('repos/' + repository + '/actions/runs/99'));
+    assert.equal(args[args.indexOf('--method') + 1], 'GET');
+    assert.equal(options.env.GH_TOKEN, 'test-actions-token');
+    assert.equal(options.stdio[2], 'pipe');
+    if (typeof response === 'number') {
+      throw Object.assign(new Error('GitHub API failed'), { status: 1, stderr: Buffer.from('gh: HTTP ' + response) });
+    }
+    return JSON.stringify(response);
+  };
+  const client = protectedUpdateClient({ execute });
+  assert.equal(client.workflowResult(99, expected), false);
+  response = { head_branch: 'main', head_sha: expected, event: 'workflow_dispatch', status: 'queued' };
+  assert.equal(client.workflowResult(99, expected), false);
+  response = { ...response, status: 'completed', conclusion: 'success' };
+  assert.deepEqual(client.workflowResult(99, expected), response);
+  for (const changed of [{ head_sha: 'f'.repeat(40) }, { head_branch: 'other' }, { event: 'pull_request' },
+    { conclusion: 'failure' }, { conclusion: 'cancelled' }]) {
+    const valid = response;
+    response = { ...valid, ...changed };
+    assert.throws(() => client.workflowResult(99, expected));
+    response = valid;
+  }
+  for (const code of [403, 429, 500]) {
+    response = code;
+    assert.throws(() => client.workflowResult(99, expected), /GitHub API failed/);
+  }
+  assert.throws(() => client.workflowResult('99', expected), /workflow run ID/);
+});
+
 for (const scenario of ['success', 'unexpected-content', 'merge-failure', 'check-failure', 'deferred', 'completion-recovery']) {
   test('resumed protected update: ' + scenario, async t => {
     tokens(t);
