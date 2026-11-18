@@ -18,6 +18,8 @@ jobs:
           persist-credentials: false
       - name: Validate issue policy behavior
         run: node --test tests/issue-policy.test.mjs
+      - name: Validate workflow action pins
+        run: node --test tests/workflow-pins.test.mjs
       - name: Check configuration script syntax
         run: node --check scripts/sync-github-config.mjs
       - name: Validate Java publication policy
