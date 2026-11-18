@@ -42,11 +42,20 @@ test('a refresh changes only the complete native lock set and its four package s
 test('a same-patch rebuild advances the revision, a new patch resets it, and rollback preserves the prior digest', () => {
   const previous = { version: '22.23.4', revision: 3, maxImageMiB: 100, reference: 'previous' };
   const refreshed = { version: previous.version, reference: 'candidate' };
-  assert.equal(nextStableCandidate(previous, refreshed).revision, 4);
-  assert.equal(nextStableCandidate(previous, { ...refreshed, version: '22.23.5' }).revision, 1);
-  assert.equal(nextStableCandidate(previous, { ...refreshed, reference: previous.reference }), previous);
-  assert.throws(() => nextStableCandidate(previous, { ...refreshed, version: '22.23.3' }), /older than stable/);
+  assert.equal(nextStableCandidate('nodejs22', previous, refreshed).revision, 4);
+  assert.equal(nextStableCandidate('nodejs22', previous, { ...refreshed, version: '22.23.5' }).revision, 1);
+  assert.equal(nextStableCandidate('nodejs22', previous, { ...refreshed, reference: previous.reference }), previous);
+  assert.throws(() => nextStableCandidate('nodejs22', previous, { ...refreshed, version: '22.23.3' }), /older than stable/);
   assert.equal(previous.reference, 'previous');
+});
+
+test('AL2023 refresh selects revision one for an emergency Java patch and recovers its existing plan', () => {
+  const previous = { version: '17.0.21', revision: 3, maxImageMiB: 100, reference: 'previous' };
+  const preview = { version: '17.0.21.1', reference: 'candidate' };
+  const planned = nextStableCandidate('java17', previous, preview);
+  assert.deepEqual(planned, { ...preview, revision: 1, maxImageMiB: 100 });
+  assert.equal(nextStableCandidate('java17', planned, preview), planned);
+  assert.throws(() => nextStableCandidate('java17', planned, previous), /older than stable/);
 });
 
 test('proposal evidence retains changed RPM versions and licenses, added packages and cleared advisories', () => {

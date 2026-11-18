@@ -61,8 +61,8 @@ export function verifyRefresh(plan, current, artifact, foundationRevision) {
   return { changes, reports };
 }
 
-export function nextStableCandidate(previous, preview) {
-  const order = compareVersions(preview.version, previous.version);
+export function nextStableCandidate(runtime, previous, preview) {
+  const order = compareVersions(preview.version, previous.version, runtime);
   assert.ok(order >= 0, 'The refreshed runtime is older than stable');
   if (preview.reference === previous.reference) {
     assert.equal(order, 0, 'A changed runtime version must have a new image');

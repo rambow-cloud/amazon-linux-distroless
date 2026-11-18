@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
-import { attestedPredicates, checksumManifest, latestStableRelease, stablePlan, verifyAdvance, verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
+import { attestedPredicates, checksumManifest, compareVersions, latestStableRelease, stablePlan, verifyAdvance,
+  verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
 import { stableMirror, verifyPublicStableMirrors } from '../scripts/release/stable-registry.mjs';
 
 const candidates = JSON.parse(fs.readFileSync(new URL('../releases/stable-candidates.json', import.meta.url)));
@@ -48,6 +49,31 @@ test('stable aliases advance by version and revision with safe replay', () => {
   assert.throws(() => verifyAdvance({ ...initial, revision: 2 }, initial), /already/);
   assert.throws(() => verifyAdvance({ ...initial, reference: old.reference, revision: 3 }, initial), /revision/);
   assert.doesNotThrow(() => verifyAdvance({ ...initial, reference: old.reference, revision: 2 }, initial));
+});
+
+test('Corretto emergency patches keep their full version in stable tags and order before later updates', () => {
+  const former = stablePlan('java17', { ...candidates.java17, version: '17.0.21', revision: 9 });
+  const digest = 'b'.repeat(64);
+  const patched = stablePlan('java17', { ...candidates.java17, version: '17.0.21.1', revision: 1,
+    reference: former.base + '@sha256:' + digest });
+  assert.equal(patched.releaseTag, 'java17-17.0.21.1-r1');
+  assert.ok(stableMirror('quay.io', patched).tags.includes('quay.io/rambow-cloud/java:17.0.21.1-r1'));
+  verifyAdvance(patched, former);
+  verifyAdvance(patched, patched);
+  assert.throws(() => verifyAdvance(former, patched), /rollback/);
+  const next = { ...patched, version: '17.0.22', reference: 'next' };
+  assert.equal(latestStableRelease([former, patched]), patched);
+  assert.equal(latestStableRelease([patched, former]), patched);
+  assert.equal(latestStableRelease([patched, next]), next);
+  assert.equal(compareVersions('17.0.21.10', '17.0.21.2', 'java17'), 1);
+  for (const version of ['17.0.21.01', '17.0.21.0', '17.0.21.1-ea', '17.0.21+1']) {
+    assert.throws(() => stablePlan('java17', { ...candidates.java17, version }), /exact release version/);
+  }
+  for (const runtime of ['python314', 'nodejs26']) {
+    const candidate = candidates[runtime];
+    assert.throws(() => stablePlan(runtime, { ...candidate, version: candidate.version + '.1' }), /exact release version/);
+  }
+  assert.throws(() => compareVersions('2023.12.20261117.1', '2023.12.20261117'));
 });
 
 test('stable channels use shared language packages and keep existing revision references', () => {
