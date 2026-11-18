@@ -408,4 +408,4 @@ if (publish) {
 }
 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
   '# ' + (publish ? 'Published stable ' : 'Validated stable candidate ') + runtime + '\n\n' +
-  plan.reference + '\n\n' + (publish ? record.releaseUrl + '\n' : 'Stable promotion checks passed.\n'));
+  plan.reference + '\n\n' + (publish ? releaseURL(plan.releaseTag) + '\n' : 'Stable promotion checks passed.\n'));
