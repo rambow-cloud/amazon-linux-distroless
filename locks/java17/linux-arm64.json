@@ -1,9 +1,9 @@
 {
-  "builder": "public.ecr.aws/amazonlinux/amazonlinux@sha256:5c6ed3b38335b2aa424a045f1e564c8c508409ead0ff3f8bf5e62c31b94082cb",
+  "builder": "public.ecr.aws/amazonlinux/amazonlinux@sha256:3f018977be7a3473a0a473ed105b244b8bdec8683ecb24962f675db23017137b",
   "platform": "linux/arm64",
-  "releasever": "2023.12.20261112",
+  "releasever": "2023.12.20261117",
   "schema_version": 1,
-  "source_date_epoch": 1794484697,
+  "source_date_epoch": 1794958715,
   "sources": [
     {
       "arch": "src",
@@ -296,14 +296,14 @@
     {
       "arch": "src",
       "epoch": "1",
-      "filename": "java-17-amazon-corretto-17.0.21.0.11-1.amzn2023.1.src.rpm",
+      "filename": "java-17-amazon-corretto-17.0.21.1.2-1.amzn2023.1.src.rpm",
       "license": "ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib and ISC and FTL and RSA.",
       "name": "java-17-amazon-corretto",
       "release": "1.amzn2023.1",
-      "sha256": "8c4c2022a8d66fc5e7c7216f13331ad1832fa5388e8596ca313a26e71281e63a",
+      "sha256": "db267bcdf6a5a6e9837f224e408999a619c29a0f536d805c9611dac1130de37e",
       "signature_verified": true,
-      "url": "https://cdn.amazonlinux.com/al2023/blobstore/8c4c2022a8d66fc5e7c7216f13331ad1832fa5388e8596ca313a26e71281e63a/java-17-amazon-corretto-17.0.21.0.11-1.amzn2023.1.src.rpm",
-      "version": "17.0.21.0.11"
+      "url": "https://cdn.amazonlinux.com/al2023/blobstore/db267bcdf6a5a6e9837f224e408999a619c29a0f536d805c9611dac1130de37e/java-17-amazon-corretto-17.0.21.1.2-1.amzn2023.1.src.rpm",
+      "version": "17.0.21.1.2"
     },
     {
       "arch": "src",
@@ -596,14 +596,14 @@
     {
       "arch": "src",
       "epoch": "0",
-      "filename": "system-release-2023.12.20261112-0.amzn2023.src.rpm",
+      "filename": "system-release-2023.12.20261117-0.amzn2023.src.rpm",
       "license": "MIT",
       "name": "system-release",
       "release": "0.amzn2023",
-      "sha256": "8c0ba87a6e05c6419d32e15452949981d64a7d7803ca47b7c7cc577da385c35f",
+      "sha256": "4b5c47f23ff94a6d0a65a17d3376de6891112571ad214b723f74a534cf07a9ee",
       "signature_verified": true,
-      "url": "https://cdn.amazonlinux.com/al2023/blobstore/8c0ba87a6e05c6419d32e15452949981d64a7d7803ca47b7c7cc577da385c35f/system-release-2023.12.20261112-0.amzn2023.src.rpm",
-      "version": "2023.12.20261112"
+      "url": "https://cdn.amazonlinux.com/al2023/blobstore/4b5c47f23ff94a6d0a65a17d3376de6891112571ad214b723f74a534cf07a9ee/system-release-2023.12.20261117-0.amzn2023.src.rpm",
+      "version": "2023.12.20261117"
     },
     {
       "arch": "src",
@@ -656,7 +656,7 @@
   ],
   "tool_packages": [
     "alternatives-0:1.15-2.amzn2023.0.2.aarch64",
-    "amazon-linux-repo-cdn-0:2023.12.20261112-0.amzn2023.noarch",
+    "amazon-linux-repo-cdn-0:2023.12.20261117-0.amzn2023.noarch",
     "audit-libs-0:3.1.5-1.amzn2023.0.2.aarch64",
     "basesystem-0:11-11.amzn2023.0.2.noarch",
     "bash-0:5.2.15-1.amzn2023.0.2.aarch64",
@@ -689,9 +689,9 @@
     "gpgme-0:1.23.2-182.amzn2023.0.1.aarch64",
     "grep-0:3.8-1.amzn2023.0.4.aarch64",
     "jansson-0:2.14-0.amzn2023.aarch64",
-    "java-17-amazon-corretto-devel-1:17.0.21.0.11-1.amzn2023.1.aarch64",
-    "java-17-amazon-corretto-headless-1:17.0.21.0.11-1.amzn2023.1.aarch64",
-    "java-17-amazon-corretto-jmods-1:17.0.21.0.11-1.amzn2023.1.aarch64",
+    "java-17-amazon-corretto-devel-1:17.0.21.1.2-1.amzn2023.1.aarch64",
+    "java-17-amazon-corretto-headless-1:17.0.21.1.2-1.amzn2023.1.aarch64",
+    "java-17-amazon-corretto-jmods-1:17.0.21.1.2-1.amzn2023.1.aarch64",
     "javapackages-filesystem-0:6.0.0-7.amzn2023.0.6.noarch",
     "json-c-0:0.14-8.amzn2023.0.2.aarch64",
     "keyutils-libs-0:1.6.3-1.amzn2023.0.2.aarch64",
@@ -773,7 +773,7 @@
     "sed-0:4.8-7.amzn2023.0.2.aarch64",
     "setup-0:2.13.7-3.amzn2023.0.2.noarch",
     "sqlite-libs-0:3.40.0-1.amzn2023.0.9.aarch64",
-    "system-release-0:2023.12.20261112-0.amzn2023.noarch",
+    "system-release-0:2023.12.20261117-0.amzn2023.noarch",
     "systemd-libs-0:252.23-15.amzn2023.aarch64",
     "tzdata-0:2026f-1.amzn2023.0.1.noarch",
     "xz-libs-0:5.2.5-9.amzn2023.0.2.aarch64",
@@ -803,15 +803,15 @@
         {
           "arch": "noarch",
           "epoch": "0",
-          "filename": "amazon-linux-repo-cdn-2023.12.20261112-0.amzn2023.noarch.rpm",
+          "filename": "amazon-linux-repo-cdn-2023.12.20261117-0.amzn2023.noarch.rpm",
           "license": "MIT",
           "name": "amazon-linux-repo-cdn",
           "release": "0.amzn2023",
-          "sha256": "4aead28511b0df0eaae5e23d85a7770792c19f57457a89b84c5f203ef8525275",
+          "sha256": "97ab35309d281117a003ca50d466c396fd1d08acbab91b0471894abbb864d18e",
           "signature_verified": true,
-          "source_rpm": "system-release-2023.12.20261112-0.amzn2023.src.rpm",
-          "url": "https://cdn.amazonlinux.com/al2023/blobstore/4aead28511b0df0eaae5e23d85a7770792c19f57457a89b84c5f203ef8525275/amazon-linux-repo-cdn-2023.12.20261112-0.amzn2023.noarch.rpm",
-          "version": "2023.12.20261112"
+          "source_rpm": "system-release-2023.12.20261117-0.amzn2023.src.rpm",
+          "url": "https://cdn.amazonlinux.com/al2023/blobstore/97ab35309d281117a003ca50d466c396fd1d08acbab91b0471894abbb864d18e/amazon-linux-repo-cdn-2023.12.20261117-0.amzn2023.noarch.rpm",
+          "version": "2023.12.20261117"
         },
         {
           "arch": "noarch",
@@ -1206,15 +1206,15 @@
         {
           "arch": "noarch",
           "epoch": "0",
-          "filename": "system-release-2023.12.20261112-0.amzn2023.noarch.rpm",
+          "filename": "system-release-2023.12.20261117-0.amzn2023.noarch.rpm",
           "license": "MIT",
           "name": "system-release",
           "release": "0.amzn2023",
-          "sha256": "27b135c9888843d7aad2a6d2cadd4130906282446948109aa46e51b58b575809",
+          "sha256": "a4791cf029a61f783043bc6a169c3f3362a689a3f838915f4f0c2ea7c1759656",
           "signature_verified": true,
-          "source_rpm": "system-release-2023.12.20261112-0.amzn2023.src.rpm",
-          "url": "https://cdn.amazonlinux.com/al2023/blobstore/27b135c9888843d7aad2a6d2cadd4130906282446948109aa46e51b58b575809/system-release-2023.12.20261112-0.amzn2023.noarch.rpm",
-          "version": "2023.12.20261112"
+          "source_rpm": "system-release-2023.12.20261117-0.amzn2023.src.rpm",
+          "url": "https://cdn.amazonlinux.com/al2023/blobstore/a4791cf029a61f783043bc6a169c3f3362a689a3f838915f4f0c2ea7c1759656/system-release-2023.12.20261117-0.amzn2023.noarch.rpm",
+          "version": "2023.12.20261117"
         },
         {
           "arch": "noarch",
@@ -1280,15 +1280,15 @@
         {
           "arch": "noarch",
           "epoch": "0",
-          "filename": "amazon-linux-repo-cdn-2023.12.20261112-0.amzn2023.noarch.rpm",
+          "filename": "amazon-linux-repo-cdn-2023.12.20261117-0.amzn2023.noarch.rpm",
           "license": "MIT",
           "name": "amazon-linux-repo-cdn",
           "release": "0.amzn2023",
-          "sha256": "4aead28511b0df0eaae5e23d85a7770792c19f57457a89b84c5f203ef8525275",
+          "sha256": "97ab35309d281117a003ca50d466c396fd1d08acbab91b0471894abbb864d18e",
           "signature_verified": true,
-          "source_rpm": "system-release-2023.12.20261112-0.amzn2023.src.rpm",
-          "url": "https://cdn.amazonlinux.com/al2023/blobstore/4aead28511b0df0eaae5e23d85a7770792c19f57457a89b84c5f203ef8525275/amazon-linux-repo-cdn-2023.12.20261112-0.amzn2023.noarch.rpm",
-          "version": "2023.12.20261112"
+          "source_rpm": "system-release-2023.12.20261117-0.amzn2023.src.rpm",
+          "url": "https://cdn.amazonlinux.com/al2023/blobstore/97ab35309d281117a003ca50d466c396fd1d08acbab91b0471894abbb864d18e/amazon-linux-repo-cdn-2023.12.20261117-0.amzn2023.noarch.rpm",
+          "version": "2023.12.20261117"
         },
         {
           "arch": "noarch",
@@ -1592,15 +1592,15 @@
         {
           "arch": "aarch64",
           "epoch": "1",
-          "filename": "java-17-amazon-corretto-headless-17.0.21.0.11-1.amzn2023.1.aarch64.rpm",
+          "filename": "java-17-amazon-corretto-headless-17.0.21.1.2-1.amzn2023.1.aarch64.rpm",
           "license": "ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib and ISC and FTL and RSA.",
           "name": "java-17-amazon-corretto-headless",
           "release": "1.amzn2023.1",
-          "sha256": "c2ff91ff42cc86a08014ac93ebd9cb325bb63fbd21c9504c89afbc1ad6128985",
+          "sha256": "41193807ff71dae26c31fa7e624cc8c99a51a3758ae57b10d8ecb6e5046c50d8",
           "signature_verified": true,
-          "source_rpm": "java-17-amazon-corretto-17.0.21.0.11-1.amzn2023.1.src.rpm",
-          "url": "https://cdn.amazonlinux.com/al2023/blobstore/c2ff91ff42cc86a08014ac93ebd9cb325bb63fbd21c9504c89afbc1ad6128985/java-17-amazon-corretto-headless-17.0.21.0.11-1.amzn2023.1.aarch64.rpm",
-          "version": "17.0.21.0.11"
+          "source_rpm": "java-17-amazon-corretto-17.0.21.1.2-1.amzn2023.1.src.rpm",
+          "url": "https://cdn.amazonlinux.com/al2023/blobstore/41193807ff71dae26c31fa7e624cc8c99a51a3758ae57b10d8ecb6e5046c50d8/java-17-amazon-corretto-headless-17.0.21.1.2-1.amzn2023.1.aarch64.rpm",
+          "version": "17.0.21.1.2"
         },
         {
           "arch": "noarch",
@@ -2073,15 +2073,15 @@
         {
           "arch": "noarch",
           "epoch": "0",
-          "filename": "system-release-2023.12.20261112-0.amzn2023.noarch.rpm",
+          "filename": "system-release-2023.12.20261117-0.amzn2023.noarch.rpm",
           "license": "MIT",
           "name": "system-release",
           "release": "0.amzn2023",
-          "sha256": "27b135c9888843d7aad2a6d2cadd4130906282446948109aa46e51b58b575809",
+          "sha256": "a4791cf029a61f783043bc6a169c3f3362a689a3f838915f4f0c2ea7c1759656",
           "signature_verified": true,
-          "source_rpm": "system-release-2023.12.20261112-0.amzn2023.src.rpm",
-          "url": "https://cdn.amazonlinux.com/al2023/blobstore/27b135c9888843d7aad2a6d2cadd4130906282446948109aa46e51b58b575809/system-release-2023.12.20261112-0.amzn2023.noarch.rpm",
-          "version": "2023.12.20261112"
+          "source_rpm": "system-release-2023.12.20261117-0.amzn2023.src.rpm",
+          "url": "https://cdn.amazonlinux.com/al2023/blobstore/a4791cf029a61f783043bc6a169c3f3362a689a3f838915f4f0c2ea7c1759656/system-release-2023.12.20261117-0.amzn2023.noarch.rpm",
+          "version": "2023.12.20261117"
         },
         {
           "arch": "noarch",
