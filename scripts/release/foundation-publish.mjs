@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { sha256File } from './file-digest.mjs';
 import { validateIndex } from './java21-policy.mjs';
-import { architectures, attestedPredicates, issuer, repository, verifyAdvance } from './stable-policy.mjs';
-import { registryDigest, waitForRegistryDigest } from './stable-registry.mjs';
+import { architectures, attestedPredicates, issuer, repository, stablePlan, verifyAdvance } from './stable-policy.mjs';
+import { registryDigest, stableMirror, waitForRegistryDigest } from './stable-registry.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' ||
     process.env.GITHUB_REF !== 'refs/heads/main' || process.env.GITHUB_REPOSITORY !== repository) {
@@ -49,13 +49,20 @@ const head = capture('git', ['rev-parse', 'HEAD']);
 assert.equal(head, process.env.GITHUB_SHA);
 const provenance = read(bundle + '/evidence/provenance.json');
 const indexes = read(bundle + '/indexes.json');
-const qualification = read(input + '/project-qualification-report/report.json');
+const languageEvidence = input + '/stable-language-evidence/stable-language-evidence.json';
+const qualification = read(languageEvidence);
 const security = read(scans + '/security.json');
 for (const commit of [provenance.sourceCommit, indexes.commit, qualification.commit, security.sourceCommit]) assert.equal(commit, head);
 assert.equal(provenance.execution, 'native');
-assert.deepEqual(qualification.foundation, indexes.variants);
 const languageCandidates = read('releases/stable-candidates.json');
-assert.deepEqual(Object.keys(qualification.stableEvidence.runtimes).sort(), Object.keys(languageCandidates).sort());
+assert.deepEqual(Object.keys(qualification.runtimes).sort(), Object.keys(languageCandidates).sort());
+for (const [runtime, candidate] of Object.entries(languageCandidates)) {
+  const plan = stablePlan(runtime, candidate);
+  const verified = qualification.runtimes[runtime];
+  assert.equal(verified.release, 'https://github.com/' + repository + '/releases/tag/' + plan.releaseTag);
+  assert.equal(verified.reference, stableMirror('ghcr.io', plan).reference);
+  assert.match(verified.securitySHA256, /^sha256:[a-f0-9]{64}$/);
+}
 const version = provenance.leaves.amd64.releasever;
 assert.match(version, /^2023\.\d+\.\d{8}$/);
 assert.equal(provenance.leaves.arm64.releasever, version);
@@ -180,11 +187,7 @@ if (existing && !existing.isDraft) {
   }
   asset(bundle + '/evidence/provenance.json', 'provenance.json');
   asset(scans + '/security.json', 'security.json');
-  asset(input + '/project-qualification-report/report.json', 'project-qualification.json');
-  const scanFolders = Object.keys(languageCandidates).map(line => 'fresh-language-scan-' + line);
-  for (const name of scanFolders) assert.ok(read(input + '/' + name + '/security.json').alas);
-  run('tar', ['-czf', 'out/fresh-language-scans.tar.gz', '-C', input, ...scanFolders]);
-  asset('out/fresh-language-scans.tar.gz', 'fresh-language-scans.tar.gz');
+  asset(languageEvidence, 'stable-language-evidence.json');
   record = { schemaVersion: 1, releaseTag: tag, releaseUrl, sourceCommit: head,
     run: 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID, images: plans, assets };
   write(out + '/' + recordFile, record);

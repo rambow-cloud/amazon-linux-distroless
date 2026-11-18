@@ -31,7 +31,8 @@ for (const target of targets) {
     assert.ok(release.assets.some(asset => asset.name === name && asset.digest === digest &&
       asset.state === 'uploaded' && asset.size > 0), 'Signed security evidence missing: ' + runtime + '/' + name);
   }
-  result[runtime] = { reference: mirrors[0].reference, mirrors, release: record.releaseUrl, supportThrough: support };
+  result[runtime] = { reference: mirrors[0].reference, mirrors, release: record.releaseUrl,
+    securitySHA256: record.scanHashes['security.json'], supportThrough: support };
   console.log(runtime, ...mirrors.map(mirror => mirror.reference), support);
 }
 for (const family of new Set(targets.map(target => target.variant))) {
@@ -41,4 +42,4 @@ for (const family of new Set(targets.map(target => target.variant))) {
     assert.equal(registryDigest(tag), latest.digest, 'Unexpected digest for ' + tag);
   }
 }
-fs.writeFileSync(process.argv[2], JSON.stringify({ observed: today, runtimes: result }, null, 2) + '\n');
+fs.writeFileSync(process.argv[2], JSON.stringify({ commit: process.env.GITHUB_SHA, observed: today, runtimes: result }, null, 2) + '\n');

@@ -9,6 +9,7 @@ import { sha256File as hash } from './file-digest.mjs';
 import { vulnerabilityGate } from './vulnerability-policy.mjs';
 import { quayLogin } from './quay-oidc.mjs';
 import { waitForRegistryDigest } from './stable-registry.mjs';
+import { reuseStableScan, stableScanHashes } from './stable-scan-evidence.mjs';
 import {
   architectures, attestedPredicates, checksumManifest, compareStableReleases, issuer, latestStableRelease,
   repository, stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
@@ -317,38 +318,55 @@ if (mirror) {
   process.exit(0);
 }
 
-const gate = vulnerabilityGate(read('releases/vulnerability-exceptions.json'));
-const assess = scanner => (arch, matches) => gate({ scanner, runtime, arch }, matches);
-const alas = alasScanner(out, execute, read, hash, assess('alas'));
-const grype = upstream ? upstreamScanner(out, execute, capture, hash, { assessment: assess('grype') }) : null;
-const scans = {};
-const upstreamScans = {};
-for (const arch of architectures) {
-  scans[arch] = alas.scan(input + '/' + arch + '-sbom.cdx.json', input + '/' + arch + '-payload-packages.json', arch);
-  if (grype) upstreamScans[arch] = grype.scan(input + '/' + arch + '-runtime-sbom.cdx.json', arch, records[arch].upstream);
+function scanCandidate() {
+  const gate = vulnerabilityGate(read('releases/vulnerability-exceptions.json'));
+  const assess = scanner => (arch, matches) => gate({ scanner, runtime, arch }, matches);
+  const alas = alasScanner(out, execute, read, hash, assess('alas'));
+  const grype = upstream ? upstreamScanner(out, execute, capture, hash, { assessment: assess('grype') }) : null;
+  const scans = {};
+  const upstreamScans = {};
+  for (const arch of architectures) {
+    scans[arch] = alas.scan(input + '/' + arch + '-sbom.cdx.json', input + '/' + arch + '-payload-packages.json', arch);
+    if (grype) upstreamScans[arch] = grype.scan(input + '/' + arch + '-runtime-sbom.cdx.json', arch, records[arch].upstream);
+  }
+  alas.verifyDatabase();
+  write(out + '/security.json', {
+    alas: { scanner: alas.scanner, database: alas.database, scans },
+    ...(grype ? { upstream: { scanner: grype.scanner, database: grype.database, scans: upstreamScans } } : {}),
+  });
+  return stableScanHashes(out, plan);
 }
-alas.verifyDatabase();
-const security = {
-  alas: { scanner: alas.scanner, database: alas.database, scans },
-  ...(grype ? { upstream: { scanner: grype.scanner, database: grype.database, scans: upstreamScans } } : {}),
-};
-write(out + '/security.json', security);
-let record = {
-  ...required, previousReference: oldReference,
-  promotionRun: 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID,
-  promotionCommit: head, releaseCommit: existingCommit ?? head, releaseUrl: releaseURL(plan.releaseTag),
-  imageBytes: Object.fromEntries(architectures.map(arch => [arch, records[arch].image.size])),
-  maxImageMiB: plan.maxImageMiB,
-  scanHashes: Object.fromEntries(fs.readdirSync(out).sort().map(name => [name, 'sha256:' + hash(out + '/' + name)])),
-};
+
+const batch = process.env.STABLE_BATCH === 'true';
+const scanIdentity = { run: process.env.GITHUB_RUN_ID, commit: head,
+  runtime, reference: plan.reference, releaseTag: plan.releaseTag };
+const release = publish || batch ? optional('gh', ['release', 'view', plan.releaseTag, '--repo', repository,
+  '--json', 'isDraft,isPrerelease,body,targetCommitish'], /release not found|HTTP 404/i) : null;
+const existing = release === null ? null : JSON.parse(release);
+const alreadyPublished = existing && !existing.isDraft;
+
+if (!publish) {
+  if (batch && alreadyPublished) {
+    write(out + '/preflight.json', { identity: scanIdentity, existing: publishedStableRecord().releaseUrl });
+  } else {
+    const scanHashes = scanCandidate();
+    if (batch) write(out + '/preflight.json', { identity: scanIdentity, checkedAt: new Date().toISOString(), scanHashes });
+  }
+}
 
 if (publish) {
-  const release = optional('gh', ['release', 'view', plan.releaseTag, '--repo', repository,
-    '--json', 'isDraft,isPrerelease,body,targetCommitish'], /release not found|HTTP 404/i);
-  const existing = release === null ? null : JSON.parse(release);
-  if (existing && !existing.isDraft) {
+  let record;
+  if (alreadyPublished) {
     record = publishedStableRecord();
   } else {
+    const scanHashes = batch ? reuseStableScan('out/stable-preflight', out, plan, scanIdentity) : scanCandidate();
+    record = {
+      ...required, previousReference: oldReference,
+      promotionRun: 'https://github.com/' + repository + '/actions/runs/' + process.env.GITHUB_RUN_ID,
+      promotionCommit: head, releaseCommit: existingCommit ?? head, releaseUrl: releaseURL(plan.releaseTag),
+      imageBytes: Object.fromEntries(architectures.map(arch => [arch, records[arch].image.size])),
+      maxImageMiB: plan.maxImageMiB, scanHashes,
+    };
     const marker = '<!-- stable-candidate ' + plan.reference + ' -->';
     if (existing) assert.ok(existing.body.includes(marker), 'Draft belongs to a different promotion');
     if (existingCommit) assert.equal(existing?.targetCommitish, existingCommit, 'Immutable Git tag collision');
