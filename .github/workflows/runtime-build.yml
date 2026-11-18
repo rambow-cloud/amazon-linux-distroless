@@ -22,7 +22,7 @@ jobs:
       required: ${{ steps.scope.outputs.required }}
       runtimes: ${{ steps.scope.outputs.runtimes }}
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - uses: actions/github-script@v9.0.0
         id: scope
         with:
           script: |
@@ -53,23 +53,23 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - if: startsWith(matrix.runtime, 'python')
-        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        uses: sigstore/cosign-installer@v4.1.3
         with:
           cosign-release: v3.1.4
       - run: node scripts/runtime/build.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
       - run: node scripts/runtime/verify.mjs ${{ matrix.runtime }} ${{ matrix.arch }}
       - run: cat out/${{ matrix.runtime }}/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-image
           path: out/${{ matrix.runtime }}/${{ matrix.arch }}/image.tar.gz
           compression-level: 0
           retention-days: 14
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-evidence
           path: |
@@ -77,13 +77,13 @@ jobs:
             out/${{ matrix.runtime }}/${{ matrix.arch }}/*.md
             out/${{ matrix.runtime }}/${{ matrix.arch }}/project-source.tar.gz
           retention-days: 30
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-sources
           path: out/${{ matrix.runtime }}/${{ matrix.arch }}/sources.tar.gz
           compression-level: 0
           retention-days: 14
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: ${{ matrix.runtime }}-${{ matrix.arch }}-diagnostics
@@ -95,7 +95,7 @@ jobs:
     needs: [changes,build]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - uses: actions/github-script@v9.0.0
         env:
           SCOPE_RESULT: ${{ needs.changes.result }}
           RUNTIME_REQUIRED: ${{ needs.changes.outputs.required }}

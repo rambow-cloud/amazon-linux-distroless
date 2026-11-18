@@ -9,4 +9,4 @@
 - When a result can be verified by opening it in a browser, tell the user exactly what to open and verify instead of independently testing it with curl or similar command-line requests.
 - For DNS validation, use server-side CloudFormation status and outputs as the source of truth. Do not perform local DNS validation. Ask the user to perform additional confirmation only when necessary and provide clear steps.
 - Do not claim that an image exists or is validated until the corresponding build and runtime evidence exists.
-- Pin build inputs and action dependencies. Keep final images free of build tools and package managers; preserve component provenance and license obligations.
+- Pin build inputs. Use full release version tags for external GitHub Actions, such as `@v8.0.2`. Keep final images free of build tools and package managers; preserve component provenance and license obligations.
