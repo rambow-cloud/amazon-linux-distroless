@@ -15,7 +15,7 @@ jobs:
     outputs:
       required: ${{ steps.scope.outputs.required }}
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - uses: actions/github-script@v9.0.0
         id: scope
         with:
           script: |
@@ -43,7 +43,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Build native Java runtime from reviewed locks
@@ -52,13 +52,13 @@ jobs:
         run: node scripts/java21/verify.mjs ${{ matrix.arch }} ${{ matrix.java }}
       - name: Summarize native results
         run: cat out/java${{ matrix.java }}/${{ matrix.arch }}/summary.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: java${{ matrix.java }}-${{ matrix.arch }}-image
           path: out/java${{ matrix.java }}/${{ matrix.arch }}/image.tar.gz
           compression-level: 0
           retention-days: 14
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: java${{ matrix.java }}-${{ matrix.arch }}-evidence
           path: |
@@ -66,7 +66,7 @@ jobs:
             out/java${{ matrix.java }}/${{ matrix.arch }}/*.md
             out/java${{ matrix.java }}/${{ matrix.arch }}/project-source.tar.gz
           retention-days: 30
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: java${{ matrix.java }}-${{ matrix.arch }}-sources
           path: out/java${{ matrix.java }}/${{ matrix.arch }}/sources.tar.gz
@@ -74,7 +74,7 @@ jobs:
           retention-days: 14
       - name: Preserve diagnostic metadata
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: java${{ matrix.java }}-${{ matrix.arch }}-diagnostics
           path: out/java${{ matrix.java }}/${{ matrix.arch }}/*.json
@@ -85,7 +85,7 @@ jobs:
     needs: [changes, build]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - uses: actions/github-script@v9.0.0
         env:
           SCOPE_RESULT: ${{ needs.changes.result }}
           JAVA_REQUIRED: ${{ needs.changes.outputs.required }}

@@ -15,7 +15,7 @@ Runtime images start FROM scratch. The builder supplies tools, official RPM trus
 | Exact RPMs and sources | Java version locks or family/architecture locks in `locks/upstream/` | Pins NEVRA, URLs, checksums, verified signatures, licenses and source |
 | Upstream runtime | `images/upstream/versions.json` and per-version/per-architecture archive locks | Pins the signed official CPython source or Node.js binary and corresponding source |
 | Builder tools | Lock `tool_packages` | Drift fails consumption; JDK/JMods and native headers must match the contract |
-| Actions/scanner/signing tools | Pinned action SHAs and tool image/version pins | Reviewed independently from runtime packages |
+| Actions/scanner/signing tools | Full Action release tags and tool image/version pins | Reviewed independently from runtime packages |
 
 AL2023 snapshots are deterministic: the same releasever does not expose later snapshots. Select an explicit published release and regenerate locks. Updating only a builder digest does not update locked RPMs. See [AWS deterministic upgrades](https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades.html).
 

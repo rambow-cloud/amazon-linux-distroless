@@ -13,12 +13,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out proposed changes
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Validate issue policy behavior
         run: node --test tests/issue-policy.test.mjs
-      - name: Validate workflow action pins
+      - name: Validate workflow action versions
         run: node --test tests/workflow-pins.test.mjs
       - name: Check configuration script syntax
         run: node --check scripts/sync-github-config.mjs
