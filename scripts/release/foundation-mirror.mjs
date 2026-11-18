@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { compareStableReleases, repository } from './stable-policy.mjs';
-import { mirrorHosts, registryDigest } from './stable-registry.mjs';
+import { mirrorHosts, registryDigest, waitForRegistryDigest } from './stable-registry.mjs';
 import {
   currentFoundation, foundationIdentity, foundationMirror, foundationPredicate, publishedFoundation,
   signedPredicates, verifyFoundationMirror,
@@ -42,12 +42,12 @@ function inspectTags(image, destination, tags, exists = true) {
   return [fixed, ...rolling];
 }
 
-function publishTags(tags, reference, digest) {
+async function publishTags(tags, reference, digest) {
   for (const [tag, before] of tags) {
     if (before === digest) continue;
     assert.equal(current(tag), before, 'Foundation tag changed during publication: ' + tag);
     run('docker', ['buildx', 'imagetools', 'create', '--tag', tag, reference]);
-    assert.equal(registryDigest(tag), digest, 'Foundation tag digest differs: ' + tag);
+    await waitForRegistryDigest(tag, digest);
   }
 }
 
@@ -68,7 +68,7 @@ if (releaseTag) {
     return { image, tags: inspectTags(image, image.base, [image.immutable, image.alias]) };
   });
   for (const { image, tags } of compatibility) {
-    if (hosts.includes('ghcr.io')) publishTags(tags, image.reference, image.digest);
+    if (hosts.includes('ghcr.io')) await publishTags(tags, image.reference, image.digest);
     else assert.ok(tags.every(([, digest]) => digest === image.digest), 'Repair the compatibility GHCR tags first');
   }
 }
@@ -82,7 +82,7 @@ for (const image of images) {
     run('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
       process.env.DOCKER_CONFIG + '/config.json', image.reference, mirror.destination]);
     verifyFoundationMirror(mirror.reference, image, record);
-    publishTags(tags, mirror.reference, image.digest);
+    await publishTags(tags, mirror.reference, image.digest);
     summary.push('- `' + mirror.tags[2] + '` and `' + mirror.tags[3] + '` → `' + mirror.reference + '`');
   }
 }

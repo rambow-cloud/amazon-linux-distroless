@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
 import { validateIndex } from './java21-policy.mjs';
 import { attestedPredicates, issuer, stableIdentity, stablePredicate } from './stable-policy.mjs';
 
@@ -26,6 +27,18 @@ export function registryDigest(reference, { allowMissing = false } = {}) {
   const digest = /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(result.stdout)?.[1];
   assert.ok(digest, 'Missing digest for ' + reference);
   return digest;
+}
+
+export async function waitForRegistryDigest(reference, expected, { digest = registryDigest, sleep = delay } = {}) {
+  // Registries can acknowledge a write before their read endpoint sees it.
+  for (const wait of [0, 2_000, 4_000, 8_000, 16_000]) {
+    if (wait) await sleep(wait);
+    const observed = digest(reference, { allowMissing: true });
+    if (observed === null) continue;
+    assert.equal(observed, expected, 'Unexpected digest after writing ' + reference);
+    return;
+  }
+  throw new Error('Registry did not expose the newly written reference: ' + reference);
 }
 
 export function verifyStableRegistry(plan, { reference, tags }, { digest = registryDigest, execute = run } = {}) {
