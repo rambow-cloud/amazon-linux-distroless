@@ -7,6 +7,9 @@ export const repository = 'rambow-cloud/amazon-linux-distroless';
 export const issuer = 'https://token.actions.githubusercontent.com';
 export const architectures = ['amd64', 'arm64'];
 const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const javaVersionPattern = /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){2}(?:(?:\.(?:0|[1-9]\d*))*\.[1-9]\d*)?$/;
+const javaLine = /^java(17|21|25)$/;
+const versionPatternFor = runtime => javaLine.test(runtime) ? javaVersionPattern : versionPattern;
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
 const identity = workflow => 'https://github.com/' + repository + '/.github/workflows/' + workflow + '@refs/heads/main';
 export const stableIdentity = identity('runtime-stable.yml');
@@ -19,12 +22,12 @@ export function previewReleaseTag(runtime, commit, runId = '') {
 }
 
 export function stablePlan(runtime, candidate) {
-  assert.match(candidate.version, versionPattern, 'Expected an exact release version');
+  assert.match(candidate.version, versionPatternFor(runtime), 'Expected an exact release version');
   assert.ok(Number.isSafeInteger(candidate.revision) && candidate.revision >= 1, 'Invalid stable revision');
   assert.ok(Number.isSafeInteger(candidate.maxImageMiB) && candidate.maxImageMiB > 0, 'Invalid image size ceiling');
   const retry = /-run([1-9]\d*)$/.exec(candidate.previewTag)?.[1] ?? '';
   assert.equal(candidate.previewTag, previewReleaseTag(runtime, candidate.sourceCommit, retry));
-  const major = /^java(17|21|25)$/.exec(runtime)?.[1];
+  const major = javaLine.exec(runtime)?.[1];
   const config = major ? { version: major, variant: 'java' } : configuration(runtime);
   assert.ok(candidate.version.startsWith(config.version + '.'), 'Candidate crosses the version line');
   const base = 'ghcr.io/' + repository + '/' + runtime;
@@ -94,13 +97,16 @@ export function checksumManifest(text) {
   return entries;
 }
 
-export function compareVersions(left, right) {
-  assert.match(left, versionPattern);
-  assert.match(right, versionPattern);
+export function compareVersions(left, right, runtime) {
+  const pattern = versionPatternFor(runtime);
+  assert.match(left, pattern);
+  assert.match(right, pattern);
   const a = left.split('.').map(BigInt);
   const b = right.split('.').map(BigInt);
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const leftPart = a[i] ?? 0n;
+    const rightPart = b[i] ?? 0n;
+    if (leftPart !== rightPart) return leftPart < rightPart ? -1 : 1;
   }
   return 0;
 }
@@ -109,7 +115,7 @@ export function compareStableReleases(left, right) {
   for (const record of [left, right]) {
     assert.ok(Number.isSafeInteger(record.revision) && record.revision >= 1, 'Invalid stable revision');
   }
-  const order = compareVersions(left.version, right.version) || Math.sign(left.revision - right.revision);
+  const order = compareVersions(left.version, right.version, left.runtime) || Math.sign(left.revision - right.revision);
   if (order === 0) assert.equal(left.reference, right.reference, 'Conflicting digests for the same release');
   return order;
 }
@@ -127,7 +133,7 @@ export function verifyAdvance(plan, previous) {
   assert.equal(previous.runtime, plan.runtime);
   assert.equal(previous.alias, plan.alias);
   assert.ok(Number.isSafeInteger(previous.revision) && previous.revision >= 1);
-  const order = compareVersions(plan.version, previous.version);
+  const order = compareVersions(plan.version, previous.version, plan.runtime);
   assert.ok(order >= 0, 'Stable version rollback is blocked');
   const unchanged = previous.reference === plan.reference;
   if (unchanged) {

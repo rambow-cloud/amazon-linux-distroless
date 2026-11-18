@@ -180,7 +180,7 @@ if (!approved) {
     assert.equal(published.verification.arm64.sample[language], version);
     if (language !== 'java') assert.equal(version, runtimes[runtime].upstreamVersion);
     const candidate = { version, sourceCommit: source, previewTag: tag, reference: published.reference };
-    const next = nextStableCandidate(previous[runtime], candidate);
+    const next = nextStableCandidate(runtime, previous[runtime], candidate);
     const expected = stablePlan(runtime, { ...candidate, revision: next.revision, maxImageMiB: next.maxImageMiB });
     assert.equal(published.certificateIdentity, expected.previewIdentity);
     assert.equal(published.releaseUrl, release.html_url);
