@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { test } from 'node:test';
 import { attestedPredicates, checksumManifest, compareVersions, latestStableRelease, stablePlan, verifyAdvance,
   verifyNativeEvidence } from '../scripts/release/stable-policy.mjs';
-import { stableMirror, verifyPublicStableMirrors } from '../scripts/release/stable-registry.mjs';
+import { stableMirror, verifyPublicStableMirrors, waitForRegistryDigest } from '../scripts/release/stable-registry.mjs';
 
 const candidates = JSON.parse(fs.readFileSync(new URL('../releases/stable-candidates.json', import.meta.url)));
 const candidate = candidates.nodejs26;
@@ -37,6 +37,27 @@ test('project mirror evidence rejects drift at Quay after GHCR has succeeded', (
   const stale = stableMirror('quay.io', plan).tags[0];
   assert.throws(() => verifyPublicStableMirrors(plan, { ...options,
     digest: tag => tag === stale ? 'sha256:' + '3'.repeat(64) : plan.digest }), /Unexpected digest for quay\.io/);
+});
+
+test('post-push digest verification waits only for missing references and stops after a bounded window', async () => {
+  const delays = [];
+  const sleep = async milliseconds => { delays.push(milliseconds); };
+  const visible = [null, null, plan.digest];
+  const digest = (reference, options) => {
+    assert.equal(reference, plan.immutable);
+    assert.equal(options.allowMissing, true);
+    return visible.shift();
+  };
+  await waitForRegistryDigest(plan.immutable, plan.digest, { digest, sleep });
+  assert.deepEqual(delays.splice(0), [2_000, 4_000]);
+  await assert.rejects(waitForRegistryDigest(plan.immutable, plan.digest, { digest: () => null, sleep }),
+    /did not expose/);
+  assert.deepEqual(delays.splice(0), [2_000, 4_000, 8_000, 16_000]);
+  await assert.rejects(waitForRegistryDigest(plan.immutable, plan.digest,
+    { digest: () => 'sha256:' + 'c'.repeat(64), sleep }), /Unexpected digest/);
+  await assert.rejects(waitForRegistryDigest(plan.immutable, plan.digest,
+    { digest: () => { throw new Error('registry access denied'); }, sleep }), /registry access denied/);
+  assert.deepEqual(delays, []);
 });
 
 test('stable aliases advance by version and revision with safe replay', () => {

@@ -8,6 +8,7 @@ import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
 import { vulnerabilityGate } from './vulnerability-policy.mjs';
 import { quayLogin } from './quay-oidc.mjs';
+import { waitForRegistryDigest } from './stable-registry.mjs';
 import {
   architectures, attestedPredicates, checksumManifest, compareStableReleases, issuer, latestStableRelease,
   repository, stableIdentity, stablePlan, stablePredicate, verifyAdvance, verifyNativeEvidence,
@@ -55,9 +56,9 @@ function tagDigest(ref) {
   return digest;
 }
 
-function writeTag(tag, plan, reference = plan.reference) {
+async function writeTag(tag, plan, reference = plan.reference) {
   execute('docker', ['buildx', 'imagetools', 'create', '--tag', tag, reference]);
-  assert.equal(tagDigest(tag), plan.digest, 'Promoted digest differs');
+  await waitForRegistryDigest(tag, plan.digest);
 }
 
 function registryLogin() {
@@ -206,7 +207,7 @@ function copyMirror(base) {
     process.env.DOCKER_CONFIG + '/config.json', plan.reference, base]);
 }
 
-function publishChannel(record) {
+async function publishChannel(record) {
   const legacyName = 'amazon-linux-distroless/' + plan.variant;
   const visibility = packageVisibility(legacyName);
   const current = visibility === null ? null : tagDigest(plan.channel);
@@ -224,7 +225,7 @@ function publishChannel(record) {
   verifyMirror(plan.channelBase, record);
   if (current !== plan.digest) {
     assert.equal(tagDigest(plan.channel), current, 'The shared channel changed during promotion');
-    writeTag(plan.channel, plan, plan.channelReference);
+    await writeTag(plan.channel, plan, plan.channelReference);
   }
   write(out + '/published-channel.json', {
     runtime, alias: plan.channel, reference: plan.channelReference, leaves: record.leaves,
@@ -244,7 +245,7 @@ function publishedMirrorRecord(base, digest, plans) {
   return records[0];
 }
 
-function publishShortChannel(base, record, exists) {
+async function publishShortChannel(base, record, exists) {
   const fixed = base + ':' + plan.version + '-r' + plan.revision;
   const patch = base + ':' + plan.version;
   const rolling = base + ':' + plan.line;
@@ -283,11 +284,11 @@ function publishShortChannel(base, record, exists) {
   for (const [tag, before] of [[fixed, fixedDigest], [patch, patchDigest], [rolling, lineDigest]]) {
     if (before === plan.digest) continue;
     assert.equal(tagDigest(tag), before, 'A mirror version tag changed during publication');
-    writeTag(tag, plan, reference);
+    await writeTag(tag, plan, reference);
   }
   if (latestDigest !== newestDigest) {
     assert.equal(tagDigest(latest), latestDigest, 'The latest tag changed during publication');
-    writeTag(latest, { digest: newestDigest }, base + '@' + newestDigest);
+    await writeTag(latest, { digest: newestDigest }, base + '@' + newestDigest);
   }
   return { reference, fixed, patch, rolling, latest, latestDigest: newestDigest };
 }
@@ -296,12 +297,12 @@ async function distribute(record) {
   const published = {};
   registryLogin();
   if (mirrorGHCR) {
-    publishChannel(record);
-    published.ghcr = publishShortChannel('ghcr.io/rambow-cloud/' + plan.variant, record, packageVisibility(plan.variant) !== null);
+    await publishChannel(record);
+    published.ghcr = await publishShortChannel('ghcr.io/rambow-cloud/' + plan.variant, record, packageVisibility(plan.variant) !== null);
   }
   if (mirrorQuay) {
     await quayLogin('runtime-stable.yml');
-    published.quay = publishShortChannel('quay.io/rambow-cloud/' + plan.variant, record, true);
+    published.quay = await publishShortChannel('quay.io/rambow-cloud/' + plan.variant, record, true);
   }
   write(out + '/published-mirrors.json', { runtime, leaves: record.leaves, releaseUrl: record.releaseUrl, ...published });
   for (const image of Object.values(published)) {
@@ -371,7 +372,7 @@ if (publish) {
     fs.writeFileSync(out + '/stable-attestation-verification.json', verified.raw + '\n');
     ghRelease('upload', plan.releaseTag, '--clobber', out + '/stable.json', out + '/stable-attestation-verification.json',
       ...Object.keys(record.scanHashes).map(name => out + '/' + name));
-    if (existingDigest === null) writeTag(plan.immutable, plan);
+    if (existingDigest === null) await writeTag(plan.immutable, plan);
     ghRelease('edit', plan.releaseTag, '--draft=false', '--latest=false');
     const released = JSON.parse(capture('gh', ['api', releaseAPI(plan.releaseTag)]));
     assert.ok(!released.draft && !released.prerelease, 'Expected published stable release');
@@ -382,7 +383,7 @@ if (publish) {
   if (oldDigest !== plan.digest) {
     assert.equal(tagDigest(plan.alias), oldDigest, 'The stable alias changed during promotion');
     if (existing && !existing.isDraft) registryLogin();
-    writeTag(plan.alias, plan);
+    await writeTag(plan.alias, plan);
   }
   write(out + '/published-stable.json', record);
   await distribute(record);

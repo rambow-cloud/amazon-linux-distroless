@@ -5,6 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { sha256File } from './file-digest.mjs';
 import { validateIndex } from './java21-policy.mjs';
 import { architectures, attestedPredicates, issuer, repository, verifyAdvance } from './stable-policy.mjs';
+import { registryDigest, waitForRegistryDigest } from './stable-registry.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' ||
     process.env.GITHUB_REF !== 'refs/heads/main' || process.env.GITHUB_REPOSITORY !== repository) {
@@ -30,14 +31,7 @@ function optional(cmd, args, absent) {
   if (result.status && absent.test(result.stderr)) return null;
   throw new Error(cmd + ' lookup failed: ' + (result.error?.message || result.stderr));
 }
-function digestOf(reference, allowMissing = false) {
-  const args = ['buildx', 'imagetools', 'inspect', reference];
-  const output = allowMissing ? optional('docker', args, /not found|manifest unknown|name unknown/i) : capture('docker', args);
-  if (output === null) return null;
-  const digest = /^Digest:\s*(sha256:[a-f0-9]{64})$/m.exec(output)?.[1];
-  assert.ok(digest, 'Cannot resolve digest: ' + reference);
-  return digest;
-}
+const currentDigest = reference => registryDigest(reference, { allowMissing: true });
 function attestations(reference, type, digest) {
   return attestedPredicates(capture('cosign', ['verify-attestation', '--type', type, '--certificate-identity',
     identity, '--certificate-oidc-issuer', issuer, reference]), type === 'cyclonedx' ? null : type, digest);
@@ -89,8 +83,8 @@ const old = {};
 for (const plan of Object.values(plans)) {
   const status = visibility(plan.runtime);
   assert.ok(status === null || status === 'public', 'Existing foundation package is not public');
-  const aliasDigest = status === null ? null : digestOf(plan.alias, true);
-  const fixed = status === null ? null : digestOf(plan.immutable, true);
+  const aliasDigest = status === null ? null : currentDigest(plan.alias);
+  const fixed = status === null ? null : currentDigest(plan.immutable);
   assert.ok(fixed === null || fixed === plan.digest, 'Immutable foundation tag collision');
   const prior = aliasDigest ? attestations(plan.base + '@' + aliasDigest, predicate, aliasDigest)
     .map(record => record.images[plan.runtime]).find(image => image?.reference === plan.base + '@' + aliasDigest) : null;
@@ -132,9 +126,9 @@ function verifyRegistry(plan, record) {
     }
   }
 }
-function setTag(tagRef, plan) {
+async function setTag(tagRef, plan) {
   run('docker', ['buildx', 'imagetools', 'create', '--tag', tagRef, plan.reference]);
-  assert.equal(digestOf(tagRef), plan.digest);
+  await waitForRegistryDigest(tagRef, plan.digest);
 }
 
 let record;
@@ -200,7 +194,7 @@ if (existing && !existing.isDraft) {
     run('tar', ['-xzf', bundle + '/' + plan.runtime + '.oci.tar.gz', '--no-same-owner', '-C', layout]);
     run('oras', ['cp', '--from-oci-layout', '--concurrency', '1', '--to-registry-config',
       process.env.DOCKER_CONFIG + '/config.json', layout + ':candidate', plan.base]);
-    assert.equal(digestOf(plan.reference), plan.digest);
+    await waitForRegistryDigest(plan.reference, plan.digest);
     assert.equal(visibility(plan.runtime), 'public');
     run('cosign', ['sign', '--yes', plan.reference]);
     run('cosign', ['attest', '--yes', '--type', predicate, '--predicate', out + '/' + recordFile, plan.reference]);
@@ -209,15 +203,15 @@ if (existing && !existing.isDraft) {
         out + '/' + plan.runtime + '-' + arch + '-sbom.cdx.json', plan.base + '@' + leaf]);
     }
     verifyRegistry(plan, record);
-    if (!old[plan.runtime].fixed) setTag(plan.immutable, plan);
+    if (!old[plan.runtime].fixed) await setTag(plan.immutable, plan);
   }
   release('upload', tag, '--clobber', ...[recordFile, ...Object.keys(assets)].map(name => out + '/' + name));
   release('edit', tag, '--draft=false', '--latest=false');
   verifyAssets(record);
 }
 for (const plan of Object.values(plans)) {
-  assert.equal(digestOf(plan.alias, true), old[plan.runtime].aliasDigest, 'Rolling tag changed during promotion');
-  if (old[plan.runtime].aliasDigest !== plan.digest) setTag(plan.alias, plan);
+  assert.equal(currentDigest(plan.alias), old[plan.runtime].aliasDigest, 'Rolling tag changed during promotion');
+  if (old[plan.runtime].aliasDigest !== plan.digest) await setTag(plan.alias, plan);
 }
 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '# Published foundation images\n\n' + releaseUrl + '\n\n' +
   variants.map(runtime => '- ' + plans[runtime].alias + ': ' + plans[runtime].digest).join('\n') + '\n');
