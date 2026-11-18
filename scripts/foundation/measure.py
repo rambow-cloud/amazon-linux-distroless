@@ -69,12 +69,11 @@ def docker(*args):
 
 def official(evidence):
     lock = load(evidence / "lock.json")
-    spec = load(Path("images/upstream/packages.json"))
     platform = lock["platform"]
     os, arch = platform.split("/")
     repo = "public.ecr.aws/amazonlinux/amazonlinux"
     results = {}
-    for flavor, ref in (("officialBase", lock["builder"]), ("officialMinimal", spec["builder_tag"] + "-minimal")):
+    for flavor, ref in (("officialBase", lock["builder"]), ("officialMinimal", repo + ":2023-minimal")):
         index = json.loads(docker("buildx", "imagetools", "inspect", "--raw", ref))
         [leaf] = [d for d in index["manifests"] if d.get("platform", {}).get("os") == os
                   and d.get("platform", {}).get("architecture") == arch]

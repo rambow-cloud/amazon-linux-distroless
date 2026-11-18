@@ -1,7 +1,9 @@
 name: Foundation reproducibility
 on:
   pull_request:
-    paths: [.github/workflows/foundation-repro.yml]
+    paths:
+      - .github/workflows/foundation-repro.yml
+      - scripts/foundation/measure.py
   workflow_dispatch:
 permissions:
   contents: read
