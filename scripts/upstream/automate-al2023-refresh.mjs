@@ -146,7 +146,7 @@ const isAncestor = (first, second) => {
 function recentRuns(workflow, title) {
   const rows = JSON.parse(gh('run', 'list', '--repo', repository, '--workflow', workflow, '--branch', 'main',
     '--commit', base, '--event', 'workflow_dispatch', '--limit', '30',
-    '--json', 'databaseId,status,displayTitle,conclusion,updatedAt'));
+    '--json', 'databaseId,status,displayTitle'));
   return rows.filter(row => row.displayTitle === title);
 }
 function pendingRun(workflow, title) {
@@ -237,14 +237,7 @@ function languagesPublished() {
 }
 if (!languagesPublished()) {
   const workflow = 'runtime-stable.yml';
-  let id = pendingRun(workflow, 'Stable publish all');
-  if (!id) {
-    const checked = recentRuns(workflow, 'Stable check all').find(row => row.status !== 'completed' ||
-      row.conclusion === 'success' && Date.now() - Date.parse(row.updatedAt) < 4 * 60 * 60_000);
-    const preflight = checked?.databaseId ?? start(workflow, { runtime: 'all', mode: 'check' }, base);
-    await waitRuns({ preflight }, 'fresh stable preflight for every runtime');
-    id = start(workflow, { runtime: 'all', mode: 'publish' }, base);
-  }
+  const id = pendingRun(workflow, 'Stable publish all') ?? start(workflow, { runtime: 'all', mode: 'publish' }, base);
   await waitRuns({ stable: id }, 'signed stable promotion');
 }
 

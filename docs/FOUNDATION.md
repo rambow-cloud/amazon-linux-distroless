@@ -59,7 +59,7 @@ After the language stable plan and foundation locks have merged, dispatch from p
 gh workflow run foundation-release.yml --ref main -f revision=1
 ```
 
-Promotion runs the full native foundation/language qualification and fresh scans. It signs both OCI indexes, attaches the platform SBOMs, preserves matching source and scan evidence in the GitHub Release, and then moves `static:2023` and `base:2023` under `ghcr.io/rambow-cloud/amazon-linux-distroless/`. Each image has a fixed tag such as `base:2023.12.20261102-r1`. Use revision 1 for a newer AL2023 repository snapshot, or increment the revision for a new digest of the same snapshot.
+Promotion verifies the signed stable language releases, their scan evidence and their GHCR and Quay mirrors. It runs native qualification and fresh scans for static and base, signs both indexes, and preserves the platform SBOMs, matching sources and scan evidence in the GitHub Release. The `stable-language-evidence.json` asset records the verified language releases and their signed scan checksums. Promotion then moves `static:2023` and `base:2023` under `ghcr.io/rambow-cloud/amazon-linux-distroless/`. Each image has a fixed tag such as `base:2023.12.20261102-r1`. Use revision 1 for a newer AL2023 repository snapshot, or increment the revision for a new digest of the same snapshot.
 
 The workflow copies the same signed indexes and attestations to the short GHCR and Quay repositories. Quay uses the existing publisher's GitHub OIDC exchange and repository-scoped Write access. On initial setup, make the short GHCR packages public after their first publish and create the public Quay repositories with Write access for the OIDC publisher. To repair the current mirrors or verify both with anonymous native pulls, run:
 
