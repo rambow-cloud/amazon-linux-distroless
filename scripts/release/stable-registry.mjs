@@ -41,6 +41,15 @@ export async function waitForRegistryDigest(reference, expected, { digest = regi
   throw new Error('Registry did not expose the newly written reference: ' + reference);
 }
 
+export async function copyRegistryImage(source, reference, { referrers = true } = {}) {
+  const args = ['image', 'copy'];
+  if (referrers) args.push('--referrers', '--digest-tags');
+  execFileSync('regctl', [...args, source, reference], { stdio: 'inherit' });
+  // Allow the registry to expose the committed index before inspecting it.
+  await delay(2_000);
+  await waitForRegistryDigest(reference, reference.split('@')[1]);
+}
+
 export function verifyStableRegistry(plan, { reference, tags }, { digest = registryDigest, execute = run } = {}) {
   for (const tag of tags) assert.equal(digest(tag), plan.digest, 'Unexpected digest for ' + tag);
   const verify = (verb, identity, extra = []) => execute('cosign', [verb, '--certificate-identity', identity,

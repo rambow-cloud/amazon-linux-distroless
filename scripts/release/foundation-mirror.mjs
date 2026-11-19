@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { compareStableReleases, repository } from './stable-policy.mjs';
-import { mirrorHosts, registryDigest, waitForRegistryDigest } from './stable-registry.mjs';
+import { copyRegistryImage, mirrorHosts, registryDigest, waitForRegistryDigest } from './stable-registry.mjs';
 import {
   currentFoundation, foundationIdentity, foundationMirror, foundationPredicate, publishedFoundation,
   signedPredicates, verifyFoundationMirror,
@@ -79,8 +79,7 @@ for (const image of images) {
     const mirror = foundationMirror(host, image);
     const exists = host !== 'ghcr.io' || ghcrPackageExists(image.runtime);
     const tags = inspectTags(image, mirror.destination, mirror.tags, exists);
-    run('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
-      process.env.DOCKER_CONFIG + '/config.json', image.reference, mirror.destination]);
+    await copyRegistryImage(image.reference, mirror.reference);
     verifyFoundationMirror(mirror.reference, image, record);
     await publishTags(tags, mirror.reference, image.digest);
     summary.push('- `' + mirror.tags[2] + '` and `' + mirror.tags[3] + '` → `' + mirror.reference + '`');
