@@ -43,7 +43,12 @@ export async function waitForRegistryDigest(reference, expected, { digest = regi
 
 export async function copyRegistryImage(source, reference, { referrers = true } = {}) {
   const args = ['image', 'copy'];
-  if (referrers) args.push('--referrers', '--digest-tags');
+  if (referrers) {
+    args.push('--digest-tags');
+    // Copy GHCR's complete referrers index as a digest tag. Per-referrer
+    // indexing can overwrite entries when a fallback tag read is stale.
+    if (!reference.startsWith('ghcr.io/')) args.push('--referrers');
+  }
   execFileSync('regctl', [...args, source, reference], { stdio: 'inherit' });
   // Allow the registry to expose the committed index before inspecting it.
   await delay(2_000);
