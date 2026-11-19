@@ -1,82 +1,82 @@
 {
   "java17": {
     "version": "17.0.21.1",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "java17-8ce547175406-run44301044445",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java17@sha256:57469a8db0c20857ad08d3a1cd72a088bcfd8bc25c2e2be361847985f5377c1b",
-    "revision": 1,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "java17-2951c566543c-run44520857002",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java17@sha256:49cf6b4ddf6d350485a158bd3aa9fc88f0155ad7de5bd34775b7a8130bae68b3",
+    "revision": 2,
     "maxImageMiB": 112
   },
   "java21": {
     "version": "21.0.13.1",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "java21-8ce547175406-run44301051287",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java21@sha256:0c07fa96cd732011966f62b23379b87414e699b3c0691b6554215501f20e99cc",
-    "revision": 1,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "java21-2951c566543c-run44520862972",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java21@sha256:46b2a16bfce53cdd7e8d76ef004b8d19470620157797f7c6a06d03e913415ebd",
+    "revision": 2,
     "maxImageMiB": 112
   },
   "java25": {
     "version": "25.0.5.1",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "java25-8ce547175406-run44301058108",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java25@sha256:10fd4833e70422b522e6b8e3b77d1dda0b87a41223bca3dd81cc6751a8980779",
-    "revision": 1,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "java25-2951c566543c-run44520868986",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/java25@sha256:8b81c704d8eee430978bdbc40edccde94f8a47a0b3193b6b37fdfb8ec9c46c5e",
+    "revision": 2,
     "maxImageMiB": 112
   },
   "python311": {
     "version": "3.11.18",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "python311-8ce547175406-run44301063437",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python311@sha256:a4b8f0f88ffd2106e61bbb6e6b6061d9c62a8d0b575e9f2a164bfff8056cc9d1",
-    "revision": 4,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "python311-2951c566543c-run44520875173",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python311@sha256:5cb90b504bb3a97cb52b1d80e492e96103e0f33f7cba4d5ca2a44b2a45ea5523",
+    "revision": 5,
     "maxImageMiB": 88
   },
   "python312": {
     "version": "3.12.16",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "python312-8ce547175406-run44301069266",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python312@sha256:8d04be7eee572ba8f959ff22d24081860be5b9e8f01463207e8a7824e267922a",
-    "revision": 4,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "python312-2951c566543c-run44520880343",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python312@sha256:bb53560ff6fc2341d44407588b4cfb8116b17ebe73a4e06959fad70c7f16a63d",
+    "revision": 5,
     "maxImageMiB": 96
   },
   "python313": {
     "version": "3.13.18",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "python313-8ce547175406-run44301075896",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python313@sha256:c1d51b9b99643f517a62753859d8699bee17ad983a2ec8f8578d6b72fc0eaf5c",
-    "revision": 4,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "python313-2951c566543c-run44520887139",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python313@sha256:f051e59759ea9e499b9270b45d43a2658b05e07a9fd0d105b613a10d555f1274",
+    "revision": 5,
     "maxImageMiB": 104
   },
   "python314": {
     "version": "3.14.10",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "python314-8ce547175406-run44301082541",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:1e9ff1dae336db154dbab0ae953fc352f489afb6af8072a5332b2881397df72a",
-    "revision": 5,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "python314-2951c566543c-run44520895066",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/python314@sha256:7c17005311819ed49c20d6375101a72c8590ff833e4fbb9b3a689551a80c028c",
+    "revision": 6,
     "maxImageMiB": 104
   },
   "nodejs22": {
     "version": "22.23.5",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "nodejs22-8ce547175406-run44301088350",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs22@sha256:4c729e3a24168e0b21e770c553dd599ec301b5028a78aadeb08f1ae4f3978ecc",
-    "revision": 3,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "nodejs22-2951c566543c-run44520901482",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs22@sha256:58c90c9c10697329acbe7d2b1b9e1e97ded7beebf75cfa4d31d5ab3fbca0ddef",
+    "revision": 4,
     "maxImageMiB": 136
   },
   "nodejs24": {
     "version": "24.22.3",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "nodejs24-8ce547175406-run44301093958",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs24@sha256:3c014091a370366e0ec866a8b65e0447d40ccecddeea58e2bf79a463b4e91c72",
-    "revision": 2,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "nodejs24-2951c566543c-run44520907828",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs24@sha256:090b175f528e8bdc16db532eb8cf1e0f1f5ddc30a86d7fc8eb0e91fddba0a1ca",
+    "revision": 3,
     "maxImageMiB": 144
   },
   "nodejs26": {
     "version": "26.13.1",
-    "sourceCommit": "8ce547175406949c89e4c4a9926d960da7234906",
-    "previewTag": "nodejs26-8ce547175406-run44301099892",
-    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs26@sha256:8da8cebaa3e871b20eef31979859e8478b2f58ab096d1627373fdd775b6df7a2",
-    "revision": 2,
+    "sourceCommit": "2951c566543c5d3f064c7cac1526b53e4be2f0c8",
+    "previewTag": "nodejs26-2951c566543c-run44520913661",
+    "reference": "ghcr.io/rambow-cloud/amazon-linux-distroless/nodejs26@sha256:b1dc1daca5e9c13971de638e1779251e1dd6b4f8d020d69c7b2c3d8c18db667b",
+    "revision": 3,
     "maxImageMiB": 168
   }
 }
