@@ -8,7 +8,7 @@ import { upstreamScanner } from './upstream-scan.mjs';
 import { sha256File as hash } from './file-digest.mjs';
 import { vulnerabilityGate } from './vulnerability-policy.mjs';
 import { quayLogin } from './quay-oidc.mjs';
-import { waitForRegistryDigest } from './stable-registry.mjs';
+import { copyRegistryImage, waitForRegistryDigest } from './stable-registry.mjs';
 import { reuseStableScan, stableScanHashes } from './stable-scan-evidence.mjs';
 import {
   architectures, attestedPredicates, checksumManifest, compareStableReleases, issuer, latestStableRelease,
@@ -202,12 +202,6 @@ function verifyMirror(base, record) {
   }
 }
 
-function copyMirror(base) {
-  // Copy the OCI index, platform manifests, and their referrers before exposing any version tag.
-  execute('oras', ['cp', '--recursive', '--concurrency', '1', '--to-registry-config',
-    process.env.DOCKER_CONFIG + '/config.json', plan.reference, base]);
-}
-
 async function publishChannel(record) {
   const legacyName = 'amazon-linux-distroless/' + plan.variant;
   const visibility = packageVisibility(legacyName);
@@ -221,7 +215,7 @@ async function publishChannel(record) {
       'Conflicting stable records for the shared channel');
     verifyAdvance(plan, known[0]);
   }
-  if (current !== plan.digest) copyMirror(plan.channelBase);
+  if (current !== plan.digest) await copyRegistryImage(plan.reference, plan.channelReference);
   assert.equal(packageVisibility(legacyName), 'public', 'The shared channel package must be public');
   verifyMirror(plan.channelBase, record);
   if (current !== plan.digest) {
@@ -280,7 +274,7 @@ async function publishShortChannel(base, record, exists) {
   }
   const newestDigest = newest.reference.split('@')[1];
 
-  if (!fixedDigest) copyMirror(base);
+  if (!fixedDigest) await copyRegistryImage(plan.reference, reference);
   verifyMirror(base, record);
   for (const [tag, before] of [[fixed, fixedDigest], [patch, patchDigest], [rolling, lineDigest]]) {
     if (before === plan.digest) continue;

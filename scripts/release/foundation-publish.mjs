@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { sha256File } from './file-digest.mjs';
 import { validateIndex } from './java21-policy.mjs';
 import { architectures, attestedPredicates, issuer, repository, stablePlan, verifyAdvance } from './stable-policy.mjs';
-import { registryDigest, stableMirror, waitForRegistryDigest } from './stable-registry.mjs';
+import { copyRegistryImage, registryDigest, stableMirror, waitForRegistryDigest } from './stable-registry.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' ||
     process.env.GITHUB_REF !== 'refs/heads/main' || process.env.GITHUB_REPOSITORY !== repository) {
@@ -195,9 +195,7 @@ if (existing && !existing.isDraft) {
     const layout = out + '/layout-' + plan.runtime;
     fs.mkdirSync(layout);
     run('tar', ['-xzf', bundle + '/' + plan.runtime + '.oci.tar.gz', '--no-same-owner', '-C', layout]);
-    run('oras', ['cp', '--from-oci-layout', '--concurrency', '1', '--to-registry-config',
-      process.env.DOCKER_CONFIG + '/config.json', layout + ':candidate', plan.base]);
-    await waitForRegistryDigest(plan.reference, plan.digest);
+    await copyRegistryImage('ocidir://' + layout + ':candidate', plan.reference, { referrers: false });
     assert.equal(visibility(plan.runtime), 'public');
     run('cosign', ['sign', '--yes', plan.reference]);
     run('cosign', ['attest', '--yes', '--type', predicate, '--predicate', out + '/' + recordFile, plan.reference]);
