@@ -1,6 +1,6 @@
 {
-  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux@sha256:ec2bcf1212690ec004a23c1d29a4080acb1c96ba746a9b4bba5b4cd64b3db4b1",
-  "releasever": "2023.12.20261118",
+  "builder_tag": "public.ecr.aws/amazonlinux/amazonlinux@sha256:985137e5576397a78ac3160e8b1dbc4104fc20b8694307a98579fa40d8ac54dc",
+  "releasever": "2023.12.20261119",
   "roots": {
     "base": [
       "glibc",
