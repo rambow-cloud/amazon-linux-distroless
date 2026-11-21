@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout as pause } from 'node:timers/promises';
 import { validateIndex } from './java21-policy.mjs';
 import { alasScanner } from './alas-scan.mjs';
 import { upstreamScanner } from './upstream-scan.mjs';
@@ -9,8 +10,20 @@ import { sha256File as hash } from './file-digest.mjs';
 import { previewReleaseTag } from './stable-policy.mjs';
 import { vulnerabilityGate } from './vulnerability-policy.mjs';
 
+export async function pushPreviewLeaf(reference, capture, sleep = pause) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return capture('docker', ['push', reference]);
+    } catch (error) {
+      if (attempt === 3) throw error;
+      console.warn(`Push attempt ${attempt} failed for ${reference}. Retrying in 20 seconds.`);
+      await sleep(20_000);
+    }
+  }
+}
+
 // Profile identity/validator comes from a reviewed language-specific entry point.
-export function publish(profile) {
+export async function publish(profile) {
   const line=profile.id;
   assert.match(line,/^[a-z][a-z0-9]*$/);
   assert.match(profile.workflow,/^[a-z0-9-]+\.yml$/);
@@ -65,16 +78,6 @@ export function publish(profile) {
     policy:'Block fixable High/Critical findings unless an exact, active reviewed exception applies; retain raw reports and applied exceptions'});
   const assets = fs.readdirSync(out).filter(n=>!n.endsWith('.md')).sort();
   fs.writeFileSync(out+'/SHA256SUMS',assets.map(n=>hash(out+'/'+n)+'  '+n).join('\n')+'\n');
-  const initialNotes = '# ' + profile.title + ' qualified preview\n\nNative amd64/arm64 qualification passed at source '+commit+'.\n\n'+
-    'This prerelease includes exact Docker image archives, payload SBOMs/file maps/locks, verification reports, matching source RPM bundles and project source.' +
-    (upstream ? ' The source bundles include the upstream release source and signature evidence.' : '') +
-    ' Component licenses remain individual. Registry signing/publication is being finalized by [Actions run](https://github.com/'+repo+'/actions/runs/'+run+').\n\n'+
-    'This is a runtime preview, not a declaration that the project-wide Java/Python/Node.js v1 milestone is complete.\n';
-  fs.writeFileSync(out+'/release-notes.md',initialNotes);
-  execute('gh',['release','create',tag,'--repo',repo,'--target',commit,'--title',profile.title + ' preview '+commit.slice(0,12),'--draft','--prerelease','--notes-file',out+'/release-notes.md']);
-  execute('gh',['release','upload',tag,'--repo',repo,...assets.map(n=>out+'/'+n),out+'/SHA256SUMS']);
-  execute('gh',['release','edit',tag,'--repo',repo,'--draft=false','--prerelease']);
-
   const auth = path.resolve('out/' + line + '-registry-auth'); fs.mkdirSync(auth,{recursive:true}); process.env.DOCKER_CONFIG=auth;
   assert.ok(process.env.GH_TOKEN,'Missing publication token');
   execute('docker',['login','ghcr.io','--username',process.env.GITHUB_ACTOR,'--password-stdin'],{input:process.env.GH_TOKEN,stdio:['pipe','pipe','inherit']});
@@ -85,7 +88,7 @@ export function publish(profile) {
     assert.equal(image.Id,records[arch].image.id); assert.equal(image.Architecture,arch);
     const leaf = immutable+'-'+arch;
     execute('docker',['tag',image.Id,leaf]);
-    const pushed = capture('docker',['push',leaf]);
+    const pushed = await pushPreviewLeaf(leaf, capture);
     const digest = /digest:\s*(sha256:[a-f0-9]{64})/.exec(pushed)?.[1]; assert.ok(digest,'Missing pushed manifest digest'); leaves[arch]=digest;
   }
   const descriptionKey = 'org.opencontainers.image.description';
@@ -129,13 +132,19 @@ export function publish(profile) {
   const published={...provenance,tag:immutable,alias:base+':' + profile.alias,predicateType,certificateIdentity:identity,signatureVerified:true,provenanceVerified:true,
     registryVisibilityAtPublication:visibility,releaseUrl:'https://github.com/'+repo+'/releases/tag/'+tag};
   write('published.json',published);
-  const completedIntro=initialNotes.replace('Registry signing/publication is being finalized by','Registry signatures and provenance were verified by');
+  const completedIntro = '# ' + profile.title + ' qualified preview\n\nNative amd64/arm64 qualification passed at source '+commit+'.\n\n'+
+    'This prerelease includes exact Docker image archives, payload SBOMs/file maps/locks, verification reports, matching source RPM bundles and project source.' +
+    (upstream ? ' The source bundles include the upstream release source and signature evidence.' : '') +
+    ' Component licenses remain individual. Registry signatures and provenance were verified by [Actions run]('+provenance.runUrl+').\n';
   fs.writeFileSync(out+'/release-notes.md',completedIntro+'\n## Published image\n\n'+immutable+'\n\n'+reference+'\n\nRolling preview: '+base+':' + profile.alias + '\n\n'+
     'Architectures: linux/amd64, linux/arm64. Cosign keyless signature and qualified-build provenance verification passed. Registry visibility at publication: '+visibility+'.\n\n'+
     'Certificate identity: '+identity+'\nOIDC issuer: https://token.actions.githubusercontent.com\n\n'+
     'ALAS unfixed/language-runtime coverage remains limited; zero scanner findings is not a no-risk guarantee. Production applications require their own dependency and workload qualification.\n');
-  execute('gh',['release','upload',tag,'--repo',repo,out+'/published.json',out+'/provenance.json',out+'/cosign-verification.json',out+'/attestation-verification.json']);
-  execute('gh',['release','edit',tag,'--repo',repo,'--notes-file',out+'/release-notes.md']);
+  execute('gh', ['release', 'create', tag, '--repo', repo, '--target', commit,
+    '--title', profile.title + ' preview ' + commit.slice(0, 12), '--draft', '--prerelease', '--notes-file', out + '/release-notes.md',
+    ...assets.map(name => out + '/' + name), out + '/SHA256SUMS', out + '/published.json', out + '/provenance.json',
+    out + '/cosign-verification.json', out + '/attestation-verification.json']);
+  execute('gh', ['release', 'edit', tag, '--repo', repo, '--draft=false']);
   if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'# Published ' + profile.title + ' preview\n\n'+reference+'\n\n'+published.releaseUrl+'\n\nRegistry visibility: '+visibility+'\n');
   console.log(JSON.stringify(published,null,2));
 
