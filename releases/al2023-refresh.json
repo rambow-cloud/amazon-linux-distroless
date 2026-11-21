@@ -1,5 +1,5 @@
 {
-  "builder": "public.ecr.aws/amazonlinux/amazonlinux@sha256:985137e5576397a78ac3160e8b1dbc4104fc20b8694307a98579fa40d8ac54dc",
-  "releasever": "2023.12.20261119",
+  "builder": "public.ecr.aws/amazonlinux/amazonlinux@sha256:5c38fd85b00ce8c094315d9b71f671f880052314a22bd25f1a027821bf61d9d7",
+  "releasever": "2023.12.20261120",
   "foundationRevision": 1
 }
