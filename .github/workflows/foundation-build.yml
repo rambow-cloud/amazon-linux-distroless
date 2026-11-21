@@ -71,7 +71,7 @@ jobs:
         run: node scripts/foundation/build.mjs "$ARCH"
       - name: Enforce measured size budgets
         run: python3 scripts/foundation/measure.py out/foundation/evidence out/foundation/evidence/metrics.json --budgets images/foundation/budgets.json
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version: '1.25.11'
           cache: false
