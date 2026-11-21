@@ -1,6 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { pushPreviewLeaf } from '../scripts/release/publish.mjs';
 import { validateRuntimeReports } from '../scripts/release/runtime-policy.mjs';
+
+test('preview push retries the same image at most three times', async t => {
+  t.mock.method(console, 'warn', () => {});
+  const reference = 'ghcr.io/example/java:preview-arm64';
+  const failure = new Error('unknown blob');
+
+  for (const succeeds of [true, false]) {
+    const delays = [];
+    let attempts = 0;
+    const result = pushPreviewLeaf(reference, (command, args) => {
+      assert.equal(command, 'docker');
+      assert.deepEqual(args, ['push', reference]);
+      if (++attempts === 3 && succeeds) return 'pushed';
+      throw failure;
+    }, async milliseconds => { delays.push(milliseconds); });
+    if (succeeds) assert.equal(await result, 'pushed');
+    else await assert.rejects(result, error => error === failure);
+    assert.equal(attempts, 3);
+    assert.deepEqual(delays, [5_000, 5_000]);
+  }
+});
+
 const records=()=>Object.fromEntries(['amd64','arm64'].map(arch=>{
   const abi='cpython-314-'+(arch==='amd64'?'x86_64':'aarch64')+'-linux-gnu';
   return [arch,{runtime:'python314',sourceCommit:'abc',platform:'linux/'+arch,image:{config:{User:'65532:65532',Entrypoint:['/usr/bin/python3.14']}},

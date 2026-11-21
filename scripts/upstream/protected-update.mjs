@@ -30,7 +30,7 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
         ...(body && { input: JSON.stringify(body) }),
       }));
     } catch (error) {
-      if (allowMissing && method === 'GET' && error.status > 0 && /HTTP 404/.test(String(error.stderr))) return null;
+      if (allowMissing && method === 'GET' && error.status > 0 && /HTTP (?:404|5\d{2})\b/.test(String(error.stderr))) return null;
       throw error;
     }
   }
@@ -204,7 +204,7 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
   function workflowResult(id, expected) {
     assert.ok(Number.isSafeInteger(id) && id > 0, 'Expected a workflow run ID');
     const info = actionAPI('actions/runs/' + id, 'GET', undefined, { allowMissing: true });
-    // A successful dispatch can return its ID before the run becomes readable.
+    // Use the regular polling interval when the run is not visible or GitHub returns a server error.
     if (!info) return false;
     assert.equal(info.head_branch, 'main');
     assert.equal(info.head_sha, expected);

@@ -16,7 +16,7 @@ function tokens(t) {
   }
 }
 
-test('workflow polling waits through HTTP 404 without redispatching and preserves identity checks', t => {
+test('workflow polling waits through missing runs and server errors without redispatching', t => {
   tokens(t);
   const expected = 'e'.repeat(40);
   let response = 404;
@@ -33,7 +33,10 @@ test('workflow polling waits through HTTP 404 without redispatching and preserve
     return JSON.stringify(response);
   };
   const client = protectedUpdateClient({ execute });
-  assert.equal(client.workflowResult(99, expected), false);
+  for (const code of [404, 500, 502, 503, 504]) {
+    response = code;
+    assert.equal(client.workflowResult(99, expected), false);
+  }
   response = { head_branch: 'main', head_sha: expected, event: 'workflow_dispatch', status: 'queued' };
   assert.equal(client.workflowResult(99, expected), false);
   response = { ...response, status: 'completed', conclusion: 'success' };
@@ -45,7 +48,7 @@ test('workflow polling waits through HTTP 404 without redispatching and preserve
     assert.throws(() => client.workflowResult(99, expected));
     response = valid;
   }
-  for (const code of [403, 429, 500]) {
+  for (const code of [401, 403, 429]) {
     response = code;
     assert.throws(() => client.workflowResult(99, expected), /GitHub API failed/);
   }
