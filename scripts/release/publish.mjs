@@ -16,8 +16,8 @@ export async function pushPreviewLeaf(reference, capture, sleep = pause) {
       return capture('docker', ['push', reference]);
     } catch (error) {
       if (attempt === 3) throw error;
-      console.warn(`Push attempt ${attempt} failed for ${reference}. Retrying in 5 seconds.`);
-      await sleep(5_000);
+      console.warn(`Push attempt ${attempt} failed for ${reference}. Retrying in 20 seconds.`);
+      await sleep(20_000);
     }
   }
 }

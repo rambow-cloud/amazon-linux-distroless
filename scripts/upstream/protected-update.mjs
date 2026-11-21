@@ -12,7 +12,7 @@ const updateBranch = (name, prefix) => name.startsWith(prefix) &&
 const stageCriteria = ['Verify the exact locked update through all required checks.',
   'Merge the qualified commit without bypassing main protection.'];
 
-export function protectedUpdateClient({ execute = execFileSync } = {}) {
+export function protectedUpdateClient({ execute = execFileSync, sleep = setTimeout } = {}) {
   const run = (command, args, options = {}) => execute(command, args, {
     encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 90_000,
     stdio: ['ignore', 'pipe', 'inherit'], ...options,
@@ -20,19 +20,13 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
   const git = (...args) => run('git', args);
   const gh = (...args) => run('gh', args);
   const appAPI = (endpoint, method = 'GET', body) => api(endpoint, method, body, process.env.GH_TOKEN);
-  const actionAPI = (endpoint, method = 'GET', body, options) => api(endpoint, method, body, process.env.ACTION_TOKEN, options);
-  function api(endpoint, method, body, token, { allowMissing = false } = {}) {
+  const actionAPI = (endpoint, method = 'GET', body) => api(endpoint, method, body, process.env.ACTION_TOKEN);
+  function api(endpoint, method, body, token) {
     const args = ['api', '-H', 'X-GitHub-Api-Version: 2026-03-10', '--method', method, 'repos/' + repository + '/' + endpoint];
-    try {
-      return JSON.parse(run('gh', [...args, ...(body ? ['--input', '-'] : [])], {
-        env: { ...process.env, GH_TOKEN: token },
-        stdio: [body ? 'pipe' : 'ignore', 'pipe', allowMissing ? 'pipe' : 'inherit'],
-        ...(body && { input: JSON.stringify(body) }),
-      }));
-    } catch (error) {
-      if (allowMissing && method === 'GET' && error.status > 0 && /HTTP (?:404|5\d{2})\b/.test(String(error.stderr))) return null;
-      throw error;
-    }
+    return JSON.parse(run('gh', [...args, ...(body ? ['--input', '-'] : [])], {
+      env: { ...process.env, GH_TOKEN: token },
+      ...(body && { input: JSON.stringify(body), stdio: ['pipe', 'pipe', 'inherit'] }),
+    }));
   }
   const sha = /^[a-f0-9]{40}$/;
   const bot = process.env.UPDATE_APP_SLUG + '[bot]';
@@ -101,7 +95,7 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     do {
       const result = action();
       if (result) return result;
-      await setTimeout(20_000);
+      await sleep(20_000);
     } while (Date.now() < end);
     throw new Error('Timed out waiting for ' + description);
   }
@@ -201,11 +195,19 @@ export function protectedUpdateClient({ execute = execFileSync } = {}) {
     return job.workflow_run_id;
   }
 
+  const statusRetries = new Map();
   function workflowResult(id, expected) {
     assert.ok(Number.isSafeInteger(id) && id > 0, 'Expected a workflow run ID');
-    const info = actionAPI('actions/runs/' + id, 'GET', undefined, { allowMissing: true });
-    // Use the regular polling interval when the run is not visible or GitHub returns a server error.
-    if (!info) return false;
+    let info;
+    try {
+      info = actionAPI('actions/runs/' + id);
+    } catch (error) {
+      const retries = statusRetries.get(id) ?? 0;
+      if (retries === 10) throw error;
+      statusRetries.set(id, retries + 1);
+      return false;
+    }
+    statusRetries.delete(id);
     assert.equal(info.head_branch, 'main');
     assert.equal(info.head_sha, expected);
     assert.equal(info.event, 'workflow_dispatch');

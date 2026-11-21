@@ -20,7 +20,7 @@ test('preview push retries the same image at most three times', async t => {
     if (succeeds) assert.equal(await result, 'pushed');
     else await assert.rejects(result, error => error === failure);
     assert.equal(attempts, 3);
-    assert.deepEqual(delays, [5_000, 5_000]);
+    assert.deepEqual(delays, [20_000, 20_000]);
   }
 });
 

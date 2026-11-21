@@ -16,41 +16,41 @@ function tokens(t) {
   }
 }
 
-test('workflow polling waits through missing runs and server errors without redispatching', t => {
+test('failed status reads get ten retries at 20-second intervals without redispatching', async t => {
   tokens(t);
   const expected = 'e'.repeat(40);
-  let response = 404;
+  const delays = [];
+  const success = { head_branch: 'main', head_sha: expected, event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success' };
+  let response;
   const execute = (command, args, options) => {
     assert.equal(command, 'gh');
     if (args.includes('--paginate')) return '';
     assert.ok(args.includes('repos/' + repository + '/actions/runs/99'));
     assert.equal(args[args.indexOf('--method') + 1], 'GET');
     assert.equal(options.env.GH_TOKEN, 'test-actions-token');
-    assert.equal(options.stdio[2], 'pipe');
-    if (typeof response === 'number') {
-      throw Object.assign(new Error('GitHub API failed'), { status: 1, stderr: Buffer.from('gh: HTTP ' + response) });
-    }
+    if (response instanceof Error) throw response;
     return JSON.stringify(response);
   };
-  const client = protectedUpdateClient({ execute });
-  for (const code of [404, 500, 502, 503, 504]) {
-    response = code;
+  const client = protectedUpdateClient({ execute, sleep: async milliseconds => { delays.push(milliseconds); } });
+  for (const message of ['HTTP 401', 'HTTP 403', 'HTTP 404', 'HTTP 429', 'HTTP 500', 'HTTP 502', 'HTTP 503',
+    'HTTP 504', 'connection reset', 'request timed out']) {
+    response = new Error(message);
     assert.equal(client.workflowResult(99, expected), false);
   }
-  response = { head_branch: 'main', head_sha: expected, event: 'workflow_dispatch', status: 'queued' };
+  response = { ...success, status: 'queued' };
   assert.equal(client.workflowResult(99, expected), false);
-  response = { ...response, status: 'completed', conclusion: 'success' };
-  assert.deepEqual(client.workflowResult(99, expected), response);
+  const failure = new Error('GitHub API failed');
+  response = failure;
+  await assert.rejects(client.waitFor(() => client.workflowResult(99, expected), 'workflow run'),
+    error => error === failure);
+  assert.deepEqual(delays, Array(10).fill(20_000));
+  response = success;
+  assert.deepEqual(client.workflowResult(99, expected), success);
   for (const changed of [{ head_sha: 'f'.repeat(40) }, { head_branch: 'other' }, { event: 'pull_request' },
     { conclusion: 'failure' }, { conclusion: 'cancelled' }]) {
-    const valid = response;
-    response = { ...valid, ...changed };
+    response = { ...success, ...changed };
     assert.throws(() => client.workflowResult(99, expected));
-    response = valid;
-  }
-  for (const code of [401, 403, 429]) {
-    response = code;
-    assert.throws(() => client.workflowResult(99, expected), /GitHub API failed/);
   }
   assert.throws(() => client.workflowResult('99', expected), /workflow run ID/);
 });
