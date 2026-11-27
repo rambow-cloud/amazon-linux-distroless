@@ -76,7 +76,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: sigstore/cosign-installer@v4.1.3
+      - uses: sigstore/cosign-installer@v4.1.4
         with:
           cosign-release: v3.1.4
       - name: Verify the candidate and enforce the stable vulnerability gate
@@ -126,7 +126,7 @@ jobs:
         with:
           name: ${{ matrix.runtime }}-stable-scan
           path: out/stable-preflight
-      - uses: sigstore/cosign-installer@v4.1.3
+      - uses: sigstore/cosign-installer@v4.1.4
         with:
           cosign-release: v3.1.4
       - name: Install regctl for registry copies
